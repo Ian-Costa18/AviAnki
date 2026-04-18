@@ -17,15 +17,28 @@ CSS = """
 }
 .bird-name { font-size: 1.6em; font-weight: bold; color: #2c5f2e; margin: 12px 0 4px 0; }
 .sci-name  { font-style: italic; color: #666; font-size: 0.9em; margin-bottom: 14px; }
-.card img  {
-  max-width: 48%;
-  max-height: 200px;
-  object-fit: contain;
-  display: inline-block;
-  margin: 4px 1%;
-  border-radius: 8px;
-  vertical-align: top;
+.image-row {
+  display: flex;
+  gap: 8px;
+  margin: 8px 0;
 }
+.image-row img {
+  flex: 1;
+  width: 0;
+  height: 190px;
+  object-fit: contain;
+  background: #e8e8e4;
+  border-radius: 8px;
+}
+.audio-row {
+  display: flex;
+  gap: 12px;
+  margin: 8px 0;
+}
+.audio-item {
+  flex: 1;
+}
+.audio-item audio { width: 100%; }
 .desc-box {
   background: #f0f4f0;
   border-left: 4px solid #2c5f2e;
@@ -39,7 +52,6 @@ CSS = """
   text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px;
 }
 .divider { border-top: 1px solid #ddd; margin: 14px 0; }
-audio { width: 100%; margin: 4px 0; }
 """
 
 # Fields shared by both card templates
@@ -53,14 +65,18 @@ FIELDS = [
     {"name": "Description"},
 ]
 
+_AUDIO_ROW = """<div class="audio-row">
+  {{#Song}}<div class="audio-item"><div class="prompt-label">🎵 Song</div>{{Song}}</div>{{/Song}}
+  {{#Call}}<div class="audio-item"><div class="prompt-label">🔊 Call</div>{{Call}}</div>{{/Call}}
+</div>"""
+
 # Shared answer side: name + both images + audio + description
 _BACK = """
 <div class="card">
   <div class="bird-name">{{BirdName}}</div>
   <div class="sci-name">{{SciName}}</div>
-  {{Image1}}{{Image2}}
-  {{#Song}}<div class="prompt-label">🎵 Song</div>{{Song}}{{/Song}}
-  {{#Call}}<div class="prompt-label">🔊 Call</div>{{Call}}{{/Call}}
+  <div class="image-row">{{Image1}}{{Image2}}</div>
+  """ + _AUDIO_ROW + """
   <div class="divider"></div>
   <div class="desc-box">{{Description}}</div>
 </div>"""
@@ -71,9 +87,8 @@ TEMPLATES = [
         "qfmt": """
 <div class="card">
   <div class="prompt-label">🖼 What bird is this?</div>
-  {{Image1}}{{Image2}}
-  {{#Song}}<div class="prompt-label">🎵 Song</div>{{Song}}{{/Song}}
-  {{#Call}}<div class="prompt-label">🔊 Call</div>{{Call}}{{/Call}}
+  <div class="image-row">{{Image1}}{{Image2}}</div>
+  """ + _AUDIO_ROW + """
 </div>""",
         "afmt": _BACK,
     },
@@ -82,8 +97,7 @@ TEMPLATES = [
         "qfmt": """
 <div class="card">
   <div class="prompt-label">🔊 What bird is this?</div>
-  {{#Song}}<div class="prompt-label">Song</div>{{Song}}{{/Song}}
-  {{#Call}}<div class="prompt-label">Call</div>{{Call}}{{/Call}}
+  """ + _AUDIO_ROW + """
   <div class="divider"></div>
   <div class="desc-box">{{Description}}</div>
 </div>""",
