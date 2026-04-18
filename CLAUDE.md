@@ -52,6 +52,11 @@ The app has a single pipeline: **resolve species list → scrape media per speci
 
 **Logging:** A single `logging.Logger("bird_deck")` is used across all modules. `cli.py` configures its handlers (stdout + file). Other modules just call `log = logging.getLogger("bird_deck")`.
 
+## Coding conventions
+
+- **Use `pathlib.Path` for all filesystem operations** — never `os.path`, `os.getcwd()`, `os.makedirs()`, etc. `Path` covers everything and is already used throughout the codebase.
+- **Update `README.md` whenever CLI flags change** — the options table and examples section must stay in sync with `cli.py`.
+
 ## Key constraints
 
 - HTML parsing in `allaboutbirds.py` uses **BeautifulSoup 4** (`html.parser`). Key selectors: sci name from `div.species-info > em`; gallery photos from `<a href=".../photo-gallery/..."> > img[data-interchange]`; audio from `div.jp-jplayer[name]` paired by index with `div.jp-flat-audio[aria-label]`. Small regex expressions are still used on individual attribute values (not whole-page HTML) where structured selectors aren't practical.

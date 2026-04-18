@@ -150,65 +150,69 @@ def main() -> None:
         "location", help="allaboutbirds.org URL, Google Place ID, or eBird region code"
     )
     parser.add_argument(
-        "--limit", type=int, default=None, help="Max number of species to include"
+        "-n", "--limit", type=int, default=None, help="Max number of species to include"
     )
     parser.add_argument(
-        "--output", default=None, help="Output .apkg filename (default: auto-generated)"
+        "-o", "--output", default=None, help="Output .apkg filename (default: auto-generated)"
     )
     parser.add_argument(
-        "--deck-name", default=None, help="Override the deck name shown in Anki"
+        "-d", "--deck-name", default=None, help="Override the deck name shown in Anki"
     )
     parser.add_argument(
-        "--no-audio", action="store_true", help="Skip downloading audio clips"
+        "-A", "--no-audio", action="store_true", help="Skip downloading audio clips"
     )
     parser.add_argument(
-        "--no-images", action="store_true", help="Skip downloading images"
+        "-I", "--no-images", action="store_true", help="Skip downloading images"
     )
     parser.add_argument(
-        "--delay",
+        "-D", "--delay",
         type=float,
         default=0.5,
         help="Seconds to wait between requests (default: 0.5)",
     )
     parser.add_argument(
-        "--media-dir",
-        default=str(Path(tempfile.gettempdir()) / "avianki" / "media"),
-        help="Directory for cached media files (default: <tmp>/avianki)",
+        "-w", "--work-dir",
+        default=str(Path(tempfile.gettempdir()) / "avianki"),
+        help="Directory for cached media and logs (default: <tmp>/avianki)",
     )
     parser.add_argument(
-        "--clear-cache", action="store_true", help="Delete cached media before running"
+        "-m", "--media-dir",
+        default=None,
+        help="Directory for cached media files (default: <work-dir>/media)",
     )
     parser.add_argument(
-        "--no-cache",
+        "-e", "--ephemeral",
+        action="store_true",
+        help="Use a temporary work dir and delete it after packaging (no persistent files)",
+    )
+    parser.add_argument(
+        "-X", "--no-cache",
         action="store_true",
         help="Skip cache lookup and delete downloaded media after packaging",
     )
     parser.add_argument(
-        "--log-file",
+        "-l", "--log-file",
         default=None,
         help="Log file path (default: next to <media-dir> as avianki.log)",
     )
     verbosity = parser.add_mutually_exclusive_group()
-    verbosity.add_argument("--verbose", action="store_true", help="Show debug output")
+    verbosity.add_argument("-v", "--verbose", action="store_true", help="Show debug output")
     verbosity.add_argument(
-        "--quiet", action="store_true", help="Only show warnings and errors"
+        "-q", "--quiet", action="store_true", help="Only show warnings and errors"
     )
     args = parser.parse_args()
 
     location = args.location
-    media_dir = Path(args.media_dir)
-    media_dir.mkdir(exist_ok=True)
+    if args.ephemeral:
+        work_dir = Path(tempfile.mkdtemp(prefix="avianki_"))
+    else:
+        work_dir = Path(args.work_dir)
+    media_dir = Path(args.media_dir) if args.media_dir else work_dir / "media"
+    media_dir.mkdir(parents=True, exist_ok=True)
 
-    if args.clear_cache:
-        shutil.rmtree(media_dir)
-        media_dir.mkdir()
-
-    log_file = Path(args.log_file) if args.log_file else Path(tempfile.gettempdir()) / "avianki" / "avianki.log"
+    log_file = Path(args.log_file) if args.log_file else work_dir / "avianki.log"
     log_file.parent.mkdir(parents=True, exist_ok=True)
     fh = _setup_logging(str(log_file), args.verbose, args.quiet)
-
-    if args.clear_cache:
-        log.info("Media cache cleared.")
 
     # Determine species source: allaboutbirds URL/place ID, or eBird region code
     use_ebird = re.match(r"^[A-Z]{2}(-[A-Z]{2}(-\d+)?)?$", location.upper())
@@ -306,7 +310,9 @@ def main() -> None:
     output = args.output or f"Birds_{re.sub(r'[^A-Za-z0-9_-]', '_', deck_seed)}.apkg"
     pkg.write_to_file(output)
 
-    if args.no_cache:
+    if args.ephemeral:
+        shutil.rmtree(work_dir, ignore_errors=True)
+    elif args.no_cache:
         for p in all_media:
             p.unlink(missing_ok=True)
 
