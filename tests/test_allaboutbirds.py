@@ -1,6 +1,11 @@
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from avianki import allaboutbirds
+
+FIXTURES = Path(__file__).parent / "fixtures"
 
 
 def _mock_response(text: str, status_code: int = 200) -> MagicMock:
@@ -9,6 +14,10 @@ def _mock_response(text: str, status_code: int = 200) -> MagicMock:
     resp.status_code = status_code
     resp.raise_for_status = MagicMock()
     return resp
+
+
+def _fixture_response(name: str) -> MagicMock:
+    return _mock_response((FIXTURES / name).read_text(encoding="utf-8"))
 
 
 # ── species_slug ──────────────────────────────────────────────────────────────
@@ -21,7 +30,7 @@ def test_species_slug_no_change_when_no_spaces():
     assert allaboutbirds.species_slug("Robin") == "Robin"
 
 
-# ── fetch_browse_species ──────────────────────────────────────────────────────
+# ── fetch_browse_species (unit) ───────────────────────────────────────────────
 
 BROWSE_HTML = """
 <a href="/guide/Black-capped_Chickadee/overview">Chickadee</a>
@@ -64,35 +73,41 @@ def test_fetch_browse_species_returns_empty_on_error():
     assert result == []
 
 
-# ── slug_to_names ─────────────────────────────────────────────────────────────
+# ── fetch_browse_species (fixture) ────────────────────────────────────────────
+
+@pytest.mark.skipif(not (FIXTURES / "chickadee_browse.html").exists(), reason="fixture missing")
+def test_fetch_browse_species_real_page_has_many_species():
+    with patch("avianki.allaboutbirds.requests.get", return_value=_fixture_response("chickadee_browse.html")):
+        result = allaboutbirds.fetch_browse_species("https://example.com")
+    assert "Black-capped_Chickadee" in result
+    assert result[0] == "Black-capped_Chickadee"  # most likely species first
+    assert len(result) > 10
+
+
+# ── slug_to_names (unit) ──────────────────────────────────────────────────────
 
 NAMES_HTML = """
+<div class="species-info">
+  <span class="species-name">Black-capped Chickadee</span>
+  <em>Poecile atricapillus</em>
+</div>
 <title>Black-capped Chickadee Overview, All About Birds…</title>
-<em class="sci-name">Poecile atricapillus</em>
 """
 
 
-def test_slug_to_names_parses_title_and_sci_name():
+def test_slug_to_names_parses_common_and_sci_name():
     with patch("avianki.allaboutbirds.requests.get", return_value=_mock_response(NAMES_HTML)):
         result = allaboutbirds.slug_to_names("Black-capped_Chickadee")
     assert result["comName"] == "Black-capped Chickadee"
     assert result["sciName"] == "Poecile atricapillus"
 
 
-def test_slug_to_names_fallback_on_missing_sci_name():
+def test_slug_to_names_falls_back_to_title_for_com_name():
     html = "<title>American Robin Overview, All About Birds…</title>"
     with patch("avianki.allaboutbirds.requests.get", return_value=_mock_response(html)):
         result = allaboutbirds.slug_to_names("American_Robin")
     assert result["comName"] == "American Robin"
     assert result["sciName"] == ""
-
-
-def test_slug_to_names_uses_itemprop_fallback():
-    html = """<title>American Robin Overview, All About Birds…</title>
-    <i itemprop="name">Turdus migratorius</i>"""
-    with patch("avianki.allaboutbirds.requests.get", return_value=_mock_response(html)):
-        result = allaboutbirds.slug_to_names("American_Robin")
-    assert result["sciName"] == "Turdus migratorius"
 
 
 def test_slug_to_names_fallback_on_request_error():
@@ -102,13 +117,30 @@ def test_slug_to_names_fallback_on_request_error():
     assert result["sciName"] == ""
 
 
-# ── fetch_overview ────────────────────────────────────────────────────────────
+# ── slug_to_names (fixture) ───────────────────────────────────────────────────
+
+@pytest.mark.skipif(not (FIXTURES / "chickadee_overview.html").exists(), reason="fixture missing")
+def test_slug_to_names_real_page():
+    with patch("avianki.allaboutbirds.requests.get", return_value=_fixture_response("chickadee_overview.html")):
+        result = allaboutbirds.slug_to_names("Black-capped_Chickadee")
+    assert result["comName"] == "Black-capped Chickadee"
+    assert result["sciName"] == "Poecile atricapillus"
+
+
+# ── fetch_overview (unit) ─────────────────────────────────────────────────────
 
 OVERVIEW_HTML = """
 <meta name="description" content="The Black-capped Chickadee is a small bird.">
-<em class="sci-name">Poecile atricapillus</em>
-<img src="/guide/assets/photo/12345-480px.jpg">
-<img src="/guide/assets/photo/67890-480px.jpg">
+<div class="species-info">
+  <span class="species-name">Black-capped Chickadee</span>
+  <em>Poecile atricapillus</em>
+</div>
+<a href="/guide/photo-gallery/12345">
+  <img data-interchange="[https://www.allaboutbirds.org/guide/assets/photo/12345-240px.jpg, small]">
+</a>
+<a href="/guide/photo-gallery/67890">
+  <img data-interchange="[https://www.allaboutbirds.org/guide/assets/photo/67890-240px.jpg, small]">
+</a>
 """
 
 
@@ -131,14 +163,17 @@ def test_fetch_overview_constructs_720px_image_urls():
     assert all("720px" in url for url in result["images"])
 
 
-def test_fetch_overview_uses_itemprop_fallback_for_sci_name():
+def test_fetch_overview_excludes_non_gallery_images():
     html = """
-<meta name="description" content="A common backyard bird.">
-<i itemprop="name">Turdus migratorius</i>
+<meta name="description" content="A bird.">
+<div class="species-info"><span class="species-name">X</span><em>X x</em></div>
+<a href="/guide/maps-range">
+  <img data-interchange="[https://www.allaboutbirds.org/guide/assets/photo/99999-720px.jpg, small]">
+</a>
 """
     with patch("avianki.allaboutbirds.requests.get", return_value=_mock_response(html)):
-        result = allaboutbirds.fetch_overview("American_Robin")
-    assert result["sciName"] == "Turdus migratorius"
+        result = allaboutbirds.fetch_overview("Some_Bird")
+    assert result["images"] == []
 
 
 def test_fetch_overview_returns_empty_on_error():
@@ -148,13 +183,26 @@ def test_fetch_overview_returns_empty_on_error():
     assert result["images"] == []
 
 
-# ── fetch_sounds ──────────────────────────────────────────────────────────────
+# ── fetch_overview (fixture) ──────────────────────────────────────────────────
+
+@pytest.mark.skipif(not (FIXTURES / "chickadee_overview.html").exists(), reason="fixture missing")
+def test_fetch_overview_real_page():
+    with patch("avianki.allaboutbirds.requests.get", return_value=_fixture_response("chickadee_overview.html")):
+        result = allaboutbirds.fetch_overview("Black-capped_Chickadee")
+    assert result["sciName"] == "Poecile atricapillus"
+    assert len(result["desc"]) > 50
+    assert len(result["images"]) == 2
+    assert all("720px" in url for url in result["images"])
+    assert all("photo-gallery" not in url for url in result["images"])
+
+
+# ── fetch_sounds (unit) ───────────────────────────────────────────────────────
 
 SOUNDS_HTML = """
-<div name="https://www.allaboutbirds.org/guide/assets/sound/111.mp3"
-     class="jp-flat-audio" aria-label="Call - chick-a-dee"></div>
-<div name="https://www.allaboutbirds.org/guide/assets/sound/222.mp3"
-     class="jp-flat-audio" aria-label="Song - fee-bee"></div>
+<div class="jp-jplayer player-audio" name="https://www.allaboutbirds.org/guide/assets/sound/111.mp3"></div>
+<div class="jp-flat-audio" aria-label="Calls"></div>
+<div class="jp-jplayer player-audio" name="https://www.allaboutbirds.org/guide/assets/sound/222.mp3"></div>
+<div class="jp-flat-audio" aria-label="Song"></div>
 """
 
 
@@ -177,3 +225,14 @@ def test_fetch_sounds_returns_empty_on_error():
     with patch("avianki.allaboutbirds.requests.get", side_effect=ConnectionError("down")):
         result = allaboutbirds.fetch_sounds("Black-capped_Chickadee")
     assert result == {"calls": [], "songs": []}
+
+
+# ── fetch_sounds (fixture) ────────────────────────────────────────────────────
+
+@pytest.mark.skipif(not (FIXTURES / "chickadee_sounds.html").exists(), reason="fixture missing")
+def test_fetch_sounds_real_page():
+    with patch("avianki.allaboutbirds.requests.get", return_value=_fixture_response("chickadee_sounds.html")):
+        result = allaboutbirds.fetch_sounds("Black-capped_Chickadee")
+    assert len(result["songs"]) > 0
+    assert len(result["calls"]) > 0
+    assert all(url.endswith(".mp3") for url in result["songs"] + result["calls"])

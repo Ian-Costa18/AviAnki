@@ -54,6 +54,6 @@ The app has a single pipeline: **resolve species list → scrape media per speci
 
 ## Key constraints
 
-- All HTML parsing uses `re` — there is no BeautifulSoup dependency. Regex patterns are tightly coupled to allaboutbirds.org page structure and will break if the site changes.
+- HTML parsing in `allaboutbirds.py` uses **BeautifulSoup 4** (`html.parser`). Key selectors: sci name from `div.species-info > em`; gallery photos from `<a href=".../photo-gallery/..."> > img[data-interchange]`; audio from `div.jp-jplayer[name]` paired by index with `div.jp-flat-audio[aria-label]`. Small regex expressions are still used on individual attribute values (not whole-page HTML) where structured selectors aren't practical.
 - `ffmpeg` must be on `PATH` for audio trimming; `media.trim_to_mp3()` will return `False` if it isn't.
 - `EBIRD_API_KEY` is only required for eBird region codes; allaboutbirds.org URLs and Place IDs work without it.
