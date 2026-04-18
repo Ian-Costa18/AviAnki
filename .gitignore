@@ -1,0 +1,22 @@
+### CUSTOM ###
+
+media/**
+.env
+birds.json
+*.apkg*
+*.log
+
+.claude
+.vscode
+
+### GENERATED ###
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
