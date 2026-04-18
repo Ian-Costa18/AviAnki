@@ -12,29 +12,29 @@ def test_find_cached_returns_none_when_missing(tmp_media_dir):
 
 
 def test_find_cached_returns_filename_when_exists(tmp_media_dir):
-    (open(f"{tmp_media_dir}/bird_robin.mp3", "wb")).close()
+    (tmp_media_dir / "bird_robin.mp3").touch()
     result = media.find_cached(tmp_media_dir, "bird_robin", [".mp3", ".wav"])
     assert result == "bird_robin.mp3"
 
 
 def test_find_cached_returns_first_matching_ext(tmp_media_dir):
-    (open(f"{tmp_media_dir}/bird_robin.wav", "wb")).close()
+    (tmp_media_dir / "bird_robin.wav").touch()
     result = media.find_cached(tmp_media_dir, "bird_robin", [".mp3", ".wav"])
     assert result == "bird_robin.wav"
 
 
 def test_find_cached_image_matches_jpg(tmp_media_dir):
-    (open(f"{tmp_media_dir}/bird_robin_img1.jpg", "wb")).close()
+    (tmp_media_dir / "bird_robin_img1.jpg").touch()
     assert media.find_cached_image(tmp_media_dir, "bird_robin_img1") == "bird_robin_img1.jpg"
 
 
 def test_find_cached_audio_matches_mp3(tmp_media_dir):
-    (open(f"{tmp_media_dir}/bird_robin_call.mp3", "wb")).close()
+    (tmp_media_dir / "bird_robin_call.mp3").touch()
     assert media.find_cached_audio(tmp_media_dir, "bird_robin_call") == "bird_robin_call.mp3"
 
 
 def test_download_file_success(tmp_path):
-    dest = str(tmp_path / "file.mp3")
+    dest = tmp_path / "file.mp3"
     mock_resp = MagicMock()
     mock_resp.content = b"audio data"
     mock_resp.raise_for_status = MagicMock()
@@ -43,11 +43,11 @@ def test_download_file_success(tmp_path):
         result = media.download_file("http://example.com/file.mp3", dest)
 
     assert result is True
-    assert open(dest, "rb").read() == b"audio data"
+    assert dest.read_bytes() == b"audio data"
 
 
 def test_download_file_returns_false_on_http_error(tmp_path):
-    dest = str(tmp_path / "file.mp3")
+    dest = tmp_path / "file.mp3"
     mock_resp = MagicMock()
     mock_resp.raise_for_status.side_effect = requests.HTTPError("404")
 
@@ -58,7 +58,7 @@ def test_download_file_returns_false_on_http_error(tmp_path):
 
 
 def test_download_file_returns_false_on_exception(tmp_path):
-    dest = str(tmp_path / "file.mp3")
+    dest = tmp_path / "file.mp3"
     with patch("avianki.media.requests.get", side_effect=ConnectionError("no network")):
         result = media.download_file("http://example.com/file.mp3", dest)
 
@@ -66,8 +66,8 @@ def test_download_file_returns_false_on_exception(tmp_path):
 
 
 def test_trim_to_mp3_success(tmp_path):
-    src = str(tmp_path / "src.mp3")
-    dst = str(tmp_path / "dst.mp3")
+    src = tmp_path / "src.mp3"
+    dst = tmp_path / "dst.mp3"
     mock_result = MagicMock()
     mock_result.returncode = 0
 
@@ -77,13 +77,13 @@ def test_trim_to_mp3_success(tmp_path):
     assert result is True
     args = mock_run.call_args[0][0]
     assert args[0] == "ffmpeg"
-    assert src in args
-    assert dst in args
+    assert str(src) in args
+    assert str(dst) in args
 
 
 def test_trim_to_mp3_failure(tmp_path):
-    src = str(tmp_path / "src.mp3")
-    dst = str(tmp_path / "dst.mp3")
+    src = tmp_path / "src.mp3"
+    dst = tmp_path / "dst.mp3"
     mock_result = MagicMock()
     mock_result.returncode = 1
 
@@ -94,8 +94,8 @@ def test_trim_to_mp3_failure(tmp_path):
 
 
 def test_trim_to_mp3_timeout(tmp_path):
-    src = str(tmp_path / "src.mp3")
-    dst = str(tmp_path / "dst.mp3")
+    src = tmp_path / "src.mp3"
+    dst = tmp_path / "dst.mp3"
 
     with patch("avianki.media.subprocess.run", side_effect=subprocess.TimeoutExpired("ffmpeg", 30)):
         result = media.trim_to_mp3(src, dst)

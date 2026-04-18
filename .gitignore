@@ -1,13 +1,16 @@
 ### CUSTOM ###
 
 media/**
+tests/tmp/
+tests/media/
 .env
 birds.json
 *.apkg*
 *.log
 
 .claude
-.vscode
+.vscode/*
+!.vscode/settings.json
 
 # Coverage
 .coverage

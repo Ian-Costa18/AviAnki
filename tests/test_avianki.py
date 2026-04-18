@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from avianki import cli as avianki
@@ -36,15 +36,15 @@ def test_get_audio_uses_cache_when_available(tmp_media_dir, sample_sounds_dict):
     mock_dl.assert_not_called()
     assert field == "[sound:bird_Robin_call.mp3]"
     assert len(paths) == 1
-    assert paths[0].endswith("bird_Robin_call.mp3")
+    assert paths[0].name == "bird_Robin_call.mp3"
 
 
 def test_get_audio_downloads_when_not_cached(tmp_media_dir, sample_sounds_dict):
     with patch("avianki.media.find_cached_audio", return_value=None), \
          patch("avianki.media.download_file", return_value=True) as mock_dl, \
          patch("avianki.media.trim_to_mp3", return_value=True), \
-         patch("avianki.cli.os.remove"), \
-         patch("avianki.cli.os.path.getsize", return_value=1024):
+         patch("pathlib.Path.unlink"), \
+         patch("pathlib.Path.stat", return_value=MagicMock(st_size=1024)):
         field, paths = avianki._get_audio(sample_sounds_dict, "call", "Robin", tmp_media_dir)
 
     mock_dl.assert_called_once()
@@ -87,7 +87,7 @@ def test_get_images_downloads_when_not_cached(tmp_media_dir):
     urls = ["http://example.com/bird.jpg", "http://example.com/bird2.jpg"]
     with patch("avianki.media.find_cached_image", return_value=None), \
          patch("avianki.media.download_file", return_value=True) as mock_dl, \
-         patch("avianki.cli.os.path.getsize", return_value=2048), \
+         patch("pathlib.Path.stat", return_value=MagicMock(st_size=2048)), \
          patch("avianki.cli.time.sleep"):
         fields, paths = avianki._get_images(urls, "Robin", tmp_media_dir)
 
@@ -107,7 +107,7 @@ def test_get_images_pads_to_two_entries_when_one_url(tmp_media_dir):
     urls = ["http://example.com/bird.jpg"]
     with patch("avianki.media.find_cached_image", return_value=None), \
          patch("avianki.media.download_file", return_value=True), \
-         patch("avianki.cli.os.path.getsize", return_value=1024), \
+         patch("pathlib.Path.stat", return_value=MagicMock(st_size=1024)), \
          patch("avianki.cli.time.sleep"):
         fields, paths = avianki._get_images(urls, "Robin", tmp_media_dir)
 

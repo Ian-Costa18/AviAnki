@@ -86,6 +86,7 @@ uvx avianki US-MA-017   # county level
 | `--no-audio`          | Skip downloading call and song audio                           |
 | `--no-images`         | Skip downloading photos                                        |
 | `--delay SECONDS`     | Wait between requests in seconds (default: `0.5`)              |
+| `--media-dir DIR`     | Directory for cached media files (default: `media/`)           |
 | `--clear-cache`       | Delete previously downloaded media before running              |
 | `--log-file FILE`     | Log file path (default: `avianki.log`)                         |
 | `--verbose`           | Show debug-level output in the console                         |
@@ -117,7 +118,7 @@ uvx avianki US-MA --delay 1.5
 
 An `.apkg` file is written to the current directory (e.g. `Birds_US_MA.apkg`). Import it into Anki via **File → Import**.
 
-Downloaded images and audio are cached in `media/` so re-runs skip already-fetched files.
+Downloaded images and audio are cached in `media/` (or the directory set by `--media-dir`) so re-runs skip already-fetched files.
 
 ## Notes
 

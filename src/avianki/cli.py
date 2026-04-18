@@ -23,6 +23,7 @@ import re
 import shutil
 import sys
 import time
+from pathlib import Path
 
 import genanki
 from dotenv import load_dotenv
@@ -68,8 +69,8 @@ def _safe_name(com_name: str) -> str:
 
 
 def _get_audio(
-    sounds: dict, kind: str, safe: str, media_dir: str
-) -> tuple[str, list[str]]:
+    sounds: dict, kind: str, safe: str, media_dir: Path
+) -> tuple[str, list[Path]]:
     """
     Download, trim, and cache one audio clip (call or song).
     Returns ([sound:file] field value, [absolute path]) tuple.
@@ -78,20 +79,20 @@ def _get_audio(
     cached = media.find_cached_audio(media_dir, base)
     if cached:
         log.info("  ✓ %s (cached)", kind)
-        return f"[sound:{cached}]", [os.path.join(media_dir, cached)]
+        return f"[sound:{cached}]", [media_dir / cached]
 
     urls = sounds.get(kind + "s", [])  # "calls" or "songs"
     if not urls:
         log.warning("  no %s audio found", kind)
         return "", []
 
-    raw_path = os.path.join(media_dir, f"{base}_raw.mp3")
+    raw_path = media_dir / f"{base}_raw.mp3"
     out_file = f"{base}.mp3"
-    out_path = os.path.join(media_dir, out_file)
+    out_path = media_dir / out_file
 
     if media.download_file(urls[0], raw_path) and media.trim_to_mp3(raw_path, out_path):
-        os.remove(raw_path)
-        log.info("  ✓ %s  %.1f KB", kind, os.path.getsize(out_path) / 1024)
+        raw_path.unlink()
+        log.info("  ✓ %s  %.1f KB", kind, out_path.stat().st_size / 1024)
         return f"[sound:{out_file}]", [out_path]
 
     log.warning("  %s download/trim failed", kind)
@@ -99,8 +100,8 @@ def _get_audio(
 
 
 def _get_images(
-    img_urls: list[str], safe: str, media_dir: str
-) -> tuple[list[str], list[str]]:
+    img_urls: list[str], safe: str, media_dir: Path
+) -> tuple[list[str], list[Path]]:
     """
     Download and cache up to 2 images.
     Returns (img_fields, media_paths) where img_fields are '<img src="...">' strings.
@@ -109,18 +110,18 @@ def _get_images(
     media_paths = []
 
     for idx, img_url in enumerate(img_urls, 1):
-        ext = os.path.splitext(img_url.split("?")[0])[1].lower() or ".jpg"
+        ext = Path(img_url.split("?")[0]).suffix.lower() or ".jpg"
         img_base = f"bird_{safe}_img{idx}"
         cached = media.find_cached_image(media_dir, img_base)
         if cached:
             log.info("  ✓ image %d (cached)", idx)
             img_fields.append(f'<img src="{cached}">')
-            media_paths.append(os.path.join(media_dir, cached))
+            media_paths.append(media_dir / cached)
         else:
             img_file = img_base + ext
-            img_path = os.path.join(media_dir, img_file)
+            img_path = media_dir / img_file
             if media.download_file(img_url, img_path):
-                log.info("  ✓ image %d  %.1f KB", idx, os.path.getsize(img_path) / 1024)
+                log.info("  ✓ image %d  %.1f KB", idx, img_path.stat().st_size / 1024)
                 img_fields.append(f'<img src="{img_file}">')
                 media_paths.append(img_path)
             time.sleep(0.5)
@@ -167,6 +168,9 @@ def main() -> None:
         "--delay", type=float, default=0.5, help="Seconds to wait between requests (default: 0.5)"
     )
     parser.add_argument(
+        "--media-dir", default="media", help="Directory for cached media files (default: media)"
+    )
+    parser.add_argument(
         "--clear-cache", action="store_true", help="Delete cached media before running"
     )
     parser.add_argument(
@@ -180,12 +184,12 @@ def main() -> None:
     fh = _setup_logging(args.log_file, args.verbose, args.quiet)
 
     location = args.location
-    media_dir = "media"
-    os.makedirs(media_dir, exist_ok=True)
+    media_dir = Path(args.media_dir)
+    media_dir.mkdir(exist_ok=True)
 
     if args.clear_cache:
         shutil.rmtree(media_dir)
-        os.makedirs(media_dir)
+        media_dir.mkdir()
         log.info("Media cache cleared.")
 
     # Determine species source: allaboutbirds URL/place ID, or eBird region code
@@ -213,7 +217,7 @@ def main() -> None:
 
     deck_id = int(hashlib.md5(deck_seed.encode()).hexdigest()[:8], 16)
     deck = genanki.Deck(deck_id, deck_name)
-    all_media = []
+    all_media: list[Path] = []
     skipped = 0
 
     for slug in slugs:
@@ -274,7 +278,7 @@ def main() -> None:
         deck.add_note(note)
 
     pkg = genanki.Package(deck)
-    pkg.media_files = all_media
+    pkg.media_files = [str(p) for p in all_media]
     output = args.output or f"Birds_{re.sub(r'[^A-Za-z0-9_-]', '_', deck_seed)}.apkg"
     pkg.write_to_file(output)
 
