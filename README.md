@@ -13,6 +13,20 @@ Each species generates two card types:
 - **Photo → Name** — given two photos and audio, identify the bird
 - **Description → Name** — given audio and a written description, identify the bird
 
+## Card examples
+
+**Photo → Name** — identify the bird from photos and audio:
+
+![Photo → Name front](examples/american_robin_picture_name_front.png)
+
+**Description → Name** — identify the bird from audio and a redacted description:
+
+![Description → Name front](examples/american_robin_description_name_front.png)
+
+**Answer** — reveals the name, scientific name, photos, audio, and full description:
+
+![Answer](examples/american_robin_picture_name_back.png)
+
 ## Prerequisites
 
 - **[uv](https://docs.astral.sh/uv/)** — for running and installing

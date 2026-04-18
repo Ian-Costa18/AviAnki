@@ -20,6 +20,7 @@ uv run avianki --help                          # verify the CLI works
 uv run avianki US-MA --limit 3                # quick smoke test (requires EBIRD_API_KEY)
 uv run pytest                                             # run all tests
 uv run pytest --integration --cov=avianki --cov-report=html  # coverage including integration test with HTML report
+uv run python scripts/gen_previews.py          # regenerate examples/ card previews (needs network; media cached by integration test)
 uv run ruff check src/ tests/                  # lint
 uv run ty check src/                           # type check
 ```
