@@ -67,6 +67,45 @@ def _safe_name(com_name: str) -> str:
     return re.sub(r"[^A-Za-z0-9_]", "_", com_name)
 
 
+def _pluralize(word: str) -> str:
+    low = word.lower()
+    if low.endswith("mouse"):
+        return word[:-5] + "mice"
+    if low.endswith("goose"):
+        return word[:-5] + "geese"
+    if low.endswith(("ch", "sh", "x", "s", "z")):
+        return word + "es"
+    return word + "s"
+
+
+def _redact_name(desc: str, com_name: str) -> str:
+    """Replace the bird's common name (and variants) with 'this/these bird(s)'."""
+    parts = com_name.split()
+    last = parts[-1]
+    plural_full = _pluralize(com_name)
+    plural_last = _pluralize(last)
+    replacements: dict[str, str] = {
+        com_name.lower(): "this bird",
+        plural_full.lower(): "these birds",
+        last.lower(): "this bird",
+        plural_last.lower(): "these birds",
+    }
+    seen: set[str] = set()
+    candidates: list[str] = []
+    for c in [com_name, plural_full, last, plural_last]:
+        if c.lower() not in seen:
+            seen.add(c.lower())
+            candidates.append(c)
+    candidates.sort(key=len, reverse=True)
+    pattern = r"\b(" + "|".join(re.escape(c) for c in candidates) + r")\b"
+
+    def _replace(m: re.Match[str]) -> str:
+        rep = replacements[m.group(0).lower()]
+        return rep[0].upper() + rep[1:] if m.group(0)[0].isupper() else rep
+
+    return re.sub(pattern, _replace, desc, flags=re.IGNORECASE)
+
+
 def _get_audio(
     sounds: dict, kind: str, safe: str, media_dir: Path, no_cache: bool = False
 ) -> tuple[str, list[Path]]:
@@ -290,6 +329,7 @@ def main() -> None:
         else:
             call_field, song_field = "", ""
 
+        desc = overview["desc"]
         note = genanki.Note(
             model=anki_model.MODEL,
             fields=[
@@ -299,7 +339,8 @@ def main() -> None:
                 img_fields[1],
                 call_field,
                 song_field,
-                overview["desc"],
+                desc,
+                _redact_name(desc, name),
             ],
             guid=genanki.guid_for(deck_seed, name, "v1"),
         )

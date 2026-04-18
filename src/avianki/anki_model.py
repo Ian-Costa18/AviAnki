@@ -58,11 +58,12 @@ CSS = """
 FIELDS = [
     {"name": "BirdName"},
     {"name": "SciName"},
-    {"name": "Image1"},    # <img src="..."> or ""
-    {"name": "Image2"},    # <img src="..."> or ""
-    {"name": "Call"},      # [sound:...] or ""
-    {"name": "Song"},      # [sound:...] or ""
+    {"name": "Image1"},              # <img src="..."> or ""
+    {"name": "Image2"},              # <img src="..."> or ""
+    {"name": "Call"},                # [sound:...] or ""
+    {"name": "Song"},                # [sound:...] or ""
     {"name": "Description"},
+    {"name": "DescriptionRedacted"}, # bird name replaced with [...]
 ]
 
 _AUDIO_ROW = """<div class="audio-row">
@@ -99,7 +100,7 @@ TEMPLATES = [
   <div class="prompt-label">🔊 What bird is this?</div>
   """ + _AUDIO_ROW + """
   <div class="divider"></div>
-  <div class="desc-box">{{Description}}</div>
+  <div class="desc-box">{{DescriptionRedacted}}</div>
 </div>""",
         "afmt": _BACK,
     },
@@ -111,7 +112,7 @@ def _stable_id(seed: str) -> int:
 
 
 MODEL = genanki.Model(
-    _stable_id("BirdDeck_Model_v2"),
+    _stable_id("BirdDeck_Model_v3"),
     "Bird ID",
     fields=FIELDS,
     templates=TEMPLATES,

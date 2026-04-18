@@ -15,7 +15,7 @@ def test_stable_id_is_int():
 
 def test_model_has_correct_fields():
     field_names = [f["name"] for f in anki_model.FIELDS]
-    assert field_names == ["BirdName", "SciName", "Image1", "Image2", "Call", "Song", "Description"]
+    assert field_names == ["BirdName", "SciName", "Image1", "Image2", "Call", "Song", "Description", "DescriptionRedacted"]
 
 
 def test_model_has_two_templates():
