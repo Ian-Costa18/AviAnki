@@ -1,4 +1,4 @@
-# Merlin Anki
+# Anki Build Bird Deck
 
 Builds Anki flashcard decks for learning to identify birds by sight and sound. Cards are sourced from [allaboutbirds.org](https://www.allaboutbirds.org) and include photos, call/song audio, and species descriptions.
 
