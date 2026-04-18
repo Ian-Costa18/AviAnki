@@ -35,22 +35,28 @@ import media
 load_dotenv()
 
 # ─── Logging ──────────────────────────────────────────────────────────────────
-LOG_FILE = "build_bird_deck.log"
 _fmt = logging.Formatter("%(asctime)s %(levelname)-7s %(message)s", datefmt="%H:%M:%S")
 log = logging.getLogger("bird_deck")
 log.handlers.clear()  # avoid duplicate handlers if rerun in same Python session
 log.setLevel(logging.DEBUG)
 log.propagate = False
 
-_fh = logging.FileHandler(LOG_FILE, encoding="utf-8", mode="w")
-_fh.setFormatter(_fmt)
-_fh.setLevel(logging.DEBUG)
-log.addHandler(_fh)
-
 _sh = logging.StreamHandler(sys.stdout)
 _sh.setFormatter(_fmt)
 _sh.setLevel(logging.INFO)
 log.addHandler(_sh)
+
+
+def _setup_logging(log_file: str, verbose: bool, quiet: bool) -> logging.FileHandler:
+    fh = logging.FileHandler(log_file, encoding="utf-8", mode="w")
+    fh.setFormatter(_fmt)
+    fh.setLevel(logging.DEBUG)
+    log.addHandler(fh)
+    if verbose:
+        _sh.setLevel(logging.DEBUG)
+    elif quiet:
+        _sh.setLevel(logging.WARNING)
+    return fh
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -146,9 +152,32 @@ def main() -> None:
         "--limit", type=int, default=None, help="Max number of species to include"
     )
     parser.add_argument(
+        "--output", default=None, help="Output .apkg filename (default: auto-generated)"
+    )
+    parser.add_argument(
+        "--deck-name", default=None, help="Override the deck name shown in Anki"
+    )
+    parser.add_argument(
+        "--no-audio", action="store_true", help="Skip downloading audio clips"
+    )
+    parser.add_argument(
+        "--no-images", action="store_true", help="Skip downloading images"
+    )
+    parser.add_argument(
+        "--delay", type=float, default=0.5, help="Seconds to wait between requests (default: 0.5)"
+    )
+    parser.add_argument(
         "--clear-cache", action="store_true", help="Delete cached media before running"
     )
+    parser.add_argument(
+        "--log-file", default="build_bird_deck.log", help="Log file path (default: build_bird_deck.log)"
+    )
+    verbosity = parser.add_mutually_exclusive_group()
+    verbosity.add_argument("--verbose", action="store_true", help="Show debug output")
+    verbosity.add_argument("--quiet", action="store_true", help="Only show warnings and errors")
     args = parser.parse_args()
+
+    fh = _setup_logging(args.log_file, args.verbose, args.quiet)
 
     location = args.location
     media_dir = "media"
@@ -169,12 +198,12 @@ def main() -> None:
         raw = ebird.fetch_species(region, limit=args.limit)
         slugs = [allaboutbirds.species_slug(b["comName"]) for b in raw]
         names = {allaboutbirds.species_slug(b["comName"]): b for b in raw}
-        deck_name = f"Birds – {region}"
+        deck_name = args.deck_name or f"Birds – {region}"
         deck_seed = region
     else:
         slugs = allaboutbirds.fetch_browse_species(location, limit=args.limit)
         names = {}  # resolved lazily from each overview page
-        deck_name = "Birds – Local"
+        deck_name = args.deck_name or "Birds – Local"
         deck_seed = location
 
     if not slugs:
@@ -203,25 +232,30 @@ def main() -> None:
         if not overview["desc"] and not overview["images"]:
             log.warning("  no allaboutbirds page found — skipping")
             skipped += 1
-            time.sleep(0.5)
+            time.sleep(args.delay)
             continue
 
         if not sci:
             sci = overview.get("sciName", "")
 
-        img_fields, img_paths = _get_images(overview["images"], safe, media_dir)
-        all_media.extend(img_paths)
+        if not args.no_images:
+            img_fields, img_paths = _get_images(overview["images"], safe, media_dir)
+            all_media.extend(img_paths)
+        else:
+            img_fields = ["", ""]
 
-        time.sleep(0.5)
-        sounds = allaboutbirds.fetch_sounds(slug)
+        time.sleep(args.delay)
 
-        call_field, call_paths = _get_audio(sounds, "call", safe, media_dir)
-        all_media.extend(call_paths)
-        time.sleep(0.5)
-
-        song_field, song_paths = _get_audio(sounds, "song", safe, media_dir)
-        all_media.extend(song_paths)
-        time.sleep(0.5)
+        if not args.no_audio:
+            sounds = allaboutbirds.fetch_sounds(slug)
+            call_field, call_paths = _get_audio(sounds, "call", safe, media_dir)
+            all_media.extend(call_paths)
+            time.sleep(args.delay)
+            song_field, song_paths = _get_audio(sounds, "song", safe, media_dir)
+            all_media.extend(song_paths)
+            time.sleep(args.delay)
+        else:
+            call_field, song_field = "", ""
 
         note = genanki.Note(
             model=anki_model.MODEL,
@@ -240,7 +274,7 @@ def main() -> None:
 
     pkg = genanki.Package(deck)
     pkg.media_files = all_media
-    output = f"Birds_{re.sub(r'[^A-Za-z0-9]', '_', deck_seed[:30])}.apkg"
+    output = args.output or f"Birds_{re.sub(r'[^A-Za-z0-9]', '_', deck_seed[:30])}.apkg"
     pkg.write_to_file(output)
 
     log.info("✅  Saved → %s", output)
@@ -253,8 +287,8 @@ def main() -> None:
     )
     log.info("    File > Import > %s", output)
 
-    _fh.close()
-    log.removeHandler(_fh)
+    fh.close()
+    log.removeHandler(fh)
 
 
 if __name__ == "__main__":

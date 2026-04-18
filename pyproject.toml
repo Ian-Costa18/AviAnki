@@ -1,6 +1,6 @@
 [project]
 name = "anki-build-bird-deck"
-version = "0.1.0"
+version = "0.1.1"
 description = "Build Anki flashcard decks for bird identification from allaboutbirds.org"
 readme = "README.md"
 requires-python = ">=3.10"

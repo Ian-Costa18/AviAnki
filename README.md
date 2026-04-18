@@ -44,7 +44,7 @@ An eBird API key is only required if using an eBird region code as the location.
 ## Usage
 
 ```bash
-uv run python build_bird_deck.py LOCATION [--limit N] [--clear-cache]
+uv run python build_bird_deck.py LOCATION [OPTIONS]
 ```
 
 ### Location formats
@@ -77,10 +77,18 @@ uv run python build_bird_deck.py US-MA-017   # county level
 
 ### Options
 
-| Flag            | Description                                      |
-| --------------- | ------------------------------------------------ |
-| `--limit N`     | Cap the number of species (useful for testing)   |
-| `--clear-cache` | Delete previously downloaded media before running |
+| Flag                  | Description                                                    |
+| --------------------- | -------------------------------------------------------------- |
+| `--limit N`           | Cap the number of species (useful for testing)                 |
+| `--output FILE`       | Output `.apkg` path (default: auto-generated from location)    |
+| `--deck-name NAME`    | Override the deck name shown in Anki                           |
+| `--no-audio`          | Skip downloading call and song audio                           |
+| `--no-images`         | Skip downloading photos                                        |
+| `--delay SECONDS`     | Wait between requests in seconds (default: `0.5`)              |
+| `--clear-cache`       | Delete previously downloaded media before running              |
+| `--log-file FILE`     | Log file path (default: `build_bird_deck.log`)                 |
+| `--verbose`           | Show debug-level output in the console                         |
+| `--quiet`             | Only show warnings and errors in the console                   |
 
 ### Examples
 
@@ -93,6 +101,15 @@ uv run python build_bird_deck.py US-MA --clear-cache
 
 # Quick test with 5 species
 uv run python build_bird_deck.py US-MA --limit 5
+
+# Custom output path and deck name
+uv run python build_bird_deck.py US-MA --output ~/Desktop/MyBirds.apkg --deck-name "My Birds"
+
+# Images only, no audio
+uv run python build_bird_deck.py US-MA --no-audio
+
+# Be polite to the server
+uv run python build_bird_deck.py US-MA --delay 1.5
 ```
 
 ## Output
