@@ -26,7 +26,7 @@ brew install ffmpeg
 ## Installation
 
 ```bash
-git clone https://github.com/yourname/merlin-anki.git
+git clone https://github.com/Ian-Costa18/Anki-Build-Bird-Deck.git
 cd merlin-anki
 uv sync
 ```
