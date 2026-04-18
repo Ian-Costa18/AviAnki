@@ -44,7 +44,7 @@ An eBird API key is only required if using an eBird region code as the location.
 ## Usage
 
 ```bash
-uv run python build_bird_deck.py LOCATION [OPTIONS]
+uv run build_bird_deck.py LOCATION [OPTIONS]
 ```
 
 ### Location formats
@@ -57,13 +57,13 @@ uv run python build_bird_deck.py LOCATION [OPTIONS]
 4. Click **Browse**, then copy the URL from your browser's address bar
 
 ```bash
-uv run python build_bird_deck.py "https://www.allaboutbirds.org/guide/browse/filter/loc/ChIJGzE9DS1l44kRoOhiASS_fHg/date/all/behavior/all/size/all/colors/all/sort/score/view/list-view"
+uv run build_bird_deck.py "https://www.allaboutbirds.org/guide/browse/filter/loc/ChIJGzE9DS1l44kRoOhiASS_fHg/date/all/behavior/all/size/all/colors/all/sort/score/view/list-view"
 ```
 
 **Google Place ID** (shorthand for the above):
 
 ```bash
-uv run python build_bird_deck.py ChIJGzE9DS1l44kRoOhiASS_fHg
+uv run build_bird_deck.py ChIJGzE9DS1l44kRoOhiASS_fHg
 ```
 
 Find a Place ID at [developers.google.com/maps/documentation/javascript/examples/places-placeid-finder](https://developers.google.com/maps/documentation/javascript/examples/places-placeid-finder).
@@ -71,8 +71,8 @@ Find a Place ID at [developers.google.com/maps/documentation/javascript/examples
 **eBird region code** (species in taxonomic order, requires API key):
 
 ```bash
-uv run python build_bird_deck.py US-MA
-uv run python build_bird_deck.py US-MA-017   # county level
+uv run build_bird_deck.py US-MA
+uv run build_bird_deck.py US-MA-017   # county level
 ```
 
 ### Options
@@ -94,22 +94,22 @@ uv run python build_bird_deck.py US-MA-017   # county level
 
 ```bash
 # Build a deck for your area (recommended approach)
-uv run python build_bird_deck.py "https://www.allaboutbirds.org/guide/browse/..." --limit 50
+uv run build_bird_deck.py "https://www.allaboutbirds.org/guide/browse/..." --limit 50
 
 # Re-download all media from scratch
-uv run python build_bird_deck.py US-MA --clear-cache
+uv run build_bird_deck.py US-MA --clear-cache
 
 # Quick test with 5 species
-uv run python build_bird_deck.py US-MA --limit 5
+uv run build_bird_deck.py US-MA --limit 5
 
 # Custom output path and deck name
-uv run python build_bird_deck.py US-MA --output ~/Desktop/MyBirds.apkg --deck-name "My Birds"
+uv run build_bird_deck.py US-MA --output ~/Desktop/MyBirds.apkg --deck-name "My Birds"
 
 # Images only, no audio
-uv run python build_bird_deck.py US-MA --no-audio
+uv run build_bird_deck.py US-MA --no-audio
 
 # Be polite to the server
-uv run python build_bird_deck.py US-MA --delay 1.5
+uv run build_bird_deck.py US-MA --delay 1.5
 ```
 
 ## Output
