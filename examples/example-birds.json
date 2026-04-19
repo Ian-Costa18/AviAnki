@@ -31,5 +31,27 @@
     ],
     "call": "bird_American_Herring_Gull_call.mp3",
     "song": null
+  },
+  {
+    "name": "Black-bellied Whistling-Duck",
+    "sci_name": "Dendrocygna autumnalis",
+    "description": "The Black-bellied Whistling-Duck is a boisterous duck with a brilliant pink bill and an unusual, long-legged silhouette. In places like Texas and Louisiana, watch for noisy flocks of these gaudy ducks dropping into fields to forage on seeds, or loafing on golf course ponds. Listen for them, too—these ducks really do have a whistle for their call. Common south of the U.S., Black-bellied Whistling-Ducks occur in several southern states and are expanding northward.",
+    "images": [
+      "bird_Black_bellied_Whistling_Duck_img1.jpg",
+      "bird_Black_bellied_Whistling_Duck_img2.jpg"
+    ],
+    "call": "bird_Black_bellied_Whistling_Duck_call.mp3",
+    "song": null
+  },
+  {
+    "name": "Fulvous Whistling-Duck",
+    "sci_name": "Dendrocygna bicolor",
+    "description": "Whistling-ducks are a distinctive group of about 8 species of brightly colored, oddly proportioned waterfowl. The Fulvous Whistling-Duck is a mix of rich caramel-brown and black, a long-legged and long-necked creature found in warm freshwater marshes across the Americas, Africa, and Asia. In the United States they are rarely found far from rice fields, which provide both food and an optimal water depth for these gangly birds to forage in. They often roost in trees and were once known as “tree ducks.”",
+    "images": [
+      "bird_Fulvous_Whistling_Duck_img1.jpg",
+      "bird_Fulvous_Whistling_Duck_img2.jpg"
+    ],
+    "call": "bird_Fulvous_Whistling_Duck_call.mp3",
+    "song": null
   }
 ]

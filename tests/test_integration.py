@@ -6,6 +6,7 @@ Run with:  uv run pytest --integration
 Skipped by default to avoid network access in normal test runs.
 """
 
+import json
 import shutil
 import sqlite3
 import sys
@@ -20,6 +21,8 @@ PLACE_ID = "ChIJGzE9DS1l44kRoOhiASS_fHg"
 EXPECTED_BIRDS = ["House Sparrow", "American Robin", "American Herring Gull"]
 EXPECTED_MEDIA_COUNT = 11  # 2 img + 1 call + 1 song per bird, except Herring Gull has no song
 
+EBIRD_REGION = "US-MA"
+EBIRD_EXPECTED_LIMIT = 3
 
 TMP_DIR = Path(__file__).parent / "tmp"
 MEDIA_DIR = Path(__file__).parent / "media"
@@ -33,6 +36,7 @@ def test_place_id_deck_end_to_end():
     sys.argv = [
         "avianki", PLACE_ID,
         "--limit", "3",
+        "--deck-name", f"AviAnki - Integration Test {PLACE_ID}",
         "--output", str(apkg),
         "--media-dir", str(MEDIA_DIR),
         "--json-file", str(TMP_DIR / "birds.json"),
@@ -67,4 +71,56 @@ def test_place_id_deck_end_to_end():
     bird_names_in_deck = sorted({row[0].split("\x1f")[0] for row in rows})
     assert bird_names_in_deck == sorted(EXPECTED_BIRDS), (
         f"Bird names mismatch.\nExpected: {sorted(EXPECTED_BIRDS)}\nGot:      {bird_names_in_deck}"
+    )
+
+
+@pytest.mark.integration
+def test_ebird_region_deck_end_to_end():
+    """Runs the CLI against the eBird US-MA region code and verifies the output deck."""
+    TMP_DIR.mkdir(exist_ok=True)
+    MEDIA_DIR.mkdir(exist_ok=True)
+    apkg = TMP_DIR / f"Birds_{EBIRD_REGION}.apkg"
+    tmp_json = TMP_DIR / "birds_usma_tmp.json"
+    sys.argv = [
+        "avianki", EBIRD_REGION,
+        "--limit", str(EBIRD_EXPECTED_LIMIT),
+        "--deck-name", f"AviAnki - Integration Test {EBIRD_REGION}",
+        "--output", str(apkg),
+        "--media-dir", str(MEDIA_DIR),
+        "--json-file", str(tmp_json),
+        "--log-file", str(TMP_DIR / "avianki.log"),
+    ]
+    cli.main()
+
+    shared_json = TMP_DIR / "birds.json"
+    existing = json.loads(shared_json.read_text(encoding="utf-8")) if shared_json.exists() else []
+    new_birds = json.loads(tmp_json.read_text(encoding="utf-8"))
+    existing_names = {b["name"] for b in existing}
+    merged = existing + [b for b in new_birds if b["name"] not in existing_names]
+    shared_json.write_text(json.dumps(merged, indent=2, ensure_ascii=False), encoding="utf-8")
+    tmp_json.unlink()
+
+    assert apkg.exists(), f"{apkg.name} not created"
+    assert zipfile.is_zipfile(apkg), "Output is not a valid zip/apkg"
+
+    with zipfile.ZipFile(apkg) as zf:
+        names_in_zip = zf.namelist()
+        assert "collection.anki2" in names_in_zip, "Missing collection.anki2"
+
+        db_bytes = zf.read("collection.anki2")
+
+    db_path = TMP_DIR / "collection_usma.anki2"
+    db_path.write_bytes(db_bytes)
+
+    con = sqlite3.connect(db_path)
+    rows = con.execute("SELECT flds FROM notes ORDER BY id").fetchall()
+    con.close()
+
+    # 2 notes per species; some species may be skipped if they lack an allaboutbirds page
+    bird_names_in_deck = {row[0].split("\x1f")[0] for row in rows}
+    assert 0 < len(bird_names_in_deck) <= EBIRD_EXPECTED_LIMIT, (
+        f"Expected 1–{EBIRD_EXPECTED_LIMIT} distinct birds, got {len(bird_names_in_deck)}: {bird_names_in_deck}"
+    )
+    assert len(rows) == len(bird_names_in_deck) * 2, (
+        f"Expected 2 notes per bird, got {len(rows)} notes for {len(bird_names_in_deck)} birds"
     )

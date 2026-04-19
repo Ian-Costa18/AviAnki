@@ -12,7 +12,7 @@ birds.json
 
 # Test related
 tests/tmp/
-tests/media/
+tests/media*/
 
 # Developer
 .claude
