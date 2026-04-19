@@ -2,7 +2,7 @@
 
 ## Setup
 
-1. Install [uv](https://docs.astral.sh/uv/) and [ffmpeg](https://ffmpeg.org/)
+1. Install [uv](https://docs.astral.sh/uv/)
 2. Clone and install dev dependencies:
 
    ```bash
@@ -45,7 +45,7 @@ Use `--integration` only when you intentionally want a networked end-to-end run.
 - `src/avianki/cli.py` — CLI entry point and full pipeline orchestration
 - `src/avianki/allaboutbirds.py` — scraping allaboutbirds.org (species list, overview, sounds)
 - `src/avianki/ebird.py` — eBird API calls (species list for a region)
-- `src/avianki/media.py` — file download, caching, ffmpeg audio trimming
+- `src/avianki/media.py` — file download, caching, audio trimming
 - `src/avianki/anki_model.py` — genanki models, card templates, and shared fields
 - `src/avianki/card.css` — shared CSS for all card types
 

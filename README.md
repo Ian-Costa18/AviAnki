@@ -32,17 +32,6 @@ Each species gets two card types:
 ## Prerequisites
 
 - **[uv](https://docs.astral.sh/uv/)** — for running and installing
-- **[ffmpeg](https://ffmpeg.org/)** — for trimming audio clips
-
-Install ffmpeg:
-
-```bash
-# Windows
-winget install ffmpeg
-
-# macOS
-brew install ffmpeg
-```
 
 ## Quick start
 
@@ -169,7 +158,7 @@ A `birds.json` file is also written to `<work-dir>/birds.json` (override with `-
 
 ## Notes
 
-- Audio clips are trimmed to 10 seconds via ffmpeg to keep file sizes small.
+- Audio clips are trimmed to 10 seconds to keep file sizes small.
 - allaboutbirds.org browse URLs sort species by likelihood score for your location, which gives much better study order than eBird's taxonomic ordering.
 
 ## Thanks to Cornell Lab of Ornithology

@@ -1,4 +1,3 @@
-import subprocess
 from unittest.mock import MagicMock, patch
 
 import requests
@@ -67,36 +66,21 @@ def test_download_file_returns_false_on_exception(tmp_path):
 def test_trim_to_mp3_success(tmp_path):
     src = tmp_path / "src.mp3"
     dst = tmp_path / "dst.mp3"
-    mock_result = MagicMock()
-    mock_result.returncode = 0
+    mock_segment = MagicMock()
+    mock_segment.__getitem__ = MagicMock(return_value=mock_segment)
 
-    with patch("avianki.media.subprocess.run", return_value=mock_result) as mock_run:
+    with patch("avianki.media.AudioSegment.from_file", return_value=mock_segment):
         result = media.trim_to_mp3(src, dst)
 
     assert result is True
-    args = mock_run.call_args[0][0]
-    assert args[0] == "ffmpeg"
-    assert str(src) in args
-    assert str(dst) in args
+    mock_segment.export.assert_called_once_with(dst, format="mp3")
 
 
 def test_trim_to_mp3_failure(tmp_path):
     src = tmp_path / "src.mp3"
     dst = tmp_path / "dst.mp3"
-    mock_result = MagicMock()
-    mock_result.returncode = 1
 
-    with patch("avianki.media.subprocess.run", return_value=mock_result):
-        result = media.trim_to_mp3(src, dst)
-
-    assert result is False
-
-
-def test_trim_to_mp3_timeout(tmp_path):
-    src = tmp_path / "src.mp3"
-    dst = tmp_path / "dst.mp3"
-
-    with patch("avianki.media.subprocess.run", side_effect=subprocess.TimeoutExpired("ffmpeg", 30)):
+    with patch("avianki.media.AudioSegment.from_file", side_effect=Exception("decode error")):
         result = media.trim_to_mp3(src, dst)
 
     assert result is False

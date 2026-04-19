@@ -1,10 +1,10 @@
-"""Media download, caching, and ffmpeg trimming."""
+"""Media download, caching, and audio trimming."""
 
 import logging
-import subprocess
 from pathlib import Path
 
 import requests
+from pydub import AudioSegment
 
 log = logging.getLogger("bird_deck")
 
@@ -46,17 +46,11 @@ def download_file(url: str, path: Path) -> bool:
 
 
 def trim_to_mp3(src: Path, dst: Path, seconds: int = AUDIO_MAX_SECONDS) -> bool:
-    """Trim audio to `seconds` and re-encode as MP3 via ffmpeg. Returns True on success."""
+    """Trim audio to `seconds` and save. Returns True on success."""
     try:
-        result = subprocess.run(
-            ["ffmpeg", "-y", "-i", str(src),
-             "-t", str(seconds),
-             "-acodec", "libmp3lame", "-q:a", "4",
-             str(dst)],
-            capture_output=True,
-            timeout=30,
-        )
-        return result.returncode == 0
+        audio = AudioSegment.from_file(src)
+        audio[: seconds * 1000].export(dst, format="mp3")
+        return True
     except Exception as e:
-        log.warning("ffmpeg trim failed (%s): %s", src, e)
+        log.warning("Audio trim failed (%s): %s", src, e)
         return False

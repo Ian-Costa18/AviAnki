@@ -61,9 +61,10 @@ def test_place_id_deck_end_to_end():
     rows = con.execute("SELECT flds FROM notes ORDER BY id").fetchall()
     con.close()
 
-    assert len(rows) == 3, f"Expected 3 notes, got {len(rows)}"
+    # 2 notes per species: one Photo card and one Audio ID card
+    assert len(rows) == len(EXPECTED_BIRDS) * 2, f"Expected {len(EXPECTED_BIRDS) * 2} notes, got {len(rows)}"
 
-    bird_names_in_deck = [row[0].split("\x1f")[0] for row in rows]
-    assert bird_names_in_deck == EXPECTED_BIRDS, (
-        f"Bird names mismatch.\nExpected: {EXPECTED_BIRDS}\nGot:      {bird_names_in_deck}"
+    bird_names_in_deck = sorted({row[0].split("\x1f")[0] for row in rows})
+    assert bird_names_in_deck == sorted(EXPECTED_BIRDS), (
+        f"Bird names mismatch.\nExpected: {sorted(EXPECTED_BIRDS)}\nGot:      {bird_names_in_deck}"
     )

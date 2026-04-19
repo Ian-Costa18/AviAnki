@@ -42,7 +42,7 @@ The app has a single pipeline: **resolve species list → scrape media per speci
 2. **Per-species scraping** — for each slug, `cli.main()` calls:
    - `allaboutbirds.fetch_overview(slug)` → `{desc, sciName, images: [url, ...]}`
    - `allaboutbirds.fetch_sounds(slug)` → `{calls: [url, ...], songs: [url, ...]}`
-   - `allaboutbirds._get_images()` / `_get_audio()` → download via `media.download_file()`, trim audio via `media.trim_to_mp3()` (ffmpeg), cache to `media/`
+   - `allaboutbirds._get_images()` / `_get_audio()` → download via `media.download_file()`, trim audio via `media.trim_to_mp3()` (pydub), cache to `media/`
 
 3. **Deck assembly** — `genanki.Note` is built with fields `[BirdName, SciName, Image1, Image2, Call, Song, Description]` and added to a `genanki.Deck`. The model and card templates (two card types: Photo→Name and Description→Name) live entirely in `anki_model.py`.
 
@@ -70,5 +70,5 @@ uv run ty check src/
 ## Key constraints
 
 - HTML parsing in `allaboutbirds.py` uses **BeautifulSoup 4** (`html.parser`). Key selectors: sci name from `div.species-info > em`; gallery photos from `<a href=".../photo-gallery/..."> > img[data-interchange]`; audio from `div.jp-jplayer[name]` paired by index with `div.jp-flat-audio[aria-label]`. Small regex expressions are still used on individual attribute values (not whole-page HTML) where structured selectors aren't practical.
-- `ffmpeg` must be on `PATH` for audio trimming; `media.trim_to_mp3()` will return `False` if it isn't.
+- Audio trimming uses `pydub`. No system binaries required.
 - `EBIRD_API_KEY` is only required for eBird region codes; allaboutbirds.org URLs and Place IDs work without it.
