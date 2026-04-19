@@ -40,6 +40,8 @@ The integration test runs the full pipeline against allaboutbirds.org and verifi
 
 Use `--integration` only when you intentionally want a networked end-to-end run.
 
+`dotenv run --` injects `UV_PUBLISH_TOKEN` from `.env` into the environment so `uv publish` can authenticate without exposing the token in shell history. Add your PyPI token to `.env` as `UV_PUBLISH_TOKEN` to use it.
+
 ## Project structure
 
 - `src/avianki/cli.py` — CLI entry point and full pipeline orchestration
@@ -103,18 +105,6 @@ This project follows [Semantic Versioning](https://semver.org/): `MAJOR.MINOR.PA
 | `MAJOR` | Breaking changes — anything that orphans existing Anki cards or requires a fresh import: changing a model seed string, reordering or removing fields, renaming a deck seed, changing note GUIDs |
 | `MINOR` | New features that are backward-compatible: new card types, new scraped fields (appended), new CLI flags |
 | `PATCH` | Bug fixes, CSS tweaks, scraping fixes, documentation |
-
-## Publishing to PyPI
-
-Add your PyPI token to `.env` as `UV_PUBLISH_TOKEN`, then:
-
-```bash
-uv version --bump patch   # or minor / major
-uv build
-uv run dotenv run -- uv publish
-```
-
-`dotenv run --` injects `UV_PUBLISH_TOKEN` from `.env` into the environment so `uv publish` can authenticate without exposing the token in shell history.
 
 ## Submitting changes
 
