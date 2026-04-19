@@ -4,32 +4,32 @@
     "sci_name": "Passer domesticus",
     "description": "You can find House Sparrows most places where there are houses (or other buildings), and few places where there aren’t. Along with two other introduced species, the European Starling and the Rock Pigeon, these are some of our most common birds. Their constant presence outside our doors makes them easy to overlook, and their tendency to displace native birds from nest boxes causes some people to resent them. But House Sparrows, with their capacity to live so intimately with us, are just beneficiaries of our own success.",
     "images": [
-      "media\\bird_House_Sparrow_img1.jpg",
-      "media\\bird_House_Sparrow_img2.jpg"
+      "bird_House_Sparrow_img1.jpg",
+      "bird_House_Sparrow_img2.jpg"
     ],
-    "call": "media\\bird_House_Sparrow_call.mp3",
-    "song": "media\\bird_House_Sparrow_song.mp3"
+    "call": "bird_House_Sparrow_call.mp3",
+    "song": "bird_House_Sparrow_song.mp3"
   },
   {
     "name": "American Robin",
     "sci_name": "Turdus migratorius",
     "description": "The quintessential early bird, American Robins are common sights on lawns across North America, where you often see them tugging earthworms out of the ground. Robins are popular birds for their warm orange breast, cheery song, and early appearance at the end of winter. Though they’re familiar town and city birds, American Robins are at home in wilder areas, too, including mountain forests and Alaskan wilderness.",
     "images": [
-      "media\\bird_American_Robin_img1.jpg",
-      "media\\bird_American_Robin_img2.jpg"
+      "bird_American_Robin_img1.jpg",
+      "bird_American_Robin_img2.jpg"
     ],
-    "call": "media\\bird_American_Robin_call.mp3",
-    "song": "media\\bird_American_Robin_song.mp3"
+    "call": "bird_American_Robin_call.mp3",
+    "song": "bird_American_Robin_song.mp3"
   },
   {
     "name": "American Herring Gull",
     "sci_name": "Larus smithsonianus",
     "description": "Spiraling above a fishing boat or squabbling at a dock or parking lot, American Herring Gulls are the quintessential gray-and-white, pink-legged \"seagulls.\" They're the most familiar gulls of the North Atlantic and can be found across much of coastal North America in winter. A variety of plumages worn in their first four years can make identification tricky—so begin by learning to recognize their beefy size and shape.",
     "images": [
-      "media\\bird_American_Herring_Gull_img1.jpg",
-      "media\\bird_American_Herring_Gull_img2.jpg"
+      "bird_American_Herring_Gull_img1.jpg",
+      "bird_American_Herring_Gull_img2.jpg"
     ],
-    "call": "media\\bird_American_Herring_Gull_call.mp3",
+    "call": "bird_American_Herring_Gull_call.mp3",
     "song": null
   }
 ]

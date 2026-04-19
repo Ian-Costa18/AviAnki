@@ -18,7 +18,6 @@
 ```bash
 uv run ruff check src/ tests/                  # lint
 uv run ty check src/                           # type check
-uv run pytest                                             # run all tests
 uv run pytest --integration --cov=avianki --cov-report=html  # run all tests, including the integration test, and coverage with HTML report
 uv run python scripts/gen_examples.py          # regenerate examples/ card screenshots and example-birds.json (needs network; media cached by integration test)
 # If publishing to PyPi:
