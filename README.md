@@ -172,7 +172,7 @@ A `birds.json` file is also written to `<work-dir>/birds.json` (override with `-
 - Audio clips are trimmed to 10 seconds via ffmpeg to keep file sizes small.
 - allaboutbirds.org browse URLs sort species by likelihood score for your location, which gives much better study order than eBird's taxonomic ordering.
 
-## TODO
+## Future Ideas
 
 - More card types, with options to choose which types the user wants, such as
   - Identification with only song, call, description, image, etc.

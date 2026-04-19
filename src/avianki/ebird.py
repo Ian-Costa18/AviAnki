@@ -18,12 +18,15 @@ def fetch_species(region_code: str, limit: int | None = None) -> list[dict]:
     Results are in eBird taxonomic order.
     """
     log.info("Fetching eBird species list for %s…", region_code)
-    r = requests.get(
-        f"https://api.ebird.org/v2/product/spplist/{region_code}",
-        headers=_headers(),
-        timeout=15,
-    )
-    r.raise_for_status()
+    try:
+        r = requests.get(
+            f"https://api.ebird.org/v2/product/spplist/{region_code}",
+            headers=_headers(),
+            timeout=15,
+        )
+        r.raise_for_status()
+    except requests.RequestException as e:
+        raise SystemExit(f"eBird API error: {e}") from e
     codes: list[str] = r.json()
     log.info("  %d species recorded in %s", len(codes), region_code)
 
@@ -34,13 +37,16 @@ def fetch_species(region_code: str, limit: int | None = None) -> list[dict]:
     species: list[dict] = []
     for i in range(0, len(codes), 200):
         batch = codes[i : i + 200]
-        r2 = requests.get(
-            "https://api.ebird.org/v2/ref/taxonomy/ebird",
-            params={"species": ",".join(batch), "fmt": "json"},
-            headers=_headers(),
-            timeout=30,
-        )
-        r2.raise_for_status()
+        try:
+            r2 = requests.get(
+                "https://api.ebird.org/v2/ref/taxonomy/ebird",
+                params={"species": ",".join(batch), "fmt": "json"},
+                headers=_headers(),
+                timeout=30,
+            )
+            r2.raise_for_status()
+        except requests.RequestException as e:
+            raise SystemExit(f"eBird API error: {e}") from e
         for t in r2.json():
             species.append({
                 "speciesCode": t["speciesCode"],

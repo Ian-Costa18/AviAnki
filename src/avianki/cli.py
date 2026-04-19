@@ -103,7 +103,7 @@ def _get_audio(
 
 
 def _get_images(
-    img_urls: list[str], safe: str, media_dir: Path, no_cache: bool = False
+    img_urls: list[str], safe: str, media_dir: Path, no_cache: bool = False, delay: float = 0.5
 ) -> tuple[list[str], list[Path]]:
     """
     Download and cache up to 2 images.
@@ -127,7 +127,7 @@ def _get_images(
                 log.info("  ✓ image %d  %.1f KB", idx, img_path.stat().st_size / 1024)
                 img_fields.append(f'<img src="{img_file}">')
                 media_paths.append(img_path)
-            time.sleep(0.5)
+            time.sleep(delay)
 
     while len(img_fields) < 2:
         img_fields.append("")
@@ -284,7 +284,7 @@ def main() -> None:
 
         if not args.no_images:
             img_fields, img_paths = _get_images(
-                overview["images"], safe, media_dir, no_cache=args.no_cache
+                overview["images"], safe, media_dir, no_cache=args.no_cache, delay=args.delay
             )
             all_media.extend(img_paths)
         else:
@@ -343,7 +343,8 @@ def main() -> None:
     pkg.write_to_file(output)
 
     if args.ephemeral:
-        assert ephemeral_dir is not None
+        if ephemeral_dir is None:
+            raise RuntimeError("ephemeral_dir was not set despite --ephemeral flag")
         shutil.rmtree(ephemeral_dir, ignore_errors=True)
     elif args.no_cache:
         for p in all_media:
