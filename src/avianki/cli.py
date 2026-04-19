@@ -327,9 +327,9 @@ def main() -> None:
             "name": name,
             "sci_name": sci,
             "description": desc,
-            "images": [str(p.relative_to(work_dir)) for p in img_paths] if not args.no_images else [],
-            "call": str(call_paths[0].relative_to(work_dir)) if call_paths else None,
-            "song": str(song_paths[0].relative_to(work_dir)) if song_paths else None,
+            "images": [str(p.relative_to(media_dir)) for p in img_paths] if not args.no_images else [],
+            "call": str(call_paths[0].relative_to(media_dir)) if call_paths else None,
+            "song": str(song_paths[0].relative_to(media_dir)) if song_paths else None,
         })
 
     json_path = Path(args.json_file) if args.json_file else default_dir / "birds.json"

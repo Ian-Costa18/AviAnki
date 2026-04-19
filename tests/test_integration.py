@@ -6,6 +6,7 @@ Run with:  uv run pytest --integration
 Skipped by default to avoid network access in normal test runs.
 """
 
+import shutil
 import sqlite3
 import sys
 import zipfile
@@ -26,9 +27,17 @@ MEDIA_DIR = Path(__file__).parent / "media"
 
 @pytest.mark.integration
 def test_place_id_deck_end_to_end():
+    shutil.rmtree(MEDIA_DIR, ignore_errors=True)
     TMP_DIR.mkdir(exist_ok=True)
     apkg = TMP_DIR / f"Birds_{PLACE_ID}.apkg"
-    sys.argv = ["avianki", PLACE_ID, "--limit", "3", "--output", str(apkg), "--media-dir", str(MEDIA_DIR)]
+    sys.argv = [
+        "avianki", PLACE_ID,
+        "--limit", "3",
+        "--output", str(apkg),
+        "--media-dir", str(MEDIA_DIR),
+        "--json-file", str(TMP_DIR / "birds.json"),
+        "--log-file", str(TMP_DIR / "avianki.log"),
+    ]
     cli.main()
 
     assert apkg.exists(), f"{apkg.name} not created"

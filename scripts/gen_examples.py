@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""Generate PNG card preview screenshots into examples/ for the README.
+"""Generate PNG card example screenshots into examples/ for the README.
+
+Also copies tests/tmp/birds.json to examples/example-birds.json.
 
 Usage:
-    uv run python scripts/gen_previews.py
+    uv run python scripts/gen_examples.py
 
 Requires: playwright (dev dep) + browser installed via `playwright install chromium`
 Requires: network access to fetch descriptions from allaboutbirds.org
@@ -11,6 +13,7 @@ Media source: tests/media/ (populated by the integration test)
 
 import base64
 import re
+import shutil
 import sys
 from pathlib import Path
 
@@ -23,6 +26,8 @@ from avianki.redact import redact_name
 REPO_ROOT = Path(__file__).parent.parent
 MEDIA_DIR = REPO_ROOT / "tests" / "media"
 OUTPUT_DIR = REPO_ROOT / "examples"
+BIRDS_JSON_SRC = REPO_ROOT / "tests" / "tmp" / "birds.json"
+BIRDS_JSON_DST = OUTPUT_DIR / "example-birds.json"
 
 # Birds from the Boston-area integration test, in deck order
 BIRDS = [
@@ -121,9 +126,15 @@ def main() -> None:
         browser.close()
 
     saved = sorted(OUTPUT_DIR.glob("*.png"))
-    print(f"\nSaved {len(saved)} images to images/:")
+    print(f"\nSaved {len(saved)} images to examples/:")
     for p in saved:
         print(f"  {p.name}")
+
+    if BIRDS_JSON_SRC.exists():
+        shutil.copy(BIRDS_JSON_SRC, BIRDS_JSON_DST)
+        print(f"\nCopied birds.json → {BIRDS_JSON_DST.relative_to(REPO_ROOT)}")
+    else:
+        print(f"\nWarning: {BIRDS_JSON_SRC.relative_to(REPO_ROOT)} not found — run the integration test first")
 
 
 if __name__ == "__main__":
