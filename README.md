@@ -169,3 +169,14 @@ A `birds.json` file is also written to `<work-dir>/birds.json` (override with `-
 
 - Audio clips are trimmed to 10 seconds via ffmpeg to keep file sizes small.
 - allaboutbirds.org browse URLs sort species by likelihood score for your location, which gives much better study order than eBird's taxonomic ordering.
+
+## TODO
+
+- More card types, with options to choose which types the user wants, such as
+  - Identification with only song, call, description, image, etc.
+  - Identification with [ID info](https://www.allaboutbirds.org/guide/American_Robin/id) instead of description.
+  - Identification with [Life History](https://www.allaboutbirds.org/guide/American_Robin/lifehistory).
+  - Identification with [Range Map](https://www.allaboutbirds.org/guide/American_Robin/maps-range).
+  - Identification with [Scientific Name, Order, and Family](https://www.allaboutbirds.org/guide/American_Robin/overview#Cool%20Facts:~:text=Turdus,Turdidae).
+  - Identification with [Other Names](https://www.allaboutbirds.org/guide/American_Robin/overview#Cool%20Facts:~:text=Other%20Names).
+- [Cool Facts](https://www.allaboutbirds.org/guide/American_Robin/overview#Cool%20Facts:~:text=An,old,-%2E), [ID info](https://www.allaboutbirds.org/guide/American_Robin/id), [Life History](https://www.allaboutbirds.org/guide/American_Robin/lifehistory), [Range Map](https://www.allaboutbirds.org/guide/American_Robin/maps-range), and other fields added to card in some way, without overloading the card.
