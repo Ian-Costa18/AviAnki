@@ -28,6 +28,7 @@ from pathlib import Path
 
 import genanki
 from dotenv import load_dotenv
+from avianki.redact import redact_name
 
 from . import allaboutbirds, anki_model, ebird, media
 
@@ -66,44 +67,6 @@ def _safe_name(com_name: str) -> str:
     """Filesystem-safe version of a common name for use in filenames."""
     return re.sub(r"[^A-Za-z0-9_]", "_", com_name)
 
-
-def _pluralize(word: str) -> str:
-    low = word.lower()
-    if low.endswith("mouse"):
-        return word[:-5] + "mice"
-    if low.endswith("goose"):
-        return word[:-5] + "geese"
-    if low.endswith(("ch", "sh", "x", "s", "z")):
-        return word + "es"
-    return word + "s"
-
-
-def _redact_name(desc: str, com_name: str) -> str:
-    """Replace the bird's common name (and variants) with 'this/these bird(s)'."""
-    parts = com_name.split()
-    last = parts[-1]
-    plural_full = _pluralize(com_name)
-    plural_last = _pluralize(last)
-    replacements: dict[str, str] = {
-        com_name.lower(): "this bird",
-        plural_full.lower(): "these birds",
-        last.lower(): "this bird",
-        plural_last.lower(): "these birds",
-    }
-    seen: set[str] = set()
-    candidates: list[str] = []
-    for c in [com_name, plural_full, last, plural_last]:
-        if c.lower() not in seen:
-            seen.add(c.lower())
-            candidates.append(c)
-    candidates.sort(key=len, reverse=True)
-    pattern = r"\b(" + "|".join(re.escape(c) for c in candidates) + r")\b"
-
-    def _replace(m: re.Match[str]) -> str:
-        rep = replacements[m.group(0).lower()]
-        return rep[0].upper() + rep[1:] if m.group(0)[0].isupper() else rep
-
-    return re.sub(pattern, _replace, desc, flags=re.IGNORECASE)
 
 
 def _get_audio(
@@ -340,7 +303,7 @@ def main() -> None:
                 call_field,
                 song_field,
                 desc,
-                _redact_name(desc, name),
+                redact_name(desc, name),
             ],
             guid=genanki.guid_for(deck_seed, name, "v1"),
         )

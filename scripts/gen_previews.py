@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from avianki.allaboutbirds import fetch_overview
 from avianki.anki_model import CSS, TEMPLATES
-from avianki.cli import _redact_name
+from avianki.redact import redact_name
 
 REPO_ROOT = Path(__file__).parent.parent
 MEDIA_DIR = REPO_ROOT / "tests" / "media"
@@ -83,7 +83,7 @@ def build_fields(bird: dict) -> dict:
         "Call":   _audio_tag(MEDIA_DIR / f"bird_{slug}_call.mp3"),
         "Song":   _audio_tag(MEDIA_DIR / f"bird_{slug}_song.mp3"),
         "Description": desc,
-        "DescriptionRedacted": _redact_name(desc, name),
+        "DescriptionRedacted": redact_name(desc, name),
     }
 
 

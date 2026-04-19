@@ -131,8 +131,8 @@ def test_get_images_pads_to_two_entries_when_one_url(tmp_media_dir):
 # ── logging defaults ─────────────────────────────────────────────────────────
 
 
-def test_main_defaults_log_file_next_to_media_dir(tmp_path):
-    media_dir = tmp_path / "media"
+def test_main_defaults_log_file_inside_work_dir(tmp_path):
+    work_dir = tmp_path / "work"
     captured = {}
 
     def fake_setup_logging(log_file, verbose, quiet):
@@ -142,7 +142,7 @@ def test_main_defaults_log_file_next_to_media_dir(tmp_path):
     with patch("avianki.cli._setup_logging", side_effect=fake_setup_logging), patch(
         "avianki.allaboutbirds.fetch_browse_species", return_value=[]
     ), patch(
-        "sys.argv", ["avianki", "https://example.com", "--media-dir", str(media_dir)]
+        "sys.argv", ["avianki", "https://example.com", "--work-dir", str(work_dir)]
     ):
         with patch("sys.exit", side_effect=SystemExit):
             try:
@@ -150,4 +150,4 @@ def test_main_defaults_log_file_next_to_media_dir(tmp_path):
             except SystemExit:
                 pass
 
-    assert captured["log_file"] == str(media_dir.parent / "avianki.log")
+    assert captured["log_file"] == str(work_dir / "avianki.log")
