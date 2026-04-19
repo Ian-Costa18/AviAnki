@@ -17,9 +17,17 @@ jobs:
           ref: main
 
       - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
 
       - name: Install dev dependencies
         run: uv sync --group dev
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('uv.lock') }}
 
       - name: Install Playwright browser
         run: uv run playwright install chromium --with-deps
