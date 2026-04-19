@@ -18,11 +18,11 @@ def test_model_has_correct_fields():
     assert field_names == ["BirdName", "SciName", "Image1", "Image2", "Call", "Song", "Description", "DescriptionRedacted"]
 
 
-def test_model_has_two_templates():
-    assert len(anki_model.TEMPLATES) == 2
+def test_models_have_one_template_each():
+    assert len(anki_model.PHOTO_MODEL.templates) == 1
+    assert len(anki_model.DESC_MODEL.templates) == 1
 
 
 def test_model_template_names():
-    names = [t["name"] for t in anki_model.TEMPLATES]
-    assert "Picture → Name" in names
-    assert "Description → Name" in names
+    assert anki_model.PHOTO_MODEL.templates[0]["name"] == "Picture → Name"
+    assert anki_model.DESC_MODEL.templates[0]["name"] == "Description → Name"

@@ -46,7 +46,8 @@ Use `--integration` only when you intentionally want a networked end-to-end run.
 - `src/avianki/allaboutbirds.py` — scraping allaboutbirds.org (species list, overview, sounds)
 - `src/avianki/ebird.py` — eBird API calls (species list for a region)
 - `src/avianki/media.py` — file download, caching, ffmpeg audio trimming
-- `src/avianki/anki_model.py` — genanki model, card templates, and CSS
+- `src/avianki/anki_model.py` — genanki models, card templates, and shared fields
+- `src/avianki/card.css` — shared CSS for all card types
 
 See [CLAUDE.md](CLAUDE.md) for a deeper walkthrough of the data flow and key constraints.
 
@@ -56,10 +57,26 @@ Most feature work falls into one of these two paths.
 
 ### 1) Edit Anki cards (layout, templates, fields)
 
-- Update `src/avianki/anki_model.py` for model fields, card templates, and CSS.
-- Keep field order aligned with how notes are constructed in `src/avianki/cli.py` (`genanki.Note(fields=[...])`).
-- If you add, remove, or rename fields, update both files in the same PR so generated notes still match the model.
-- Update tests in `tests/test_anki_model.py` (and any affected CLI tests) to reflect the new field/template behavior.
+Each card type is its own `genanki.Model` in `src/avianki/anki_model.py` with a single template. All models share the same `FIELDS` list and CSS from `src/avianki/card.css`.
+
+**To add a new card type:**
+
+- Define a new `genanki.Model` in `anki_model.py` with a unique seed string (e.g. `_stable_id("BirdDeck_SongModel_v1")`).
+- In `cli.py`, add a `deck.add_note(...)` call for the new model alongside the existing photo/desc notes.
+- Add tests in `tests/test_anki_model.py` for the new model's template name.
+
+**Fields:**
+
+- Keep field order stable — Anki maps fields by position, not name. Always append new fields; never reorder or remove existing ones.
+- If you add a field, update both `FIELDS` in `anki_model.py` and the `note_fields` list in `cli.py` in the same PR.
+
+**Styles:**
+
+- Edit `src/avianki/card.css` for layout changes. All models share it at build time.
+
+**Model IDs:**
+
+- Each model's ID is derived from its seed string via `_stable_id()`. Never change a seed string for a published model — it would orphan all existing cards in users' Anki collections.
 
 ### 2) Scrape additional fields from allaboutbirds.org
 
@@ -76,6 +93,16 @@ For either path, run the quick verification checklist before opening a PR.
 ## Scraping fragility
 
 HTML parsing uses BeautifulSoup 4 with CSS selectors against allaboutbirds.org page structure; small regex expressions are used only on individual attribute values. If scraping breaks, check whether the site's HTML has changed by comparing against the selectors in `allaboutbirds.py`.
+
+## Versioning
+
+This project follows [Semantic Versioning](https://semver.org/): `MAJOR.MINOR.PATCH`.
+
+| Bump | When |
+| ---- | ---- |
+| `MAJOR` | Breaking changes — anything that orphans existing Anki cards or requires a fresh import: changing a model seed string, reordering or removing fields, renaming a deck seed, changing note GUIDs |
+| `MINOR` | New features that are backward-compatible: new card types, new scraped fields (appended), new CLI flags |
+| `PATCH` | Bug fixes, CSS tweaks, scraping fixes, documentation |
 
 ## Publishing to PyPI
 

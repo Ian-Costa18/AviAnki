@@ -308,21 +308,26 @@ def main() -> None:
             call_field, song_field = "", ""
 
         desc = overview["desc"]
-        note = genanki.Note(
-            model=anki_model.MODEL,
-            fields=[
-                name,
-                sci,
-                img_fields[0],
-                img_fields[1],
-                call_field,
-                song_field,
-                desc,
-                redact_name(desc, name),
-            ],
-            guid=genanki.guid_for(deck_seed, name, "v1"),
-        )
-        deck.add_note(note)
+        note_fields = [
+            name,
+            sci,
+            img_fields[0],
+            img_fields[1],
+            call_field,
+            song_field,
+            desc,
+            redact_name(desc, name),
+        ]
+        deck.add_note(genanki.Note(
+            model=anki_model.PHOTO_MODEL,
+            fields=note_fields,
+            guid=genanki.guid_for(deck_seed, name, "v1_photo"),
+        ))
+        deck.add_note(genanki.Note(
+            model=anki_model.DESC_MODEL,
+            fields=note_fields,
+            guid=genanki.guid_for(deck_seed, name, "v1_desc"),
+        ))
         birds_data.append({
             "name": name,
             "sci_name": sci,
