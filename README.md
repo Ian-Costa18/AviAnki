@@ -6,9 +6,9 @@
 [![Stars](https://img.shields.io/github/stars/Ian-Costa18/avianki)](https://github.com/Ian-Costa18/avianki/stargazers)
 [![Ruff](https://img.shields.io/badge/linter-ruff-orange)](https://github.com/astral-sh/ruff)
 
-Builds Anki flashcard decks for learning to identify birds by sight and sound. Cards are sourced from [allaboutbirds.org](https://www.allaboutbirds.org) and include photos, call/song audio, and species descriptions.
+Learn to identify the birds in your area. Drop in your location and AviAnki builds a custom Anki deck — sorted by the species most likely to appear near you — pulling photos, calls, songs, and descriptions from [allaboutbirds.org](https://www.allaboutbirds.org).
 
-Each species generates two card types:
+Each species gets two card types:
 
 - **Photo → Name** — given two photos and audio, identify the bird
 - **Description → Name** — given audio and a written description, identify the bird
@@ -42,6 +42,24 @@ winget install ffmpeg
 brew install ffmpeg
 ```
 
+## Quick start
+
+1. Go to [allaboutbirds.org/guide/browse](https://www.allaboutbirds.org/guide/browse)
+2. Under **Birds Near Me**, enter your city, ZIP code, or state/province — set the time of year to **Year-round** for a complete deck
+3. Click **Browse**, copy the URL from your browser's address bar, and run:
+
+```bash
+uvx avianki "https://www.allaboutbirds.org/guide/browse/filter/loc/ChIJGzE9DS1l44kRoOhiASS_fHg/..."
+```
+
+That's it. An `.apkg` file is written to the current directory — import it into Anki via **File → Import**.
+
+Use `--limit N` to cap the number of species for a smaller file size:
+
+```bash
+uvx avianki "https://www.allaboutbirds.org/guide/browse/..." --limit 30
+```
+
 ## Usage
 
 **From PyPI (recommended):**
@@ -58,24 +76,9 @@ cd avianki
 uv run avianki LOCATION [OPTIONS]
 ```
 
-## Configuration
-
-Copy `.env.example` to `.env` and fill in your key:
-
-```env
-EBIRD_API_KEY=your_key_here
-```
-
-An eBird API key is only required if using an eBird region code as the location. Get one free at [ebird.org/api/keygen](https://ebird.org/api/keygen).
-
 ### Location formats
 
-**allaboutbirds.org browse URL** (recommended — species sorted by local frequency):
-
-1. Go to [allaboutbirds.org/guide/browse](https://www.allaboutbirds.org/guide/browse)
-2. Under **Birds Near Me**, enter your city, ZIP code, or state/province
-3. Set the time of year — **Year-round** is recommended for a complete deck
-4. Click **Browse**, then copy the URL from your browser's address bar
+**allaboutbirds.org browse URL** (recommended — species sorted by local frequency, no API key needed):
 
 ```bash
 uvx avianki "https://www.allaboutbirds.org/guide/browse/filter/loc/ChIJGzE9DS1l44kRoOhiASS_fHg/date/all/behavior/all/size/all/colors/all/sort/score/view/list-view"
@@ -89,11 +92,17 @@ uvx avianki ChIJGzE9DS1l44kRoOhiASS_fHg
 
 Find a Place ID at [developers.google.com/maps/documentation/javascript/examples/places-placeid-finder](https://developers.google.com/maps/documentation/javascript/examples/places-placeid-finder).
 
-**eBird region code** (species in taxonomic order, requires API key):
+**eBird region code** (species in taxonomic order, requires an API key):
 
 ```bash
 uvx avianki US-MA
 uvx avianki US-MA-017   # county level
+```
+
+Get a free eBird API key at [ebird.org/api/keygen](https://ebird.org/api/keygen), then set it in a `.env` file:
+
+```env
+EBIRD_API_KEY=your_key_here
 ```
 
 ### Options
@@ -117,30 +126,24 @@ uvx avianki US-MA-017   # county level
 ### Examples
 
 ```bash
-# Build a deck for your area (recommended approach)
+# Your local birds, capped to 50 species
 uvx avianki "https://www.allaboutbirds.org/guide/browse/..." --limit 50
 
-# Re-download all media from scratch
-uvx avianki US-MA --clear-cache
-
-# Quick test with 5 species
-uvx avianki US-MA --limit 5
-
 # Custom output path and deck name
-uvx avianki US-MA --output ~/Desktop/MyBirds.apkg --deck-name "My Birds"
+uvx avianki "https://www.allaboutbirds.org/guide/browse/..." --output ~/Desktop/MyBirds.apkg --deck-name "My Birds"
 
 # Images only, no audio
-uvx avianki US-MA --no-audio
+uvx avianki "https://www.allaboutbirds.org/guide/browse/..." --no-audio
 
 # Be polite to the server
-uvx avianki US-MA --delay 1.5
+uvx avianki "https://www.allaboutbirds.org/guide/browse/..." --delay 1.5
 ```
 
 ## Output
 
-An `.apkg` file is written to the current directory (e.g. `Birds_US-MA.apkg`). Import it into Anki via **File -> Import**.
+An `.apkg` file is written to the current directory (e.g. `Birds_US-MA.apkg`). Import it into Anki via **File → Import**.
 
-Downloaded images and audio are cached in the system temp directory (`<tmp>/avianki/media/` by default, or the directory set by `--media-dir`) so re-runs skip already-fetched files. The log is written to `<tmp>/avianki/avianki.log`.
+Downloaded images and audio are cached in the system temp directory (`<tmp>/avianki/media/` by default, or the directory set by `--media-dir`) so re-runs skip already-fetched files. Re-running the same location only fetches new or missing media. The log is written to `<tmp>/avianki/avianki.log`.
 
 ## Notes
 
