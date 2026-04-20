@@ -86,7 +86,7 @@ def test_get_images_uses_cache_when_available(tmp_media_dir):
     with patch(
         "avianki.media.find_cached_image", return_value="bird_Robin_img1.jpg"
     ), patch("avianki.media.download_file") as mock_dl, patch("avianki.cli.time.sleep"):
-        fields, paths = avianki._get_images(urls, "Robin", tmp_media_dir)
+        fields, paths, _ = avianki._get_images(urls, "Robin", tmp_media_dir)
 
     mock_dl.assert_not_called()
     assert all(f.startswith("<img") for f in fields if f)
@@ -99,7 +99,7 @@ def test_get_images_downloads_when_not_cached(tmp_media_dir):
     ) as mock_dl, patch(
         "pathlib.Path.stat", return_value=MagicMock(st_size=2048)
     ), patch("avianki.cli.time.sleep"):
-        fields, paths = avianki._get_images(urls, "Robin", tmp_media_dir)
+        fields, paths, _ = avianki._get_images(urls, "Robin", tmp_media_dir)
 
     assert mock_dl.call_count == 2
     assert len(fields) == 2
@@ -107,7 +107,7 @@ def test_get_images_downloads_when_not_cached(tmp_media_dir):
 
 def test_get_images_pads_to_two_entries_when_empty(tmp_media_dir):
     with patch("avianki.cli.time.sleep"):
-        fields, paths = avianki._get_images([], "Robin", tmp_media_dir)
+        fields, paths, _ = avianki._get_images([], "Robin", tmp_media_dir)
 
     assert fields == ["", ""]
     assert paths == []
@@ -120,7 +120,7 @@ def test_get_images_pads_to_two_entries_when_one_url(tmp_media_dir):
     ), patch("pathlib.Path.stat", return_value=MagicMock(st_size=1024)), patch(
         "avianki.cli.time.sleep"
     ):
-        fields, paths = avianki._get_images(urls, "Robin", tmp_media_dir)
+        fields, paths, _ = avianki._get_images(urls, "Robin", tmp_media_dir)
 
     assert len(fields) == 2
     assert fields[0].startswith("<img")

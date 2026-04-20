@@ -119,7 +119,7 @@ Every option can also be set as an environment variable — useful for scripting
 | `--deck-name NAME` | `-d`  | `AVIANKI_DECK_NAME`  | Override the deck name shown in Anki                                    |
 | `--no-audio`       | `-A`  | `AVIANKI_NO_AUDIO`   | Skip downloading call and song audio                                    |
 | `--no-images`      | `-I`  | `AVIANKI_NO_IMAGES`  | Skip downloading photos                                                 |
-| `--delay SECONDS`  | `-D`  | `AVIANKI_DELAY`      | Wait between requests in seconds (default: `0.5`)                       |
+| `--delay SECONDS`  | `-D`  | `AVIANKI_DELAY`      | Wait between requests in seconds (default: `0`)                         |
 | `--work-dir DIR`   | `-w`  | `AVIANKI_WORK_DIR`   | Directory for cached media, logs, and JSON (default: `<tmp>/avianki/`)  |
 | `--media-dir DIR`  | `-m`  | `AVIANKI_MEDIA_DIR`  | Override media subdirectory (default: `<work-dir>/media/`)              |
 | `--json-file FILE` | `-j`  | `AVIANKI_JSON_FILE`  | Path for `birds.json` output (default: `<work-dir>/birds.json`)         |
@@ -127,7 +127,7 @@ Every option can also be set as an environment variable — useful for scripting
 | `--no-cache`       | `-X`  | `AVIANKI_NO_CACHE`   | Skip cache lookup; delete downloaded media after packaging              |
 | `--log-file FILE`  | `-l`  | `AVIANKI_LOG_FILE`   | Log file path (default: `<work-dir>/avianki.log`)                       |
 | `--verbose`        | `-v`  | `AVIANKI_VERBOSE`    | Show debug-level output in the console                                  |
-| `--quiet`          | `-q`  | `AVIANKI_QUIET`      | Only show warnings and errors in the console                            |
+| `--quiet`          | `-q`  | `AVIANKI_QUIET`      | Only show warnings and errors; also suppresses the progress bar         |
 
 Boolean env vars (`AVIANKI_NO_AUDIO`, `AVIANKI_NO_IMAGES`, `AVIANKI_EPHEMERAL`, `AVIANKI_NO_CACHE`, `AVIANKI_VERBOSE`, `AVIANKI_QUIET`) are enabled by setting them to `1`, `true`, or `yes`. See `.env.example` for a ready-to-copy template.
 
@@ -144,7 +144,7 @@ uvx avianki "https://www.allaboutbirds.org/guide/browse/..." --output ~/Desktop/
 # Images only, no audio
 uvx avianki "https://www.allaboutbirds.org/guide/browse/..." --no-audio
 
-# Be polite to the server
+# Add a delay between requests to be gentler on the server
 uvx avianki "https://www.allaboutbirds.org/guide/browse/..." --delay 1.5
 
 # Fully configured via .env — run with no arguments

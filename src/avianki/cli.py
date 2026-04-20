@@ -28,6 +28,7 @@ import time
 from pathlib import Path
 
 import genanki
+import tqdm as tqdm_module
 from dotenv import load_dotenv
 from avianki.redact import redact_name
 
@@ -42,11 +43,21 @@ log.handlers.clear()  # avoid duplicate handlers if rerun in same Python session
 log.setLevel(logging.DEBUG)
 log.propagate = False
 
-_sh = logging.StreamHandler(sys.stdout)
+
+class _TqdmHandler(logging.StreamHandler):
+    """Routes log output through tqdm.write() so progress bars aren't clobbered."""
+
+    def emit(self, record: logging.LogRecord) -> None:
+        try:
+            tqdm_module.tqdm.write(self.format(record))
+        except Exception:
+            self.handleError(record)
+
+
+_sh = _TqdmHandler(sys.stdout)
 _sh.setFormatter(_fmt)
 _sh.setLevel(logging.INFO)
 log.addHandler(_sh)
-
 
 
 def _setup_logging(log_file: str, verbose: bool, quiet: bool) -> logging.FileHandler:
@@ -103,14 +114,15 @@ def _get_audio(
 
 
 def _get_images(
-    img_urls: list[str], safe: str, media_dir: Path, no_cache: bool = False, delay: float = 0.5
-) -> tuple[list[str], list[Path]]:
+    img_urls: list[str], safe: str, media_dir: Path, no_cache: bool = False, delay: float = 0
+) -> tuple[list[str], list[Path], bool]:
     """
     Download and cache up to 2 images.
-    Returns (img_fields, media_paths) where img_fields are '<img src="...">' strings.
+    Returns (img_fields, media_paths, fetched) where fetched is True if any network request was made.
     """
     img_fields = []
     media_paths = []
+    fetched = False
 
     for idx, img_url in enumerate(img_urls, 1):
         ext = Path(img_url.split("?")[0]).suffix.lower() or ".jpg"
@@ -127,12 +139,14 @@ def _get_images(
                 log.info("  ✓ image %d  %.1f KB", idx, img_path.stat().st_size / 1024)
                 img_fields.append(f'<img src="{img_file}">')
                 media_paths.append(img_path)
-            time.sleep(delay)
+            fetched = True
+            if delay:
+                time.sleep(delay)
 
     while len(img_fields) < 2:
         img_fields.append("")
 
-    return img_fields, media_paths
+    return img_fields, media_paths, fetched
 
 
 # ─── Main ─────────────────────────────────────────────────────────────────────
@@ -178,7 +192,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "-D", "--delay",
         type=float,
         default=None,
-        help="Seconds to wait between requests (default: 0.5)",
+        help="Seconds to wait between requests (default: 0)",
     )
     parser.add_argument(
         "-w", "--work-dir",
@@ -227,7 +241,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     if args.deck_name is None:
         args.deck_name = os.environ.get("AVIANKI_DECK_NAME")
     if args.delay is None:
-        args.delay = float(os.environ.get("AVIANKI_DELAY") or "0.5")
+        args.delay = float(os.environ.get("AVIANKI_DELAY") or "0")
     if args.work_dir is None:
         args.work_dir = os.environ.get("AVIANKI_WORK_DIR") or str(Path(tempfile.gettempdir()) / "avianki")
     if args.media_dir is None:
@@ -296,7 +310,8 @@ def main() -> None:
     birds_data: list[dict] = []
     skipped = 0
 
-    for slug in slugs:
+    pbar = tqdm_module.tqdm(slugs, unit="bird", desc="Downloading", leave=True, disable=args.quiet)
+    for slug in pbar:
         # Resolve common + scientific name
         if slug in names:
             name = names[slug]["comName"]
@@ -307,6 +322,7 @@ def main() -> None:
             sci = resolved["sciName"]
 
         safe = _safe_name(name)
+        pbar.set_postfix_str(name)
         log.info("── %s ──", name)
 
         overview = allaboutbirds.fetch_overview(slug)
@@ -324,27 +340,35 @@ def main() -> None:
         song_paths: list[Path] = []
 
         if not args.no_images:
-            img_fields, img_paths = _get_images(
+            img_fields, img_paths, imgs_fetched = _get_images(
                 overview["images"], safe, media_dir, no_cache=args.no_cache, delay=args.delay
             )
             all_media.extend(img_paths)
         else:
+            imgs_fetched = False
             img_fields = ["", ""]
 
-        time.sleep(args.delay)
+        # overview was always fetched (needed for desc); sleep once after it
+        if args.delay and imgs_fetched:
+            time.sleep(args.delay)
 
         if not args.no_audio:
-            sounds = allaboutbirds.fetch_sounds(slug)
+            call_cached = not args.no_cache and bool(media.find_cached_audio(media_dir, f"bird_{safe}_call"))
+            song_cached = not args.no_cache and bool(media.find_cached_audio(media_dir, f"bird_{safe}_song"))
+            if not (call_cached and song_cached):
+                sounds = allaboutbirds.fetch_sounds(slug)
+                if args.delay:
+                    time.sleep(args.delay)
+            else:
+                sounds = {"calls": [], "songs": []}
             call_field, call_paths = _get_audio(
                 sounds, "call", safe, media_dir, no_cache=args.no_cache
             )
             all_media.extend(call_paths)
-            time.sleep(args.delay)
             song_field, song_paths = _get_audio(
                 sounds, "song", safe, media_dir, no_cache=args.no_cache
             )
             all_media.extend(song_paths)
-            time.sleep(args.delay)
         else:
             call_field, song_field = "", ""
 

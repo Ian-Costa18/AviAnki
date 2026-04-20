@@ -107,7 +107,7 @@ def test_deck_name_cli_overrides_env(monkeypatch):
 
 def test_delay_default():
     args = _parse_args([URL])
-    assert args.delay == 0.5
+    assert args.delay == 0
 
 
 def test_delay_from_cli():
