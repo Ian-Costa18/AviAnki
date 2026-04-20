@@ -8,7 +8,7 @@ resolution-markers = [
 
 [[package]]
 name = "avianki"
-version = "0.8.3"
+version = "0.9.0"
 source = { editable = "." }
 dependencies = [
     { name = "bs4" },
