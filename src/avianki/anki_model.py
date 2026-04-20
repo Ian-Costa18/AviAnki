@@ -16,7 +16,7 @@ FIELDS = [
     {"name": "Call"},                # [sound:...] or ""
     {"name": "Song"},                # [sound:...] or ""
     {"name": "Description"},
-    {"name": "DescriptionRedacted"}, # bird name replaced with [...]
+    {"name": "DescriptionRedacted"}, # bird name replaced with <em>[redacted]</em>
 ]
 
 _AUDIO_ROW = """<div class="audio-row">
