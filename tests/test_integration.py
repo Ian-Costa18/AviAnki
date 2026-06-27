@@ -26,6 +26,21 @@ EBIRD_EXPECTED_LIMIT = 3
 
 TMP_DIR = Path(__file__).parent / "tmp"
 MEDIA_DIR = Path(__file__).parent / "media"
+LOG_FILE = TMP_DIR / "avianki.log"
+
+
+def _aab_browse_request_failed_in_logs() -> bool:
+    if not LOG_FILE.exists():
+        return False
+    log_text = LOG_FILE.read_text(encoding="utf-8")
+    return "Browse fetch failed:" in log_text and "allaboutbirds.org" in log_text
+
+
+def _aab_overview_request_failed_in_logs() -> bool:
+    if not LOG_FILE.exists():
+        return False
+    log_text = LOG_FILE.read_text(encoding="utf-8")
+    return "AAB overview failed" in log_text and "allaboutbirds.org" in log_text
 
 
 @pytest.mark.integration
@@ -40,9 +55,14 @@ def test_place_id_deck_end_to_end():
         "--output", str(apkg),
         "--media-dir", str(MEDIA_DIR),
         "--json-file", str(TMP_DIR / "birds.json"),
-        "--log-file", str(TMP_DIR / "avianki.log"),
+        "--log-file", str(LOG_FILE),
     ]
-    cli.main()
+    try:
+        cli.main()
+    except SystemExit as exc:
+        if exc.code == 1 and _aab_browse_request_failed_in_logs():
+            pytest.skip("allaboutbirds.org browse endpoint unavailable; skipping integration")
+        raise
 
     assert apkg.exists(), f"{apkg.name} not created"
     assert zipfile.is_zipfile(apkg), "Output is not a valid zip/apkg"
@@ -88,7 +108,7 @@ def test_ebird_region_deck_end_to_end():
         "--output", str(apkg),
         "--media-dir", str(MEDIA_DIR),
         "--json-file", str(tmp_json),
-        "--log-file", str(TMP_DIR / "avianki.log"),
+        "--log-file", str(LOG_FILE),
     ]
     cli.main()
 
@@ -118,6 +138,8 @@ def test_ebird_region_deck_end_to_end():
 
     # 2 notes per species; some species may be skipped if they lack an allaboutbirds page
     bird_names_in_deck = {row[0].split("\x1f")[0] for row in rows}
+    if len(bird_names_in_deck) == 0 and _aab_overview_request_failed_in_logs():
+        pytest.skip("allaboutbirds.org species pages unavailable; skipping integration")
     assert 0 < len(bird_names_in_deck) <= EBIRD_EXPECTED_LIMIT, (
         f"Expected 1–{EBIRD_EXPECTED_LIMIT} distinct birds, got {len(bird_names_in_deck)}: {bird_names_in_deck}"
     )
