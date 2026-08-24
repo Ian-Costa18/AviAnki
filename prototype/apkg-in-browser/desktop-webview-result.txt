@@ -1,0 +1,284 @@
+imported: 9 notes, 12 cards
+templates found: [0, 1]; 8 renders each
+
+--- template 0 [A · sound-tag] render 1 ---
+autoplay queue Anki would play: american-robin_audio1.mp3, american-robin_audio2.mp3, american-robin_audio3.mp3
+player nodes found: 3
+showing #3
+raw DOM after Anki substitution:
+
+<a class="replay-button soundLink" href="#" onclick="pycmd('play:q:0'); return false;" draggable="false" style="display: none;">
+    <svg class="playImage" viewBox="0 0 64 64" version="1.1">
+        <circle cx="32" cy="32" r="29"></circle>
+        <path d="M56.502,32.301l-37.502,20.101l0.329,-40.804l37.173,20.703Z"></path>
+    </svg>
+</a> 
+<a class="replay-button soundLink" href="#" onclick="pycmd('play:q:1'); return false;" draggable="false" style="display: none;">
+    <svg class="playImage" viewBox="0 0 64 64" version="1.1">
+        <circle cx="32" cy="32" r="29"></circle>
+        <path d="M56.502,32.301l-37.502,20.101l0.329,-40.804l37.173,20.703Z"></path>
+    </svg>
+</a> 
+<a class="replay-button soundLink" href="#" onclick="pycmd('play:q:2'); return false;" draggable="false">
+    <svg class="playImage" viewBox="0 0 64 64" version="1.1">
+        <circle cx="32" cy="32" r="29"></circle>
+        <path d="M56.502,32.301l-37.502,20.101l0.329,-40.804l37.173,20.703Z"></path>
+    </svg>
+</a>
+no <audio> element
+replay buttons in card: 3
+
+--- template 0 [A · sound-tag] render 2 ---
+autoplay queue Anki would play: american-robin_audio1.mp3, american-robin_audio2.mp3, american-robin_audio3.mp3
+player nodes found: 3
+showing #3
+raw DOM after Anki substitution:
+
+<a class="replay-button soundLink" href="#" onclick="pycmd('play:q:0'); return false;" draggable="false" style="display: none;">
+    <svg class="playImage" viewBox="0 0 64 64" version="1.1">
+        <circle cx="32" cy="32" r="29"></circle>
+        <path d="M56.502,32.301l-37.502,20.101l0.329,-40.804l37.173,20.703Z"></path>
+    </svg>
+</a> 
+<a class="replay-button soundLink" href="#" onclick="pycmd('play:q:1'); return false;" draggable="false" style="display: none;">
+    <svg class="playImage" viewBox="0 0 64 64" version="1.1">
+        <circle cx="32" cy="32" r="29"></circle>
+        <path d="M56.502,32.301l-37.502,20.101l0.329,-40.804l37.173,20.703Z"></path>
+    </svg>
+</a> 
+<a class="replay-button soundLink" href="#" onclick="pycmd('play:q:2'); return false;" draggable="false">
+    <svg class="playImage" viewBox="0 0 64 64" version="1.1">
+        <circle cx="32" cy="32" r="29"></circle>
+        <path d="M56.502,32.301l-37.502,20.101l0.329,-40.804l37.173,20.703Z"></path>
+    </svg>
+</a>
+no <audio> element
+replay buttons in card: 3
+
+--- template 0 [A · sound-tag] render 3 ---
+autoplay queue Anki would play: american-robin_audio1.mp3, american-robin_audio2.mp3, american-robin_audio3.mp3
+player nodes found: 3
+showing #2
+raw DOM after Anki substitution:
+
+<a class="replay-button soundLink" href="#" onclick="pycmd('play:q:0'); return false;" draggable="false" style="display: none;">
+    <svg class="playImage" viewBox="0 0 64 64" version="1.1">
+        <circle cx="32" cy="32" r="29"></circle>
+        <path d="M56.502,32.301l-37.502,20.101l0.329,-40.804l37.173,20.703Z"></path>
+    </svg>
+</a> 
+<a class="replay-button soundLink" href="#" onclick="pycmd('play:q:1'); return false;" draggable="false">
+    <svg class="playImage" viewBox="0 0 64 64" version="1.1">
+        <circle cx="32" cy="32" r="29"></circle>
+        <path d="M56.502,32.301l-37.502,20.101l0.329,-40.804l37.173,20.703Z"></path>
+    </svg>
+</a> 
+<a class="replay-button soundLink" href="#" onclick="pycmd('play:q:2'); return false;" draggable="false" style="display: none;">
+    <svg class="playImage" viewBox="0 0 64 64" version="1.1">
+        <circle cx="32" cy="32" r="29"></circle>
+        <path d="M56.502,32.301l-37.502,20.101l0.329,-40.804l37.173,20.703Z"></path>
+    </svg>
+</a>
+no <audio> element
+replay buttons in card: 3
+
+--- template 0 [A · sound-tag] render 4 ---
+autoplay queue Anki would play: american-robin_audio1.mp3, american-robin_audio2.mp3, american-robin_audio3.mp3
+player nodes found: 3
+showing #1
+raw DOM after Anki substitution:
+
+<a class="replay-button soundLink" href="#" onclick="pycmd('play:q:0'); return false;" draggable="false">
+    <svg class="playImage" viewBox="0 0 64 64" version="1.1">
+        <circle cx="32" cy="32" r="29"></circle>
+        <path d="M56.502,32.301l-37.502,20.101l0.329,-40.804l37.173,20.703Z"></path>
+    </svg>
+</a> 
+<a class="replay-button soundLink" href="#" onclick="pycmd('play:q:1'); return false;" draggable="false" style="display: none;">
+    <svg class="playImage" viewBox="0 0 64 64" version="1.1">
+        <circle cx="32" cy="32" r="29"></circle>
+        <path d="M56.502,32.301l-37.502,20.101l0.329,-40.804l37.173,20.703Z"></path>
+    </svg>
+</a> 
+<a class="replay-button soundLink" href="#" onclick="pycmd('play:q:2'); return false;" draggable="false" style="display: none;">
+    <svg class="playImage" viewBox="0 0 64 64" version="1.1">
+        <circle cx="32" cy="32" r="29"></circle>
+        <path d="M56.502,32.301l-37.502,20.101l0.329,-40.804l37.173,20.703Z"></path>
+    </svg>
+</a>
+no <audio> element
+replay buttons in card: 3
+
+--- template 0 [A · sound-tag] render 5 ---
+autoplay queue Anki would play: american-robin_audio1.mp3, american-robin_audio2.mp3, american-robin_audio3.mp3
+player nodes found: 3
+showing #1
+raw DOM after Anki substitution:
+
+<a class="replay-button soundLink" href="#" onclick="pycmd('play:q:0'); return false;" draggable="false">
+    <svg class="playImage" viewBox="0 0 64 64" version="1.1">
+        <circle cx="32" cy="32" r="29"></circle>
+        <path d="M56.502,32.301l-37.502,20.101l0.329,-40.804l37.173,20.703Z"></path>
+    </svg>
+</a> 
+<a class="replay-button soundLink" href="#" onclick="pycmd('play:q:1'); return false;" draggable="false" style="display: none;">
+    <svg class="playImage" viewBox="0 0 64 64" version="1.1">
+        <circle cx="32" cy="32" r="29"></circle>
+        <path d="M56.502,32.301l-37.502,20.101l0.329,-40.804l37.173,20.703Z"></path>
+    </svg>
+</a> 
+<a class="replay-button soundLink" href="#" onclick="pycmd('play:q:2'); return false;" draggable="false" style="display: none;">
+    <svg class="playImage" viewBox="0 0 64 64" version="1.1">
+        <circle cx="32" cy="32" r="29"></circle>
+        <path d="M56.502,32.301l-37.502,20.101l0.329,-40.804l37.173,20.703Z"></path>
+    </svg>
+</a>
+no <audio> element
+replay buttons in card: 3
+
+--- template 0 [A · sound-tag] render 6 ---
+autoplay queue Anki would play: american-robin_audio1.mp3, american-robin_audio2.mp3, american-robin_audio3.mp3
+player nodes found: 3
+showing #3
+raw DOM after Anki substitution:
+
+<a class="replay-button soundLink" href="#" onclick="pycmd('play:q:0'); return false;" draggable="false" style="display: none;">
+    <svg class="playImage" viewBox="0 0 64 64" version="1.1">
+        <circle cx="32" cy="32" r="29"></circle>
+        <path d="M56.502,32.301l-37.502,20.101l0.329,-40.804l37.173,20.703Z"></path>
+    </svg>
+</a> 
+<a class="replay-button soundLink" href="#" onclick="pycmd('play:q:1'); return false;" draggable="false" style="display: none;">
+    <svg class="playImage" viewBox="0 0 64 64" version="1.1">
+        <circle cx="32" cy="32" r="29"></circle>
+        <path d="M56.502,32.301l-37.502,20.101l0.329,-40.804l37.173,20.703Z"></path>
+    </svg>
+</a> 
+<a class="replay-button soundLink" href="#" onclick="pycmd('play:q:2'); return false;" draggable="false">
+    <svg class="playImage" viewBox="0 0 64 64" version="1.1">
+        <circle cx="32" cy="32" r="29"></circle>
+        <path d="M56.502,32.301l-37.502,20.101l0.329,-40.804l37.173,20.703Z"></path>
+    </svg>
+</a>
+no <audio> element
+replay buttons in card: 3
+
+--- template 0 [A · sound-tag] render 7 ---
+autoplay queue Anki would play: american-robin_audio1.mp3, american-robin_audio2.mp3, american-robin_audio3.mp3
+player nodes found: 3
+showing #3
+raw DOM after Anki substitution:
+
+<a class="replay-button soundLink" href="#" onclick="pycmd('play:q:0'); return false;" draggable="false" style="display: none;">
+    <svg class="playImage" viewBox="0 0 64 64" version="1.1">
+        <circle cx="32" cy="32" r="29"></circle>
+        <path d="M56.502,32.301l-37.502,20.101l0.329,-40.804l37.173,20.703Z"></path>
+    </svg>
+</a> 
+<a class="replay-button soundLink" href="#" onclick="pycmd('play:q:1'); return false;" draggable="false" style="display: none;">
+    <svg class="playImage" viewBox="0 0 64 64" version="1.1">
+        <circle cx="32" cy="32" r="29"></circle>
+        <path d="M56.502,32.301l-37.502,20.101l0.329,-40.804l37.173,20.703Z"></path>
+    </svg>
+</a> 
+<a class="replay-button soundLink" href="#" onclick="pycmd('play:q:2'); return false;" draggable="false">
+    <svg class="playImage" viewBox="0 0 64 64" version="1.1">
+        <circle cx="32" cy="32" r="29"></circle>
+        <path d="M56.502,32.301l-37.502,20.101l0.329,-40.804l37.173,20.703Z"></path>
+    </svg>
+</a>
+no <audio> element
+replay buttons in card: 3
+
+--- template 0 [A · sound-tag] render 8 ---
+autoplay queue Anki would play: american-robin_audio1.mp3, american-robin_audio2.mp3, american-robin_audio3.mp3
+player nodes found: 3
+showing #1
+raw DOM after Anki substitution:
+
+<a class="replay-button soundLink" href="#" onclick="pycmd('play:q:0'); return false;" draggable="false">
+    <svg class="playImage" viewBox="0 0 64 64" version="1.1">
+        <circle cx="32" cy="32" r="29"></circle>
+        <path d="M56.502,32.301l-37.502,20.101l0.329,-40.804l37.173,20.703Z"></path>
+    </svg>
+</a> 
+<a class="replay-button soundLink" href="#" onclick="pycmd('play:q:1'); return false;" draggable="false" style="display: none;">
+    <svg class="playImage" viewBox="0 0 64 64" version="1.1">
+        <circle cx="32" cy="32" r="29"></circle>
+        <path d="M56.502,32.301l-37.502,20.101l0.329,-40.804l37.173,20.703Z"></path>
+    </svg>
+</a> 
+<a class="replay-button soundLink" href="#" onclick="pycmd('play:q:2'); return false;" draggable="false" style="display: none;">
+    <svg class="playImage" viewBox="0 0 64 64" version="1.1">
+        <circle cx="32" cy="32" r="29"></circle>
+        <path d="M56.502,32.301l-37.502,20.101l0.329,-40.804l37.173,20.703Z"></path>
+    </svg>
+</a>
+no <audio> element
+replay buttons in card: 3
+
+--- template 1 [B · html-audio] render 1 ---
+autoplay queue Anki would play: (empty)
+candidates: american-robin_audio1.mp3, american-robin_audio2.mp3, american-robin_audio3.mp3
+chose: american-robin_audio1.mp3
+play() resolved — autoplay allowed
+<audio> paused=false currentTime=1.04 readyState=4 src=american-robin_audio1.mp3
+replay buttons in card: 0
+
+--- template 1 [B · html-audio] render 2 ---
+autoplay queue Anki would play: (empty)
+candidates: american-robin_audio1.mp3, american-robin_audio2.mp3, american-robin_audio3.mp3
+chose: american-robin_audio2.mp3
+play() resolved — autoplay allowed
+<audio> paused=false currentTime=1.10 readyState=4 src=american-robin_audio2.mp3
+replay buttons in card: 0
+
+--- template 1 [B · html-audio] render 3 ---
+autoplay queue Anki would play: (empty)
+candidates: american-robin_audio1.mp3, american-robin_audio2.mp3, american-robin_audio3.mp3
+chose: american-robin_audio1.mp3
+play() resolved — autoplay allowed
+<audio> paused=false currentTime=1.12 readyState=4 src=american-robin_audio1.mp3
+replay buttons in card: 0
+
+--- template 1 [B · html-audio] render 4 ---
+autoplay queue Anki would play: (empty)
+candidates: american-robin_audio1.mp3, american-robin_audio2.mp3, american-robin_audio3.mp3
+chose: american-robin_audio3.mp3
+play() resolved — autoplay allowed
+<audio> paused=false currentTime=1.11 readyState=4 src=american-robin_audio3.mp3
+replay buttons in card: 0
+
+--- template 1 [B · html-audio] render 5 ---
+autoplay queue Anki would play: (empty)
+candidates: american-robin_audio1.mp3, american-robin_audio2.mp3, american-robin_audio3.mp3
+chose: american-robin_audio1.mp3
+play() resolved — autoplay allowed
+<audio> paused=false currentTime=1.12 readyState=4 src=american-robin_audio1.mp3
+replay buttons in card: 0
+
+--- template 1 [B · html-audio] render 6 ---
+autoplay queue Anki would play: (empty)
+candidates: american-robin_audio1.mp3, american-robin_audio2.mp3, american-robin_audio3.mp3
+chose: american-robin_audio2.mp3
+play() resolved — autoplay allowed
+<audio> paused=false currentTime=1.11 readyState=4 src=american-robin_audio2.mp3
+replay buttons in card: 0
+
+--- template 1 [B · html-audio] render 7 ---
+autoplay queue Anki would play: (empty)
+candidates: american-robin_audio1.mp3, american-robin_audio2.mp3, american-robin_audio3.mp3
+chose: american-robin_audio1.mp3
+play() resolved — autoplay allowed
+<audio> paused=false currentTime=1.13 readyState=4 src=american-robin_audio1.mp3
+replay buttons in card: 0
+
+--- template 1 [B · html-audio] render 8 ---
+autoplay queue Anki would play: (empty)
+candidates: american-robin_audio1.mp3, american-robin_audio2.mp3, american-robin_audio3.mp3
+chose: american-robin_audio2.mp3
+play() resolved — autoplay allowed
+<audio> paused=false currentTime=1.12 readyState=4 src=american-robin_audio2.mp3
+replay buttons in card: 0
+
+== DONE ==

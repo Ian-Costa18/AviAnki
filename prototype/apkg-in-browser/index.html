@@ -1,0 +1,62 @@
+<!doctype html>
+<!-- PROTOTYPE — THROWAWAY. Answers issue #18: can a browser build a valid .apkg? -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PROTOTYPE · .apkg in the browser</title>
+<style>
+  body { font: 15px/1.5 system-ui, sans-serif; max-width: 760px; margin: 2rem auto;
+         padding: 0 1rem; color: #1a1a1a; }
+  h1 { font-size: 1.3rem; }
+  .banner { background: #ffe9b3; border: 1px solid #d9a800; padding: .6rem .8rem;
+            border-radius: 6px; margin-bottom: 1.2rem; }
+  button { font: inherit; padding: .5rem 1rem; border-radius: 6px;
+           border: 1px solid #888; background: #f4f4f2; cursor: pointer; }
+  button:hover { background: #e8e8e4; }
+  #log { background: #111; color: #b8f0b8; font: 12px/1.45 ui-monospace, monospace;
+         padding: .8rem; border-radius: 6px; height: 24rem; overflow: auto;
+         white-space: pre-wrap; margin-top: 1rem; }
+  .row { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap;
+         margin-bottom: .6rem; }
+  label { font-size: .9rem; }
+</style>
+</head>
+<body>
+
+<div class="banner">
+  <strong>PROTOTYPE — throwaway.</strong> Built to answer
+  <a href="https://github.com/Ian-Costa18/AviAnki/issues/18">issue #18</a>:
+  can a browser build a <code>.apkg</code> real Anki imports without complaint?
+  No error handling, no tests, no polish.
+</div>
+
+<h1>.apkg in the browser</h1>
+
+<div class="row">
+  <button id="build">Build the 3-species catalog deck</button>
+</div>
+<p style="font-size:.9rem;color:#555;margin:0 0 1.2rem">
+  Real Commons photos and iNaturalist audio, the real note types out of
+  <code>avianki.anki_model</code>, plus a prototype-only note type that tries two
+  ways of randomising which of three recordings plays.
+</p>
+
+<div class="row">
+  <button id="scale">Scale test</button>
+  <label><input id="speciesCount" type="number" value="400" min="1" max="2000"
+                style="width:5.5rem"> species</label>
+  <label><input id="scaleDownload" type="checkbox"> also download the file</label>
+</div>
+<p style="font-size:.9rem;color:#555;margin:0">
+  Synthetic media at the sizes the research measured. This is the one that
+  matters on a phone.
+</p>
+
+<pre id="log"></pre>
+
+<script src="vendor/sql-wasm.js"></script>
+<script src="vendor/jszip.min.js"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>

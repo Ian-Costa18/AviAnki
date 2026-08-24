@@ -1,0 +1,7 @@
+catalog/*.jpg
+catalog/*.png
+catalog/*.mp3
+model.generated.json
+card.css
+reference-genanki.apkg
+*.apkg

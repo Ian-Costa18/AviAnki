@@ -1,0 +1,106 @@
+[
+  {
+    "name": "American Robin",
+    "sciName": "Turdus migratorius",
+    "images": [
+      {
+        "file": "american-robin_img1.jpg",
+        "licence": "CC BY-SA 4.0",
+        "credit": "File:American robin (71307).jpg"
+      },
+      {
+        "file": "american-robin_img2.jpg",
+        "licence": "CC BY-SA 4.0",
+        "credit": "File:American-Robin-New-York-April-2022.png"
+      },
+      {
+        "file": "american-robin_img3.jpg",
+        "licence": "CC BY 2.0",
+        "credit": "File:American Robin (Female) (8234762055).jpg"
+      }
+    ],
+    "audio": [
+      {
+        "file": "american-robin_audio1.mp3",
+        "attribution": "(c) Mila C., some rights reserved (CC BY)",
+        "sourceId": 2018003
+      },
+      {
+        "file": "american-robin_audio2.mp3",
+        "attribution": "(c) cassi saari, some rights reserved (CC BY)",
+        "sourceId": 389943
+      },
+      {
+        "file": "american-robin_audio3.mp3",
+        "attribution": "(c) feralbeetle, some rights reserved (CC BY)",
+        "sourceId": 73392
+      }
+    ]
+  },
+  {
+    "name": "Northern Cardinal",
+    "sciName": "Cardinalis cardinalis",
+    "images": [
+      {
+        "file": "northern-cardinal_img1.jpg",
+        "licence": "CC BY-SA 4.0",
+        "credit": "File:Male northern cardinal in Central Park (52612).jpg"
+      },
+      {
+        "file": "northern-cardinal_img2.jpg",
+        "licence": "CC BY-SA 4.0",
+        "credit": "File:A Male Northern Cardinal.jpg"
+      },
+      {
+        "file": "northern-cardinal_img3.jpg",
+        "licence": "CC BY-SA 4.0",
+        "credit": "File:Cardinal with raspberries.jpg"
+      }
+    ],
+    "audio": [
+      {
+        "file": "northern-cardinal_audio1.mp3",
+        "attribution": "(c) Ken Clark, some rights reserved (CC BY)",
+        "sourceId": 1934199
+      },
+      {
+        "file": "northern-cardinal_audio2.mp3",
+        "attribution": "(c) dhasdf, some rights reserved (CC BY)",
+        "sourceId": 942303
+      }
+    ]
+  },
+  {
+    "name": "Blue Jay",
+    "sciName": "Cyanocitta cristata",
+    "images": [
+      {
+        "file": "blue-jay_img1.jpg",
+        "licence": "CC BY-SA 4.0",
+        "credit": "File:Blue jay in PP (30960).jpg"
+      },
+      {
+        "file": "blue-jay_img2.jpg",
+        "licence": "Public domain",
+        "credit": "File:102 Blue Jay.jpg"
+      },
+      {
+        "file": "blue-jay_img3.jpg",
+        "licence": "CC BY 4.0",
+        "credit": "File:Blue Jay, White Rock Lake, Dallas, TX imported from iNaturalist photo 17226391.jpg"
+      }
+    ],
+    "audio": [
+      {
+        "file": "blue-jay_audio1.mp3",
+        "attribution": "(c) Dakota Parish, some rights reserved (CC BY)",
+        "sourceId": 539149
+      },
+      {
+        "file": "blue-jay_audio2.mp3",
+        "attribution": "no rights reserved",
+        "sourceId": 1857349
+      }
+    ]
+  }
+]
