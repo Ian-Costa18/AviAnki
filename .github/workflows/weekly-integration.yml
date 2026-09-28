@@ -25,13 +25,30 @@ jobs:
       - name: Install dev dependencies
         run: uv sync --group dev
 
-      - name: Install ffmpeg
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg
-
       - name: Run integration tests
-        run: uv run pytest --integration
+        run: uv run pytest --integration -rs
         env:
           EBIRD_API_KEY: ${{ secrets.EBIRD_API_KEY }}
+
+      - name: Write job summary
+        if: ${{ always() }}
+        env:
+          EBIRD_API_KEY: ${{ secrets.EBIRD_API_KEY }}
+        run: |
+          {
+            echo "## Weekly integration check"
+            echo ""
+            echo "**Covers today:** eBird smoke test only (\`ebird.fetch_species(\"US-MA\")\`), per ADR 0020 interim."
+            echo "Source smoke tests, GBIF EOD and the published-site check are added once those sources exist (M2-M3)."
+            echo "allaboutbirds.org is dormant (ADR 0002) and not monitored."
+            echo ""
+            if [ -z "$EBIRD_API_KEY" ]; then
+              echo "> [!WARNING]"
+              echo "> **eBird smoke test SKIPPED:** the \`EBIRD_API_KEY\` secret is not set, so this run tested nothing."
+            else
+              echo "eBird smoke test ran (\`EBIRD_API_KEY\` is set)."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
 
   notify-on-failure:
     needs: integration
