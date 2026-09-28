@@ -1,0 +1,87 @@
+{
+ "batchcomplete": true,
+ "query": {
+  "redirects": [
+   {
+    "from": "Accipiter striatus",
+    "to": "Sharp-shinned hawk"
+   },
+   {
+    "from": "Alauda arvensis",
+    "to": "Eurasian skylark"
+   },
+   {
+    "from": "Acridotheres tristis",
+    "to": "Common myna"
+   },
+   {
+    "from": "Aethia cristatella",
+    "to": "Crested auklet"
+   },
+   {
+    "from": "Acanthis flammea",
+    "to": "Redpoll"
+   },
+   {
+    "from": "Aerodramus bartschi",
+    "to": "Mariana swiftlet"
+   }
+  ],
+  "pages": [
+   {
+    "pageid": 326668,
+    "ns": 0,
+    "title": "Eurasian skylark",
+    "pageimage": "Skylark_2,_Lake_District,_England_-_June_2009.jpg",
+    "pageprops": {
+     "wikibase_item": "Q25961"
+    }
+   },
+   {
+    "pageid": 359864,
+    "ns": 0,
+    "title": "Redpoll",
+    "pageimage": "Carduelis_flammea_CT6.jpg",
+    "pageprops": {
+     "wikibase_item": "Q2822501"
+    }
+   },
+   {
+    "pageid": 363908,
+    "ns": 0,
+    "title": "Sharp-shinned hawk",
+    "pageimage": "Accipiter_striatus,_Canet_Road,_San_Luis_Obispo_1.jpg",
+    "pageprops": {
+     "wikibase_item": "Q386569"
+    }
+   },
+   {
+    "pageid": 480171,
+    "ns": 0,
+    "title": "Common myna",
+    "pageimage": "Acridotheres_tristis00.jpg",
+    "pageprops": {
+     "wikibase_item": "Q116667"
+    }
+   },
+   {
+    "pageid": 3936080,
+    "ns": 0,
+    "title": "Crested auklet",
+    "pageimage": "Aethia_cristatella.jpg",
+    "pageprops": {
+     "wikibase_item": "Q1166020"
+    }
+   },
+   {
+    "pageid": 12420160,
+    "ns": 0,
+    "title": "Mariana swiftlet",
+    "pageimage": "Aerodramus_bartschi_-_Damien_Wallace_-_555443620.jpeg",
+    "pageprops": {
+     "wikibase_item": "Q27581"
+    }
+   }
+  ]
+ }
+}

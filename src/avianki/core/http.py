@@ -135,6 +135,14 @@ class HttpClient:
 
     # ── public API ────────────────────────────────────────────────────────────
 
+    def today(self) -> str:
+        """Today's UTC date as ISO 8601 (``2026-09-28``), from the injected clock.
+
+        Sources are pure and may not read the clock; this is how they stamp
+        ``AssetRecord.retrieved_at``.
+        """
+        return self._now().astimezone(timezone.utc).date().isoformat()
+
     def get(
         self,
         source: str,

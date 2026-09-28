@@ -1,0 +1,60 @@
+{
+ "batchcomplete": true,
+ "query": {
+  "pages": [
+   {
+    "ns": 14,
+    "title": "Category:Audio files of Accipiter striatus",
+    "missing": true
+   },
+   {
+    "pageid": 74775790,
+    "ns": 14,
+    "title": "Category:Audio files of Agelaius phoeniceus",
+    "categoryinfo": {
+     "size": 23,
+     "pages": 0,
+     "files": 23,
+     "subcats": 0,
+     "hidden": false
+    }
+   },
+   {
+    "pageid": 85710049,
+    "ns": 14,
+    "title": "Category:Audio files of Alauda arvensis",
+    "categoryinfo": {
+     "size": 7,
+     "pages": 0,
+     "files": 7,
+     "subcats": 0,
+     "hidden": false
+    }
+   },
+   {
+    "pageid": 112241630,
+    "ns": 14,
+    "title": "Category:Audio files of Actitis hypoleucos",
+    "categoryinfo": {
+     "size": 7,
+     "pages": 0,
+     "files": 7,
+     "subcats": 0,
+     "hidden": false
+    }
+   },
+   {
+    "pageid": 145932127,
+    "ns": 14,
+    "title": "Category:Audio files of Acridotheres tristis",
+    "categoryinfo": {
+     "size": 17,
+     "pages": 0,
+     "files": 17,
+     "subcats": 0,
+     "hidden": false
+    }
+   }
+  ]
+ }
+}
