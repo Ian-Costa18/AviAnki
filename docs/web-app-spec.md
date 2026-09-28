@@ -53,7 +53,7 @@ It runs as `avianki-catalog build` in `.github/workflows/catalog.yml`.
 3. **Select, per species and role** ([ADR 0011](adr/0011-media-selection.md)):
    1. Apply pins from `pins.toml`.
    2. Keep sticky assets that are still valid ([ADR 0014](adr/0014-catalog-rebuilds.md)).
-   3. Fill what's still missing with ordered fill over the registered sources ([ADR 0007](adr/0007-source-contract.md)), with licence gate → generic rejects → download → measure → BirdNET (audio) → rank.
+   3. Fill what's still missing with ordered fill over the registered sources ([ADR 0007](adr/0007-source-contract.md)), with licence gate → generic rejects → download → measure → BirdNET (audio, first minute only; the first candidate that passes wins, [ADR 0023](adr/0023-audio-first-pass.md)) → rank (photos).
    4. A source error keeps the previous entry and is logged. Absence is recorded as absence.
 4. **Process.** Images become WebP at 800 px on the long side, q80, capped at 150 KB. Audio becomes a 10 s window with high-pass and loudnorm, as MP3. Each step appends to the asset's `modifications`.
 5. **Assemble.** Write the content-addressed media, `species.<hash>.json`, `regions/<slug>.<hash>.json`, `provenance.<hash>.json` and `manifest.json`. Also generate `credits.html`, `contact-sheet.html` and `build-report.md`.
