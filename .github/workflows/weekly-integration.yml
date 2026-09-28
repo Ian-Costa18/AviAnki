@@ -9,6 +9,8 @@ jobs:
   integration:
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    env:
+      EBIRD_API_KEY: ${{ secrets.EBIRD_API_KEY }}
     steps:
       - uses: actions/checkout@v4
 
@@ -26,14 +28,11 @@ jobs:
         run: uv sync --group dev
 
       - name: Run integration tests
+        id: tests
         run: uv run pytest --integration -rs
-        env:
-          EBIRD_API_KEY: ${{ secrets.EBIRD_API_KEY }}
 
       - name: Write job summary
         if: ${{ always() }}
-        env:
-          EBIRD_API_KEY: ${{ secrets.EBIRD_API_KEY }}
         run: |
           {
             echo "## Weekly integration check"
@@ -46,7 +45,7 @@ jobs:
               echo "> [!WARNING]"
               echo "> **eBird smoke test SKIPPED:** the \`EBIRD_API_KEY\` secret is not set, so this run tested nothing."
             else
-              echo "eBird smoke test ran (\`EBIRD_API_KEY\` is set)."
+              echo "eBird smoke test ran: **${{ steps.tests.outcome }}**."
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
