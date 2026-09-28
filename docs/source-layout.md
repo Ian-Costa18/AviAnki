@@ -19,7 +19,9 @@ src/avianki/
     registry.py          registered sources and the ordered list per asset kind  (today)
     gbif/                SpeciesSource: eBird Observation Dataset facets, IOC names  (today)
     commons/             AssetSource: lead image, audio
-    inaturalist/         AssetSource: photo fallback, audio
+    inaturalist/         AssetSource: photo fallback, audio  (today; not yet registered)
+      source.py          INaturalistSource: taxon mapping + plausibility check (ADR 0008), candidates, fetch, pins
+      parse.py           pure: /taxa, species_counts and observation parsing; the photo and sound gates (ADR 0011)
     ebird/               SpeciesSource, republishable=False, CLI only      (today: ebird.py)
     allaboutbirds/       present, NOT registered                            (today: allaboutbirds.py)
   media/                 → core
