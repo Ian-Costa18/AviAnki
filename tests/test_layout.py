@@ -47,7 +47,9 @@ RULES: dict[str, tuple[str, ...]] = {
     "avianki.taxonomy": ("avianki.core", "avianki.taxonomy"),
     # sources/__init__ runs before any concrete source, so it gets the source rule minus
     # the registry: core and taxonomy only.
-    "avianki.sources": ("avianki.core", "avianki.taxonomy"),
+    # sources/__init__ runs before any concrete source, so it may re-export the
+    # contract (which is core-only) but never the registry or a concrete source.
+    "avianki.sources": ("avianki.core", "avianki.taxonomy", "avianki.sources.contract"),
     "avianki.sources.contract": (
         "avianki.core",
         "avianki.taxonomy",
