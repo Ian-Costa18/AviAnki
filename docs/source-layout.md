@@ -2,7 +2,7 @@
 
 The living map of the repo's layout, from [ADR 0018](adr/0018-package-layout.md). Update it in the same change as any file that adds, removes or moves a slice.
 
-**Status:** target layout, partly built (M2 done: core, taxonomy, the source contract, the GBIF source and the species-only build). Items marked *(today)* already exist; the flat 0.9 modules (`cli.py`, `ebird.py`, `allaboutbirds.py`, `media.py`, `anki_model.py`) are still in place.
+**Status:** target layout, partly built (M2 done: core, taxonomy, the source contract, the GBIF source and the species-only build). Items marked *(today)* already exist; the flat 0.9 modules (`cli.py`, `ebird.py`, `allaboutbirds.py`, `anki_model.py`) are still in place.
 
 ```text
 src/avianki/
@@ -23,8 +23,10 @@ src/avianki/
     ebird/               SpeciesSource, republishable=False, CLI only      (today: ebird.py)
     allaboutbirds/       present, NOT registered                            (today: allaboutbirds.py)
   media/                 → core
-    images.py            resize → WebP, byte cap
-    audio.py             window trim, high-pass, loudnorm, MP3                (today: media.py)
+    __init__.py          the 0.9 helpers (download_file, trim_to_mp3, find_cached*) until the 1.0.0 CLI rewrite; re-exports MediaError  (today)
+    errors.py            MediaError, ImageRejected (no third-party imports)  (today)
+    images.py            inspect, resize → WebP, byte cap; needs Pillow (extra avianki[catalog])  (today)
+    audio.py             window trim, high-pass, loudnorm, MP3 via ffmpeg on PATH  (today)
     verify.py            BirdNET gate (optional extra: avianki[verify])
   catalog/               → sources, media, taxonomy, core
     __init__.py          docstring only, so importing catalog.format never pulls in sources/

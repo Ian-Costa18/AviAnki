@@ -27,7 +27,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-catalog = ["jsonschema>=4"]
+catalog = ["jsonschema>=4", "Pillow>=10"]
 
 [project.scripts]
 avianki = "avianki.cli:main"
