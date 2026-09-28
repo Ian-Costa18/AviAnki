@@ -1,6 +1,6 @@
 # 0007 — Two narrow source contracts with declared limits
 
-**Status:** Accepted, 2026-09-28 · **Ticket:** [#20](https://github.com/Ian-Costa18/AviAnki/issues/20)
+**Status:** Accepted, 2026-09-28 · **Amended by:** [0021](0021-contract-field-additions.md) · **Ticket:** [#20](https://github.com/Ian-Costa18/AviAnki/issues/20)
 
 Q1–Q5 were decided with the user on 2026-08-25. Q6 (statelessness) was decided afterwards on the recommendation made in that session.
 

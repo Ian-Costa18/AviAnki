@@ -26,3 +26,4 @@ An accepted ADR is not edited to change its decision. To change it, write a new 
 | [0018](0018-package-layout.md) | Vertical slices with a dependency rule enforced by a test | #21 |
 | [0019](0019-verification-without-a-human.md) | Decks are verified automatically: Anki's backend, Playwright and BirdNET | #33, #34 |
 | [0020](0020-integration-monitoring.md) | The weekly check fails loudly and watches the real sources | #26 |
+| [0021](0021-contract-field-additions.md) | Four fields beyond the §5.1 record: `licence_version_assumed` and three ranking hints (amends 0007) | #40 |
