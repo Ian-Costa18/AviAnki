@@ -18,7 +18,9 @@ src/avianki/
     contract.py          SpeciesSource, AssetSource, Candidate, FetchedAsset, Limits  (today)
     registry.py          registered sources and the ordered list per asset kind  (today)
     gbif/                SpeciesSource: eBird Observation Dataset facets, IOC names  (today)
-    commons/             AssetSource: lead image, audio
+    commons/             AssetSource: Wikipedia lead image + Commons audio  (today; not yet registered)
+      source.py            CommonsSource: batched Wikipedia/Wikidata/Commons queries, fetch, resolve_pin
+      parse.py             pure: payload parsers, taxon guard, photo/audio gates, credit chain, ranking
     inaturalist/         AssetSource: photo fallback, audio
     ebird/               SpeciesSource, republishable=False, CLI only      (today: ebird.py)
     allaboutbirds/       present, NOT registered                            (today: allaboutbirds.py)

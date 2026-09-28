@@ -77,6 +77,13 @@ def make_client(session, tmp_path=None, ft=None, **kw):
     return client, ft
 
 
+def test_today_is_the_injected_clocks_utc_date():
+    client, ft = make_client(FakeSession())
+    assert client.today() == "2026-09-28"
+    ft.now = datetime(2026, 9, 28, 23, 30, tzinfo=timezone(timedelta(hours=-5)))  # already 29 Sep in UTC
+    assert client.today() == "2026-09-29"
+
+
 # ── User-Agent ───────────────────────────────────────────────────────────────
 
 
