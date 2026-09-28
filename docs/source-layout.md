@@ -9,7 +9,7 @@ src/avianki/
   core/                  imports nothing from avianki
     http.py              throttled, cached, budgeted client; honours Limits and Retry-After; one User-Agent
     licences.py          exact versioned allowlist; AssetRecord (licence research §5.1)
-    log.py               the "bird_deck" logger setup  (today: in cli.py)
+    log.py               the "bird_deck" logger setup
   taxonomy/              → core
     species.py           loads data/species.csv: minted ids, per-source keys, aliases
     regions.py           loads data/regions.csv: slug ↔ GADM gid ↔ eBird code
