@@ -117,10 +117,11 @@ def test_a_failed_region_is_recorded_and_the_rest_carry_on():
     assert not result.ok
 
 
-def test_an_empty_region_is_absence_not_failure():
+def test_an_empty_region_is_a_failure_not_an_empty_list():
     result = build_species_lists(FakeSource({"us-ri": []}), [RI], SpeciesTable())
-    assert result.region_files == {"us-ri": {"slug": "us-ri", "species": []}}
-    assert result.ok
+    assert result.region_files == {}
+    assert "us-ri" in result.failed
+    assert not result.ok
 
 
 def test_unexpected_errors_are_not_swallowed():
@@ -133,6 +134,19 @@ def test_species_without_an_ioc_match_are_reported():
     source = FakeSource({"us-ri": [rec("Falco atricapillus", "American Goshawk", 10542232, 1)]}, fallbacks=[fb])
     result = build_species_lists(source, [RI], SpeciesTable())
     assert result.no_ioc_match == [fb]
+
+
+def test_species_without_an_ioc_match_are_held_back_not_minted():
+    fb = NameFallback("10542232", "Falco atricapillus", "American Goshawk", "eod-record")
+    source = FakeSource({"us-ri": [
+        rec("Falco atricapillus", "American Goshawk", 10542232, 1),
+        rec("Anas rubripes", "American Black Duck", 2, 2),
+    ]}, fallbacks=[fb])
+    table = SpeciesTable()
+    result = build_species_lists(source, [RI], table)
+    assert [s[0] for s in result.region_files["us-ri"]["species"]] == ["anas-rubripes"]
+    assert [r.id for r in result.minted] == ["anas-rubripes"]
+    assert "falco-atricapillus" not in table
 
 
 def test_an_unmintable_name_is_skipped_and_reported():

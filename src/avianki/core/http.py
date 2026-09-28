@@ -191,7 +191,7 @@ class HttpClient:
                     headers={"User-Agent": self.user_agent},
                     timeout=self.timeout,
                 )
-            except (requests.ConnectionError, requests.Timeout) as e:
+            except requests.RequestException as e:
                 if attempt >= self.max_retries:
                     raise SourceError(f"{source}: request to {url} failed after {attempt + 1} attempts: {e}") from e
                 wait = self._backoff(attempt)
@@ -294,14 +294,18 @@ class HttpClient:
         if paths is None or not (paths[0].exists() and paths[1].exists()):
             return None
         body, meta_path = paths
-        meta = json.loads(meta_path.read_text(encoding="utf-8"))
-        return Response(
-            status=int(meta["status"]),
-            url=str(meta["url"]),
-            content=body.read_bytes(),
-            headers=dict(meta.get("headers", {})),
-            from_cache=True,
-        )
+        try:
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+            return Response(
+                status=int(meta["status"]),
+                url=str(meta["url"]),
+                content=body.read_bytes(),
+                headers=dict(meta.get("headers", {})),
+                from_cache=True,
+            )
+        except (OSError, ValueError, KeyError, TypeError):
+            log.warning("%s: unreadable cache entry %s; refetching", source, key)
+            return None
 
     def _cache_write(self, source: str, key: str, resp: Response) -> None:
         paths = self._cache_paths(source, key)

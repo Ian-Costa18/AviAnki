@@ -73,13 +73,21 @@ def build_species_lists(
             log.error("species list for %s failed: %s", region.slug, e)
             result.failed[region.slug] = str(e)
             continue
+        if not records:
+            msg = "the source returned no species; every US and Canadian region has records, so this is a failure"
+            log.error("species list for %s failed: %s", region.slug, msg)
+            result.failed[region.slug] = msg
+            continue
         result.species_counts[region.slug] = len(records)
+        held = _held_keys(source)
 
         listed: list[list[Any]] = []
         seen: set[str] = set()
         for record in sorted(records, key=lambda r: r.rank):
             if len(listed) >= top_n:
                 break
+            if record.source_key in held:
+                continue  # not in the IOC list: reported, never minted (ADR 0008)
             species_id = _species_id(record, species_table, result)
             if species_id is None:
                 if record.source_key not in unmintable_keys:
@@ -132,7 +140,9 @@ def render_report(result: SpeciesListsResult, regions: Iterable[Region], top_n: 
         lines += [f"| {r.id} | {cell(r.sci_name)} | {cell(r.common_name)} | {r.gbif_key or ''} |" for r in result.minted]
         lines.append("")
     if result.no_ioc_match:
-        lines += ["## No IOC match", "", "Named from the fallback chain (ADR 0004); check before committing.", "",
+        lines += ["## No IOC match: held back", "",
+                  "Not in the IOC list, so not minted and left out of every region list (ADR 0008). "
+                  "Add each one to species.csv by hand, with an alias row if IOC uses another name, or leave it out.", "",
                   "| GBIF key | Scientific name | Common name | Common name from |", "|---|---|---|---|"]
         lines += [
             f"| {f.source_key} | {cell(f.sci_name)} | {cell(f.common_name)} | {f.common_name_from} |"
@@ -144,6 +154,12 @@ def render_report(result: SpeciesListsResult, regions: Iterable[Region], top_n: 
         lines += [f"| {r.source_key} | {cell(r.sci_name)} | {cell(r.common_name)} |" for r in result.unmintable]
         lines.append("")
     return "\n".join(lines)
+
+
+def _held_keys(source: SpeciesSource) -> set[str]:
+    if isinstance(source, ReportsNameFallbacks):
+        return {str(f.source_key) for f in source.name_fallbacks()}
+    return set()
 
 
 def _species_id(record: SpeciesRecord, table: SpeciesTable, result: SpeciesListsResult) -> str | None:

@@ -230,6 +230,22 @@ def test_connection_error_retried_then_raised():
     assert len(session.calls) == 3
 
 
+def test_other_transport_errors_are_source_errors():
+    session = FakeSession(requests.exceptions.ChunkedEncodingError("cut"))
+    client, _ = make_client(session, max_retries=0)
+    with pytest.raises(SourceError):
+        client.get("src", FAST, URL)
+
+
+def test_corrupt_cache_metadata_is_a_miss(tmp_path):
+    client, _ = make_client(FakeSession(FakeResponse(content=b"one")), tmp_path)
+    client.get("src", FAST, URL)
+    for meta in tmp_path.rglob("*.meta.json"):
+        meta.write_text("{not json", encoding="utf-8")
+    client2, _ = make_client(FakeSession(FakeResponse(content=b"two")), tmp_path)
+    assert client2.get("src", FAST, URL).content == b"two"
+
+
 def test_connection_error_then_success():
     session = FakeSession(requests.Timeout("slow"), FakeResponse())
     client, _ = make_client(session, backoff_base=0.1)
