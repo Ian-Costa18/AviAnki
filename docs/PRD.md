@@ -206,3 +206,15 @@ Out of scope for this effort. Not bad ideas — just not this.
 | [#30 redaction bug](https://github.com/Ian-Costa18/AviAnki/issues/30) | Reclassified as a ship-blocker |
 | [#22 attribution](https://github.com/Ian-Costa18/AviAnki/issues/22) | Missing attribution is a legal failure, not a cosmetic one |
 | [#33 audio ranking](https://github.com/Ian-Costa18/AviAnki/issues/33) | "Is the bird audible?" is the quality bar; quality beats coverage |
+
+---
+
+## 12. Amendments
+
+Changes made in the open, as the preamble requires. Each one links the ADR that made it.
+
+- **2026-09-28 — the CLI identity break (§6) is accepted, not migrated.** [ADR 0009](adr/0009-note-identity.md). Decks built by CLI ≤ 0.9 won't match. 1.0.0 says so in its release notes.
+- **2026-09-28 — Description → Name is deferred at v1 (§7).** [ADR 0010](adr/0010-card-types.md). Absence is acceptable and a leaked name is not, and the 29% colour-in-name problem can't be solved by redaction. So [#30](https://github.com/Ian-Costa18/AviAnki/issues/30) no longer blocks shipping the web app, though it's still fixed in the CLI.
+- **2026-09-28 — iOS has no free native Anki app (§9).** [ADR 0016](adr/0016-last-mile.md). AnkiMobile is paid. The page says so honestly and offers the free AnkiWeb route. This is an accepted limitation, not something to work around.
+- **2026-09-28 — "Is the bird audible?" is enforced by BirdNET, not by a person listening (§7).** [ADR 0011](adr/0011-media-selection.md). This moves BirdNET from the map's out-of-scope list into the pipeline as a verification gate.
+- **2026-09-28 — the phone prerequisite (§8) is met by design and automated testing instead of a manual prototype.** [ADR 0006](adr/0006-browser-builds-the-apkg.md), [ADR 0019](adr/0019-verification-without-a-human.md). Streaming zip assembly removes the 2× heap, and parts builds remain as the fallback for constrained devices.
