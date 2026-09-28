@@ -30,6 +30,7 @@ from pathlib import Path
 import genanki
 import tqdm as tqdm_module
 from dotenv import load_dotenv
+from avianki.core.log import setup_logging, teardown_logging
 from avianki.redact import redact_name
 
 from . import allaboutbirds, anki_model, ebird, media
@@ -37,39 +38,7 @@ from . import allaboutbirds, anki_model, ebird, media
 load_dotenv()
 
 # ─── Logging ──────────────────────────────────────────────────────────────────
-_fmt = logging.Formatter("%(asctime)s %(levelname)-7s %(message)s", datefmt="%H:%M:%S")
 log = logging.getLogger("bird_deck")
-log.handlers.clear()  # avoid duplicate handlers if rerun in same Python session
-log.setLevel(logging.DEBUG)
-log.propagate = False
-
-
-class _TqdmHandler(logging.StreamHandler):
-    """Routes log output through tqdm.write() so progress bars aren't clobbered."""
-
-    def emit(self, record: logging.LogRecord) -> None:
-        try:
-            tqdm_module.tqdm.write(self.format(record))
-        except Exception:
-            self.handleError(record)
-
-
-_sh = _TqdmHandler(sys.stdout)
-_sh.setFormatter(_fmt)
-_sh.setLevel(logging.INFO)
-log.addHandler(_sh)
-
-
-def _setup_logging(log_file: str, verbose: bool, quiet: bool) -> logging.FileHandler:
-    fh = logging.FileHandler(log_file, encoding="utf-8", mode="w")
-    fh.setFormatter(_fmt)
-    fh.setLevel(logging.DEBUG)
-    log.addHandler(fh)
-    if verbose:
-        _sh.setLevel(logging.DEBUG)
-    elif quiet:
-        _sh.setLevel(logging.WARNING)
-    return fh
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -279,7 +248,7 @@ def main() -> None:
     default_dir = work_dir / ".ephemeral" if args.ephemeral else work_dir
     log_file = Path(args.log_file) if args.log_file else default_dir / "avianki.log"
     log_file.parent.mkdir(parents=True, exist_ok=True)
-    fh = _setup_logging(str(log_file), args.verbose, args.quiet)
+    setup_logging(log_file, args.verbose, args.quiet)
 
     # Determine species source: allaboutbirds URL/place ID, or eBird region code
     use_ebird = re.match(r"^[A-Z]{2}(-[A-Z]{2}(-\d+)?)?$", location.upper())
@@ -430,8 +399,7 @@ def main() -> None:
     )
     log.info("    File > Import > %s", output)
 
-    fh.close()
-    log.removeHandler(fh)
+    teardown_logging()
 
 
 if __name__ == "__main__":
