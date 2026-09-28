@@ -21,7 +21,9 @@ src/avianki/
     commons/             AssetSource: Wikipedia lead image + Commons audio  (today; not yet registered)
       source.py            CommonsSource: batched Wikipedia/Wikidata/Commons queries, fetch, resolve_pin
       parse.py             pure: payload parsers, taxon guard, photo/audio gates, credit chain, ranking
-    inaturalist/         AssetSource: photo fallback, audio
+    inaturalist/         AssetSource: photo fallback, audio  (today; not yet registered)
+      source.py          INaturalistSource: taxon mapping + plausibility check (ADR 0008), candidates, fetch, pins
+      parse.py           pure: /taxa, species_counts and observation parsing; the photo and sound gates (ADR 0011)
     ebird/               SpeciesSource, republishable=False, CLI only      (today: ebird.py)
     allaboutbirds/       present, NOT registered                            (today: allaboutbirds.py)
   media/                 → core
