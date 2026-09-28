@@ -27,7 +27,7 @@ src/avianki/
     errors.py            MediaError, ImageRejected (no third-party imports)  (today)
     images.py            inspect, resize → WebP, byte cap; needs Pillow (extra avianki[catalog])  (today)
     audio.py             window trim, high-pass, loudnorm, MP3 via ffmpeg on PATH  (today)
-    verify.py            BirdNET gate (optional extra: avianki[verify])
+    verify.py            BirdNET gate (optional extra: avianki[verify]; Python 3.11-3.13)  (today)
   catalog/               → sources, media, taxonomy, core
     __init__.py          docstring only, so importing catalog.format never pulls in sources/
     format.py            JSON Schemas + dataclasses for the published format  ← THE CONTRACT

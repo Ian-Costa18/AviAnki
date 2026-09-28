@@ -28,6 +28,10 @@ dependencies = [
 
 [project.optional-dependencies]
 catalog = ["jsonschema>=4", "Pillow>=10"]
+# BirdNET audio verification (ADR 0011). birdnet 1.x runs the v2.4 TFLite model through
+# ai-edge-litert (no TensorFlow), which ships wheels for CPython 3.11-3.13 only; on 3.14 the
+# extra installs nothing and avianki.media.verify raises VerifyUnavailable.
+verify = ["birdnet>=1.1.1; python_version >= '3.11' and python_version < '3.14'"]
 
 [project.scripts]
 avianki = "avianki.cli:main"
