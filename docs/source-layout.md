@@ -30,6 +30,7 @@ src/avianki/
     __init__.py          docstring only, so importing catalog.format never pulls in sources/
     format.py            JSON Schemas + dataclasses for the published format  ← THE CONTRACT
     species_lists.py     region species lists + minting into species.csv (§4 step 2)  (today)
+    credit.py            renders the answer-side credit HTML (ADR 0012)
     select.py            ordered fill, ranking, pins, stickiness
     build.py             pipeline orchestration; public build_species() used by --ebird
     validate.py          the publish gate (ADR 0014)
