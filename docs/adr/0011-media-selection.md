@@ -1,6 +1,6 @@
 # 0011 — Automatic media selection, with BirdNET verifying audio
 
-**Status:** Accepted, 2026-09-28 · **Tickets:** [#10](https://github.com/Ian-Costa18/AviAnki/issues/10), [#33](https://github.com/Ian-Costa18/AviAnki/issues/33) · **Amends:** map #6 "out of scope: BirdNET"
+**Status:** Accepted, 2026-09-28; audio selection amended by [0023](0023-audio-first-pass.md) · **Tickets:** [#10](https://github.com/Ian-Costa18/AviAnki/issues/10), [#33](https://github.com/Ian-Costa18/AviAnki/issues/33) · **Amends:** map #6 "out of scope: BirdNET"
 
 ## Context
 
