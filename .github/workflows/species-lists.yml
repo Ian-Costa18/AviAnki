@@ -1,0 +1,81 @@
+# Maintainer-only: build every region's species list from GBIF's eBird Observation
+# Dataset and mint new species (spec §4 step 2). Nothing is committed or deployed:
+# download the artifact, review species-lists-report.md, and commit data/species.csv.
+name: Species lists
+
+on:
+  workflow_dispatch:
+    inputs:
+      regions:
+        description: "Comma-separated region slugs, e.g. us-ri,us-dc (empty = every region)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: species-lists
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync
+
+      # A re-run restores the newest cache, so it reuses GBIF responses fetched so far.
+      # The CLI keys responses by EOD version, so a new release never reads stale facets.
+      - name: Restore HTTP cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache/http
+          key: species-http-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            species-http-
+
+      - name: Build species lists
+        env:
+          REGIONS: ${{ inputs.regions }}
+        run: |
+          args=(build --species-only --out build --cache-dir .cache/http)
+          if [ -n "$REGIONS" ]; then
+            args+=(--regions "$REGIONS")
+          fi
+          uv run avianki-catalog "${args[@]}"
+
+      # Saved even when a region failed, so the re-run only fetches what's missing.
+      - name: Save HTTP cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .cache/http
+          key: species-http-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Job summary
+        if: always()
+        run: |
+          if [ -f build/species-lists-report.md ]; then
+            cat build/species-lists-report.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No report was written; see the build step's log." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload lists and species.csv
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: species-lists-${{ github.run_id }}
+          path: |
+            build/
+            data/species.csv
+          if-no-files-found: error

@@ -16,7 +16,7 @@ src/avianki/
   sources/               → core, taxonomy
     contract.py          SpeciesSource, AssetSource, Candidate, FetchedAsset, Limits
     registry.py          registered sources and the ordered list per asset kind
-    gbif/                SpeciesSource: eBird Observation Dataset facets
+    gbif/                SpeciesSource: eBird Observation Dataset facets, IOC names  (today)
     commons/             AssetSource: lead image, audio
     inaturalist/         AssetSource: photo fallback, audio
     ebird/               SpeciesSource, republishable=False, CLI only      (today: ebird.py)
@@ -27,6 +27,7 @@ src/avianki/
     verify.py            BirdNET gate (optional extra: avianki[verify])
   catalog/               → sources, media, taxonomy, core
     format.py            JSON Schemas + dataclasses for the published format  ← THE CONTRACT
+    species_lists.py     region species lists + minting into species.csv (§4 step 2)  (today)
     select.py            ordered fill, ranking, pins, stickiness
     build.py             pipeline orchestration; public build_species() used by --ebird
     validate.py          the publish gate (ADR 0014)
@@ -38,7 +39,7 @@ src/avianki/
     credits.py           Credits field + deck description
     build.py             genanki writer
   cli.py                 `avianki`: deck, catalog, --ebird         (today, to be rewritten at 1.0.0)
-  catalog_cli.py         `avianki-catalog build|validate|report`
+  catalog_cli.py         `avianki-catalog build|validate|report`   (today: build --species-only)
   redact.py              CLI-only, until Description→Name returns     (today)
 
 web/                     imports no Python; depends only on catalog/format.py's documented schema
@@ -69,6 +70,7 @@ tests/                   mirrors src/avianki/
   ci.yml                 lint, types, unit tests, layout test                (today)
   catalog.yml            monthly + dispatch: build → validate → release → deploy Pages
   pages.yml              on push to web/: pull latest catalog release → deploy Pages
+  species-lists.yml      dispatch, maintainer-only: species lists + minted species.csv as an artifact  (today)
   weekly-integration.yml ADR 0020                                           (today, to be rewritten)
   publish.yml            PyPI                                               (today)
 ```
