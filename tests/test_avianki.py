@@ -138,7 +138,7 @@ def test_main_defaults_log_file_inside_work_dir(tmp_path):
         captured["log_file"] = log_file
         return MagicMock()
 
-    with patch("avianki.cli._setup_logging", side_effect=fake_setup_logging), patch(
+    with patch("avianki.cli.setup_logging", side_effect=fake_setup_logging), patch(
         "avianki.allaboutbirds.fetch_browse_species", return_value=[]
     ), patch(
         "sys.argv", ["avianki", "https://example.com", "--work-dir", str(work_dir)]
@@ -149,4 +149,4 @@ def test_main_defaults_log_file_inside_work_dir(tmp_path):
             except SystemExit:
                 pass
 
-    assert captured["log_file"] == str(work_dir / "avianki.log")
+    assert captured["log_file"] == work_dir / "avianki.log"

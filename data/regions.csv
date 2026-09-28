@@ -1,0 +1,65 @@
+slug,name,country,gadm_gid,gadm_version,ebird_code
+ca-ab,Alberta,CA,CAN.1_1,4.1,CA-AB
+ca-bc,British Columbia,CA,CAN.2_1,4.1,CA-BC
+ca-mb,Manitoba,CA,CAN.3_1,4.1,CA-MB
+ca-nb,New Brunswick,CA,CAN.4_1,4.1,CA-NB
+ca-nl,Newfoundland and Labrador,CA,CAN.5_1,4.1,CA-NL
+ca-ns,Nova Scotia,CA,CAN.7_1,4.1,CA-NS
+ca-nt,Northwest Territories,CA,CAN.6_1,4.1,CA-NT
+ca-nu,Nunavut,CA,CAN.8_1,4.1,CA-NU
+ca-on,Ontario,CA,CAN.9_1,4.1,CA-ON
+ca-pe,Prince Edward Island,CA,CAN.10_1,4.1,CA-PE
+ca-qc,Québec,CA,CAN.11_1,4.1,CA-QC
+ca-sk,Saskatchewan,CA,CAN.12_1,4.1,CA-SK
+ca-yt,Yukon,CA,CAN.13_1,4.1,CA-YT
+us-ak,Alaska,US,USA.2_1,4.1,US-AK
+us-al,Alabama,US,USA.1_1,4.1,US-AL
+us-ar,Arkansas,US,USA.4_1,4.1,US-AR
+us-az,Arizona,US,USA.3_1,4.1,US-AZ
+us-ca,California,US,USA.5_1,4.1,US-CA
+us-co,Colorado,US,USA.6_1,4.1,US-CO
+us-ct,Connecticut,US,USA.7_1,4.1,US-CT
+us-dc,District of Columbia,US,USA.9_1,4.1,US-DC
+us-de,Delaware,US,USA.8_1,4.1,US-DE
+us-fl,Florida,US,USA.10_1,4.1,US-FL
+us-ga,Georgia,US,USA.11_1,4.1,US-GA
+us-hi,Hawaii,US,USA.12_1,4.1,US-HI
+us-ia,Iowa,US,USA.16_1,4.1,US-IA
+us-id,Idaho,US,USA.13_1,4.1,US-ID
+us-il,Illinois,US,USA.14_1,4.1,US-IL
+us-in,Indiana,US,USA.15_1,4.1,US-IN
+us-ks,Kansas,US,USA.17_1,4.1,US-KS
+us-ky,Kentucky,US,USA.18_1,4.1,US-KY
+us-la,Louisiana,US,USA.19_1,4.1,US-LA
+us-ma,Massachusetts,US,USA.22_1,4.1,US-MA
+us-md,Maryland,US,USA.21_1,4.1,US-MD
+us-me,Maine,US,USA.20_1,4.1,US-ME
+us-mi,Michigan,US,USA.23_1,4.1,US-MI
+us-mn,Minnesota,US,USA.24_1,4.1,US-MN
+us-mo,Missouri,US,USA.26_1,4.1,US-MO
+us-ms,Mississippi,US,USA.25_1,4.1,US-MS
+us-mt,Montana,US,USA.27_1,4.1,US-MT
+us-nc,North Carolina,US,USA.34_1,4.1,US-NC
+us-nd,North Dakota,US,USA.35_1,4.1,US-ND
+us-ne,Nebraska,US,USA.28_1,4.1,US-NE
+us-nh,New Hampshire,US,USA.30_1,4.1,US-NH
+us-nj,New Jersey,US,USA.31_1,4.1,US-NJ
+us-nm,New Mexico,US,USA.32_1,4.1,US-NM
+us-nv,Nevada,US,USA.29_1,4.1,US-NV
+us-ny,New York,US,USA.33_1,4.1,US-NY
+us-oh,Ohio,US,USA.36_1,4.1,US-OH
+us-ok,Oklahoma,US,USA.37_1,4.1,US-OK
+us-or,Oregon,US,USA.38_1,4.1,US-OR
+us-pa,Pennsylvania,US,USA.39_1,4.1,US-PA
+us-ri,Rhode Island,US,USA.40_1,4.1,US-RI
+us-sc,South Carolina,US,USA.41_1,4.1,US-SC
+us-sd,South Dakota,US,USA.42_1,4.1,US-SD
+us-tn,Tennessee,US,USA.43_1,4.1,US-TN
+us-tx,Texas,US,USA.44_1,4.1,US-TX
+us-ut,Utah,US,USA.45_1,4.1,US-UT
+us-va,Virginia,US,USA.47_1,4.1,US-VA
+us-vt,Vermont,US,USA.46_1,4.1,US-VT
+us-wa,Washington,US,USA.48_1,4.1,US-WA
+us-wi,Wisconsin,US,USA.50_1,4.1,US-WI
+us-wv,West Virginia,US,USA.49_1,4.1,US-WV
+us-wy,Wyoming,US,USA.51_1,4.1,US-WY
