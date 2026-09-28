@@ -28,6 +28,7 @@ dependencies = [
 
 [project.scripts]
 avianki = "avianki.cli:main"
+avianki-catalog = "avianki.catalog_cli:main"
 
 [project.urls]
 Repository = "https://github.com/Ian-Costa18/avianki"
@@ -39,7 +40,7 @@ build-backend = "uv_build"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
+pythonpath = ["src", "tests"]
 markers = ["integration: hits the real network; run with --integration"]
 filterwarnings = ["ignore::DeprecationWarning:cached_property"]
 
