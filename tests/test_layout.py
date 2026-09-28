@@ -422,7 +422,7 @@ def test_sources_may_not_import_each_other_or_the_registry() -> None:
 def test_registry_may_import_concrete_sources() -> None:
     assert (
         _check(
-            "avianki.sources.registry", "from avianki.sources.gbif import GbifSource\n"
+            "avianki.sources.registry", "from avianki.sources.gbif import GbifSpeciesSource\n"
         )
         == []
     )

@@ -50,7 +50,7 @@ The app has a single pipeline: **resolve species list → scrape media per speci
 
 **Deck/model IDs:** Both are derived from `hashlib.md5` of a seed string so they remain stable across runs — critical for Anki to recognize the deck as the same one on re-import.
 
-**Logging:** A single `logging.Logger("bird_deck")` is used across all modules. `cli.py` configures its handlers (stdout + file). Other modules just call `log = logging.getLogger("bird_deck")`.
+**Logging:** A single `logging.Logger("bird_deck")` is used across all modules. `core/log.py` (`setup_logging`) configures its handlers (stdout + file); entry points call it. Other modules just call `log = logging.getLogger("bird_deck")`.
 
 ## After major changes
 

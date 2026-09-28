@@ -44,7 +44,6 @@ class NameFallback:
 class _Names:
     sci_name: str
     common_name: str
-    ioc_matched: bool
 
 
 class GbifSpeciesSource(SpeciesSource):
@@ -202,14 +201,14 @@ class GbifSpeciesSource(SpeciesSource):
         log.warning("gbif: no IOC match for backbone species %d %s; using %r (%s)", key, canonical, common,
                     how or "sci-name")
         self._fallbacks[key] = NameFallback(str(key), canonical, common, how or "sci-name")
-        return _Names(canonical, common, ioc_matched=False)
+        return _Names(canonical, common)
 
     def _from_ioc(self, key: int, name: parse.IocName) -> _Names:
         if name.common_name:
-            return _Names(name.sci_name, name.common_name, ioc_matched=True)
+            return _Names(name.sci_name, name.common_name)
         common, how = self._fallback_common_name(key, None)
         log.warning("gbif: IOC %s has no English name; using %r (%s)", name.sci_name, common, how)
-        return _Names(name.sci_name, common or name.sci_name, ioc_matched=True)
+        return _Names(name.sci_name, common or name.sci_name)
 
     def _fallback_common_name(self, key: int, usage: Any) -> tuple[str | None, str | None]:
         ioc = parse.ioc_vernacular(self._get(f"/species/{key}/vernacularNames", {"limit": 1000}))
