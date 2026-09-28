@@ -228,7 +228,7 @@ Each milestone ships on its own branch with passing `pytest`, `ruff` and `ty`.
 
 | Risk | Mitigation |
 |---|---|
-| The Pages deploy exceeds 10 min at full size | M1 measures it first. Fallbacks, in order: drop the Everything tier to 300; split media across a second Pages repo. |
+| The Pages deploy exceeds 10 min at full size | **Measured in M1 ([#39](https://github.com/Ian-Costa18/AviAnki/issues/39)): 450 MB in 6,202 files uploaded in ~14 s and deployed in ~18 s.** Fallbacks if that ever changes, in order: drop the Everything tier to 300; split media across a second Pages repo. |
 | The first build hits iNaturalist's daily budget | Incremental builds that publish partial progress (ADR 0014) |
 | BirdNET rejects too much audio | The build report counts rejects. The threshold (0.5) can be tuned in one place. Pins handle individual cases. |
 | iOS memory and hand-off | Parts builds and a Share button; one real-device check recommended |
