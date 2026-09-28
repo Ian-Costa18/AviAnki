@@ -15,24 +15,20 @@ def _pluralize(word: str) -> str:
 
 
 def redact_name(desc: str, com_name: str) -> str:
-    """Replace the bird's common name (and all word-parts/plurals) with <em>[redacted]</em>."""
-    parts = com_name.split()
+    """Replace the bird's common name (and all word-parts/plurals) with <em>[redacted]</em>.
 
-    candidates: list[str] = []
-    seen: set[str] = set()
-    for part in [com_name] + parts:
-        for form in [part, _pluralize(part)]:
-            if form not in seen:
-                seen.add(form)
-                candidates.append(form)
+    Matching is case-insensitive, so prose that lowercases the name mid-sentence
+    ("The king eider is...") is redacted too. Hyphenated words are redacted
+    whole and also part by part ("Dark-eyed" -> "dark-eyed", "dark", "eyed").
+    """
+    words = com_name.split()
+    parts = words + [p for w in words if "-" in w for p in w.split("-") if p]
 
-    if parts:
-        last_part = parts[-1]
-        for form in [last_part.lower(), _pluralize(last_part).lower()]:
-            if form not in seen:
-                seen.add(form)
-                candidates.append(form)
+    # dict.fromkeys dedupes while keeping a deterministic order.
+    forms = (form.lower() for part in [com_name] + parts for form in (part, _pluralize(part)))
+    candidates: list[str] = list(dict.fromkeys(forms))
 
+    # Longest first so the full name wins over its individual words.
     candidates.sort(key=len, reverse=True)
     pattern = r"\b(" + "|".join(re.escape(c) for c in candidates) + r")\b"
-    return re.sub(pattern, _REDACTED, desc)
+    return re.sub(pattern, _REDACTED, desc, flags=re.IGNORECASE)

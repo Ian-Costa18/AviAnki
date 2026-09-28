@@ -1,3 +1,5 @@
+import re
+
 import pytest
 
 from avianki.redact import redact_name
@@ -116,12 +118,12 @@ def test_redacted_present(name, desc):
 @pytest.mark.parametrize(
     "name,present,gone",
     [
-        (  # lowercase "blue" (color adjective) survives — only capitalised form is redacted
+        (  # lowercase "blue" (color adjective) is redacted too — matching ignores case (#30)
             "Blue Jay",
-            "blue, white, and black plumage",
-            "Jay",
+            f"{REDACTED}, white, and black plumage",
+            "blue",
         ),
-        (  # lowercase "hummingbird" is redacted too because it is the last word
+        (  # lowercase "hummingbird" mid-sentence is redacted
             "Ruby-throated Hummingbird",
             "sole breeding",
             "hummingbird",
@@ -141,10 +143,10 @@ def test_redacted_present(name, desc):
             REDACTED,
             "Dark-eyed Junco",
         ),
-        (  # lowercase "bald" (adjective) survives — only capitalised form is redacted
+        (  # lowercase "bald" (adjective) is redacted too — matching ignores case (#30)
             "Bald Eagle",
-            "aren\u2019t really bald,",
-            "Bald",
+            f"aren\u2019t really {REDACTED},",
+            "bald",
         ),
         (  # lowercase last word "woodpecker" is redacted
             "Downy Woodpecker",
@@ -157,3 +159,50 @@ def test_spot_checks(name, present, gone):
     result = redact_name(BIRDS[name], name)
     assert present in result, f"{name!r}: {present!r} missing from result"
     assert gone not in result, f"{name!r}: {gone!r} still present in result"
+
+
+# Case-insensitivity (issue #30): prose sources such as Wikipedia lowercase the
+# name mid-sentence, so every name word must be redacted in any case.
+def _words_left(result: str, *words: str) -> list[str]:
+    """Name words still present in `result` as whole words, ignoring case."""
+    return [w for w in words if re.search(rf"\b{re.escape(w)}\b", result, re.IGNORECASE)]
+
+
+def test_lowercase_prose_king_eider():
+    result = redact_name("The king eider is a large sea duck.", "King Eider")
+    assert _words_left(result, "king", "eider") == []
+    assert result == f"The {REDACTED} is a large sea duck."
+
+
+def test_any_case_green_heron():
+    desc = "The green heron is a relatively small heron. GREEN plumage; Green Herons nest."
+    result = redact_name(desc, "Green Heron")
+    assert _words_left(result, "green", "heron", "herons") == []
+    assert result == (
+        f"The {REDACTED} is a relatively small {REDACTED}. {REDACTED} plumage; {REDACTED} nest."
+    )
+
+
+def test_plurals_any_case():
+    result = redact_name("herons and Herons and HERONS", "Green Heron")
+    assert result == f"{REDACTED} and {REDACTED} and {REDACTED}"
+
+
+# Hyphenated names: the full hyphenated token is redacted in any case, and each
+# hyphen part is also redacted as a standalone word ("dark", "eyed"). Prose
+# often splits the compound ("a ruby throat", "dark eyes"), and over-redacting a
+# generic word is a smaller harm than leaking half the name (PRD §7).
+def test_hyphenated_name_parts_redacted():
+    desc = "The dark-eyed junco is a dark sparrow. DARK-EYED JUNCOS have eyed looks; juncos flock."
+    result = redact_name(desc, "Dark-eyed Junco")
+    assert _words_left(result, "dark-eyed", "dark", "eyed", "junco", "juncos") == []
+    assert result == (
+        f"The {REDACTED} is a {REDACTED} sparrow. {REDACTED} have {REDACTED} looks; "
+        f"{REDACTED} flock."
+    )
+
+
+def test_non_name_text_casing_untouched():
+    desc = "The Green Heron hunts at DAWN along Quiet ponds."
+    result = redact_name(desc, "Green Heron")
+    assert result == f"The {REDACTED} hunts at DAWN along Quiet ponds."
