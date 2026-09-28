@@ -27,3 +27,4 @@ An accepted ADR is not edited to change its decision. To change it, write a new 
 | [0019](0019-verification-without-a-human.md) | Decks are verified automatically: Anki's backend, Playwright and BirdNET | #33, #34 |
 | [0020](0020-integration-monitoring.md) | The weekly check fails loudly and watches the real sources | #26 |
 | [0021](0021-contract-field-additions.md) | Four fields beyond the §5.1 record: `licence_version_assumed` and three ranking hints (amends 0007) | #40 |
+| [0022](0022-plausibility-threshold.md) | The plausibility threshold is 0.02%, not 5%, and compares like with like (amends 0008) | #41 |

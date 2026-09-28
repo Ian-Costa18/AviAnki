@@ -1,6 +1,6 @@
 # 0008 — Minted species ids under IOC; GADM level-1 regions
 
-**Status:** Accepted, 2026-08-25 · **Ticket:** [#20](https://github.com/Ian-Costa18/AviAnki/issues/20) (Q4, Q5)
+**Status:** Accepted, 2026-08-25 · **Amended by:** [0022](0022-plausibility-threshold.md) · **Ticket:** [#20](https://github.com/Ian-Costa18/AviAnki/issues/20) (Q4, Q5)
 
 ## Context
 
@@ -14,7 +14,7 @@ Sources disagree about taxonomy, and they do it silently. iNaturalist has split 
 - **IOC World Bird List is the declared authority.** AviAnki records what upstream decided and never invents a species.
 - **`data/species.csv`** is checked in. It has one row per id, with the IOC scientific and common names plus each source's native key: `gbif_key`, `inat_taxon_id`, `wikipedia_title`, `ebird_code`, and `birdnet_label` ([0011](0011-media-selection.md)).
 - **Splits:** the existing id follows the taxon that keeps the name, and the daughter species gets a new id. **Lumps:** the retired id stays as an alias row pointing at its successor.
-- **Plausibility check:** a source's result for a species is flagged when its North American count is below 5% of the expected count from EOD. A flagged result is treated as a mapping error, not as rarity.
+- **Plausibility check:** a source's result for a species is flagged when its North American count is below a small fraction of the expected count from EOD (the fraction and the count are set by [0022](0022-plausibility-threshold.md)). A flagged result is treated as a mapping error, not as rarity.
 
 ### Regions
 
