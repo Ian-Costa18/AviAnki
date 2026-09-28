@@ -26,6 +26,9 @@ dependencies = [
     "tqdm>=4.64.0",
 ]
 
+[project.optional-dependencies]
+catalog = ["Pillow>=10"]
+
 [project.scripts]
 avianki = "avianki.cli:main"
 avianki-catalog = "avianki.catalog_cli:main"
