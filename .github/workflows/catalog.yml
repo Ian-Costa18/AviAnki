@@ -1,0 +1,84 @@
+# M1 deploy spike skeleton (#39): measures how long a catalog-sized Pages
+# upload and deploy take, against the 10-minute deploy timeout (ADR 0003).
+# The "Build site" step writes dummy media; M4 replaces it with the real
+# `avianki-catalog build` (and adds the monthly schedule, validation and release).
+name: Catalog
+
+on:
+  workflow_dispatch:
+    inputs:
+      megabytes:
+        description: "Dummy media to generate, in MB (0 = stub site only)"
+        required: false
+        default: "450"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      # M1 spike: dummy data. M4 replaces this step with `avianki-catalog build`.
+      - name: Build site
+        env:
+          MEGABYTES: ${{ inputs.megabytes }}
+        run: |
+          start=$(date +%s)
+          python scripts/dummy_catalog.py _site --megabytes "$MEGABYTES"
+          end=$(date +%s)
+          {
+            echo "## Catalog deploy timings"
+            echo ""
+            echo "- Build site ($MEGABYTES MB): $((end - start)) s"
+            echo "- Site size: $(du -sb _site | cut -f1) bytes"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Record upload start
+        run: echo "UPLOAD_START=$(date +%s)" >> "$GITHUB_ENV"
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+          # Keeps .nojekyll; v4+ drops dotfiles by default.
+          include-hidden-files: true
+
+      - name: Record upload duration
+        if: always()
+        run: |
+          echo "- Upload Pages artifact: $(( $(date +%s) - UPLOAD_START )) s" >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Record deploy start
+        run: echo "DEPLOY_START=$(date +%s)" >> "$GITHUB_ENV"
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
+        with:
+          timeout: 600000 # the default: 10 minutes, the limit M1 is measuring against
+
+      - name: Record deploy duration
+        if: always()
+        run: |
+          echo "- Deploy to GitHub Pages (${{ steps.deployment.outcome }}): $(( $(date +%s) - DEPLOY_START )) s" >> "$GITHUB_STEP_SUMMARY"
