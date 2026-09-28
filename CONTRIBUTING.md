@@ -29,8 +29,8 @@ uv run ty check src/
 uv run ruff check src/ tests/                  # lint
 uv run ty check src/                           # type check
 uv run playwright install chromium --with-deps # one-time: install browser for gen_examples
-uv run pytest --integration --cov=avianki --cov-report=html # run all tests, including the integration test, and coverage with HTML report
-uv run python scripts/gen_examples.py # regenerate examples/ card screenshots and example-birds.json (needs network; media cached by integration test)
+uv run pytest --integration --cov=avianki --cov-report=html # run all tests, including the integration tests, and coverage with HTML report
+uv run python scripts/gen_examples.py # regenerate examples/ card screenshots and example-birds.json (reads tests/tmp/birds.json and tests/media/, which the integration test no longer produces)
 # Test all Python versions we have in the classifiers
 uv python install 3.10 3.11 3.12 3.13 3.14 # one-time: install
 uv run --python 3.10 pytest
@@ -40,9 +40,7 @@ uv run --python 3.13 pytest
 uv run --python 3.14 pytest
 ```
 
-The integration test runs the full pipeline against allaboutbirds.org and verifies the output deck; it is skipped by default. Pass `--integration` to opt in.
-
-Use `--integration` only when you intentionally want a networked end-to-end run.
+The integration tests hit real network sources and are skipped by default. Pass `--integration` to opt in. For now (ADR 0020, interim) that is only the eBird smoke test, which needs `EBIRD_API_KEY` and is skipped without it. A network failure fails the test; nothing else skips.
 
 ## Publishing a release
 
