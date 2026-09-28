@@ -33,8 +33,8 @@ src/avianki/
     credit.py            renders the answer-side credit HTML (ADR 0012)
     select.py            ordered fill, ranking, pins, stickiness
     build.py             pipeline orchestration; public build_species() used by --ebird
-    validate.py          the publish gate (ADR 0014)
-    report.py            build-report.md, contact-sheet.html, credits.html
+    validate.py          the publish gate (ADR 0014): stable-coded checks, shrink limits, `format_result`  (today)
+    report.py            `BuildReport` + build-report.md, contact-sheet.html, credits.html  (today)
     client.py            reads a published catalog (manifest → species → media), with a local cache
   deck/                  → catalog.format, catalog.client, core   (never sources/ or media/)
     notetypes.py         three note types, frozen model seeds         (today: anki_model.py)
