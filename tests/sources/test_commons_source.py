@@ -152,8 +152,10 @@ def test_a_species_batch_costs_one_request_per_api_and_uses_etiquette_params():
     src, session = recorded_source()
     src.candidates(PHOTO_IDS, AssetKind.PHOTO, 1)
     assert [u for u, _ in session.calls] == [WIKIPEDIA, WIKIDATA, COMMONS]
-    for _, params in session.calls:
-        assert params["maxlag"] == 5 and params["format"] == "json" and params["formatversion"] == 2
+    for url, params in session.calls:
+        assert params["format"] == "json" and params["formatversion"] == 2
+        # Wikidata's maxlag counts query-service lag, which read-only calls don't care about.
+        assert params.get("maxlag") == (None if url == WIKIDATA else 5)
     wiki = session.requests_to(WIKIPEDIA)[0]
     assert wiki["titles"].count("|") == 5 and wiki["redirects"] == 1
     assert wiki["prop"] == "pageimages|pageprops" and wiki["piprop"] == "name"

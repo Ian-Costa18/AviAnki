@@ -212,7 +212,9 @@ class CommonsSource(AssetSource):
     def _taxon_names(self, ids: list[str]) -> dict[str, parse.TaxonNames | None]:
         found: dict[str, parse.TaxonNames | None] = {}
         for batch in _chunks(ids, BATCH):
-            payload = self._get(WIKIDATA_API, {"action": "wbgetentities", "ids": "|".join(batch), "props": "claims"})
+            payload = self._get(
+                WIKIDATA_API, {"action": "wbgetentities", "ids": "|".join(batch), "props": "claims"}, maxlag=False
+            )
             found.update(parse.parse_entities(payload, batch))
         return found
 
@@ -329,8 +331,10 @@ class CommonsSource(AssetSource):
             params["iiurlwidth"] = THUMB_WIDTH
         return params
 
-    def _get(self, url: str, params: Mapping[str, Any]) -> Any:
-        query = {"action": "query", "format": "json", "formatversion": 2, "maxlag": MAXLAG, **params}
+    def _get(self, url: str, params: Mapping[str, Any], *, maxlag: bool = True) -> Any:
+        query: dict[str, Any] = {"action": "query", "format": "json", "formatversion": 2, **params}
+        if maxlag:
+            query["maxlag"] = MAXLAG
         return self._client.get_json(self.name, self.limits, url, query)
 
     def _commons(self, params: Mapping[str, Any]) -> Any:

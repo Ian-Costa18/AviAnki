@@ -98,6 +98,11 @@ def _utc_now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _is_maxlag(payload: Any) -> bool:
+    error = payload.get("error") if isinstance(payload, dict) else None
+    return isinstance(error, dict) and error.get("code") == "maxlag"
+
+
 class HttpClient:
     """Throttled, budgeted, retrying, caching GET client.
 
@@ -174,13 +179,32 @@ class HttpClient:
         *,
         cache: bool = True,
     ) -> Any:
-        """`get` then parse JSON. A malformed body raises and is evicted from the cache."""
-        resp = self.get(source, limits, url, params, cache=cache)
-        try:
-            return resp.json()
-        except SourceError:
-            self._cache_evict(source, _cache_key(source, "GET", url, params))
-            raise
+        """`get` then parse JSON. A malformed body raises and is evicted from the cache.
+
+        MediaWiki reports replica lag as HTTP 200 with ``error.code == "maxlag"``. That is
+        retried after ``Retry-After`` like a 429 and never left in the cache; if the lag
+        outlasts the retries the last body is returned for the caller to treat as a failure.
+        """
+        key = _cache_key(source, "GET", url, params)
+        attempt = 0
+        while True:
+            resp = self.get(source, limits, url, params, cache=cache)
+            try:
+                payload = resp.json()
+            except SourceError:
+                self._cache_evict(source, key)
+                raise
+            if not _is_maxlag(payload):
+                return payload
+            self._cache_evict(source, key)
+            if attempt >= self.max_retries:
+                return payload
+            wait = max(self._backoff(attempt), self._retry_after(resp.headers) or 0.0)
+            if wait > self.max_retry_after:
+                return payload
+            log.warning("%s: maxlag on %s; retry %d/%d in %.1fs", source, url, attempt + 1, self.max_retries, wait)
+            self._sleep(wait)
+            attempt += 1
 
     # ── sending ───────────────────────────────────────────────────────────────
 
