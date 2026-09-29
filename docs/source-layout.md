@@ -71,15 +71,21 @@ data/
 
 tests/                   mirrors src/avianki/
   core/ taxonomy/ sources/ media/ catalog/ deck/
+  scripts/               assemble_site.py and fetch_latest_catalog.sh (fake `gh` on PATH)
   test_layout.py         enforces the dependency rule
   web/                   Playwright, incl. mobile emulation + heap cap
   acceptance/            built decks through Anki's own backend (ADR 0019)
   fixtures/catalog/      a tiny published catalog (3 regions, 12 species) for web + CLI tests
 
+scripts/
+  assemble_site.py         stdlib-only: catalog dir + web/ (or a stub index) → the Pages tree, .nojekyll, 900 MB guard  (today)
+  fetch_latest_catalog.sh  downloads and extracts the newest catalog-* release; shared by catalog.yml and pages.yml  (today)
+  gen_examples.py        regenerates the card screenshots in examples/                                  (today)
+
 .github/workflows/
   ci.yml                 lint, types, unit tests, layout test                (today)
-  catalog.yml            monthly + dispatch: build → validate → release → deploy Pages
-  pages.yml              on push to web/: pull latest catalog release → deploy Pages
+  catalog.yml            monthly + dispatch: load previous release → build → validate → release → deploy Pages  (today)
+  pages.yml              on push to web/: pull latest catalog release → deploy Pages  (today)
   species-lists.yml      dispatch, maintainer-only: species lists + minted species.csv as an artifact  (today)
   weekly-integration.yml ADR 0020                                           (today, to be rewritten)
   publish.yml            PyPI                                               (today)
