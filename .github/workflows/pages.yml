@@ -1,0 +1,49 @@
+# Redeploy Pages when only the web app changed (spec §4 step 7, ADR 0003): pull the newest
+# catalog release and publish it next to the current web/. This never rebuilds the catalog.
+# Fails loudly when no catalog-* release exists yet: run the Catalog workflow first.
+# The `github-pages` environment only accepts deployments from `main`.
+name: Pages
+
+on:
+  push:
+    branches: [main]
+    paths: ["web/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Shared with catalog.yml's deploy job, so two deployments never overlap.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch latest catalog release
+        run: bash scripts/fetch_latest_catalog.sh catalog
+
+      - name: Assemble Pages site
+        run: python3 scripts/assemble_site.py catalog _site
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+          # Keeps .nojekyll; v4+ drops dotfiles by default.
+          include-hidden-files: true
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
