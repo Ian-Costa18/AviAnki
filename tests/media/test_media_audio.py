@@ -14,7 +14,7 @@ from pathlib import Path
 import pytest
 
 from avianki.media import MediaError
-from avianki.media.audio import probe_duration, process_audio
+from avianki.media.audio import excerpt, probe_duration, process_audio
 
 LOW_HZ, HIGH_HZ = 1000, 3000
 CHANGE_AT_S = 8  # the tone steps from LOW_HZ to HIGH_HZ here
@@ -253,3 +253,44 @@ def test_temp_files_are_cleaned_up_on_success_and_failure(long_wav, tmp_path, mo
 def test_bad_arguments_are_rejected(long_wav, kwargs):
     with pytest.raises(ValueError):
         process_audio(long_wav, **kwargs)
+
+
+# --- excerpt: the first N seconds, for BirdNET (ADR 0023) -----------------------------------
+
+
+def test_excerpt_keeps_only_the_first_seconds(tmp_path):
+    long = _stepped_tone(tmp_path, 20.0)
+    short = excerpt(long, seconds=6.0)
+    assert probe_duration(short) == pytest.approx(6.0, abs=0.1)
+    assert len(short) < len(long)
+
+
+def test_excerpt_of_a_short_clip_is_the_whole_clip(tmp_path):
+    clip = _short_tone(tmp_path, 4.0)
+    assert probe_duration(excerpt(clip, seconds=60.0)) == pytest.approx(4.0, abs=0.1)
+
+
+def test_excerpt_default_is_sixty_seconds(tmp_path):
+    long = _ffmpeg("-f", "lavfi", "-i", "sine=f=1000:r=8000:d=75", out=tmp_path / "long.wav")
+    assert probe_duration(excerpt(long)) == pytest.approx(60.0, abs=0.2)
+
+
+def test_excerpt_keeps_timing_so_window_offsets_still_line_up(tmp_path):
+    # the tone changes at CHANGE_AT_S; an excerpt must not shift it
+    out = tmp_path / "ex.wav"
+    out.write_bytes(excerpt(_stepped_tone(tmp_path, 20.0), seconds=12.0))
+    proc = subprocess.run(
+        ["ffmpeg", "-nostdin", "-v", "error", "-i", str(out), "-f", "s16le", "-ac", "1", "-ar", "44100", "-"],
+        check=True, capture_output=True,
+    )  # fmt: skip
+    samples = array("h")
+    samples.frombytes(proc.stdout)
+    assert _freq(samples, 1, 6) == pytest.approx(LOW_HZ, rel=0.03)
+    assert _freq(samples, 9, 11) == pytest.approx(HIGH_HZ, rel=0.03)
+
+
+def test_excerpt_rejects_garbage_and_bad_arguments(long_wav):
+    with pytest.raises(MediaError):
+        excerpt(b"not audio")
+    with pytest.raises(ValueError):
+        excerpt(long_wav, seconds=0)

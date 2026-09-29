@@ -77,6 +77,9 @@ class BuildReport:
     # Species the run did not get to (request budget or job cap, ADR 0014): absent this month.
     unfinished_species: list[str] = field(default_factory=list)
     budget_exhausted: bool = False
+    # Pins (data/pins.toml) that could not be honoured: unresolvable, unlicensed, unprocessable,
+    # or naming a different species. A hard error for the build (ADR 0011), exit code 1.
+    pin_errors: list[str] = field(default_factory=list)
     # Candidates turned down: licence, generic rejects, BirdNET (kind="audio").
     rejections: list[Rejection] = field(default_factory=list)
     # Species with no chosen photo / audio after selection (acceptable absence).
@@ -153,6 +156,17 @@ def _report_markdown(r: BuildReport, validation: ValidationResult | None = None)
         lines += [
             f"**Validation gate: {verdict}** "
             f"({len(validation.errors)} error(s), {len(validation.warnings)} warning(s))",
+            "",
+        ]
+
+    if r.pin_errors:
+        lines += [
+            "## PIN ERRORS",
+            "",
+            f"**{len(r.pin_errors)} pin(s) could not be honoured.** The species keep their previous "
+            "entry (or have none yet); fix data/pins.toml or the pinned asset and rerun.",
+            "",
+            *_bullets([_md(e) for e in r.pin_errors]),
             "",
         ]
 

@@ -276,6 +276,16 @@ def test_source_failures_come_first_and_are_prominent() -> None:
     assert "- **inaturalist** blue-jay: timeout after 3 retries" in md
 
 
+def test_pin_errors_are_prominent_and_absent_when_there_are_none() -> None:
+    md = BuildReport(pin_errors=["blue-jay: audio pin commons:M1 no longer exists", EVIL]).to_markdown()
+    assert "## PIN ERRORS" in md
+    assert "**2 pin(s) could not be honoured.**" in md
+    assert "- blue-jay: audio pin commons:M1 no longer exists" in md
+    assert EVIL not in md  # escaped like every other untrusted string
+    assert md.index("## PIN ERRORS") < md.index("## Summary")
+    assert "PIN ERRORS" not in BuildReport().to_markdown()
+
+
 def test_report_lists_everything_sorted() -> None:
     md = full_report().to_markdown()
     assert "Unfinished species (2): aardvark-bird, zebra-finch" in md

@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -119,6 +120,17 @@ def test_manifest_round_trip() -> None:
 def test_manifest_round_trip_with_provenance_file() -> None:
     d = manifest_dict() | {"provenance_file": "provenance.0a1b2c3d.json"}
     assert Manifest.from_dict(d).to_dict() == d
+
+
+def test_manifest_eod_version_is_optional_and_round_trips() -> None:
+    plain = Manifest.from_dict(manifest_dict())
+    assert plain.eod_version is None and "eod_version" not in plain.to_dict()
+    d = manifest_dict() | {"eod_version": "1.15"}
+    assert Manifest.from_dict(d).eod_version == "1.15"
+    assert Manifest.from_dict(d).to_dict() == d
+    validate_manifest(d)
+    with pytest.raises(FormatError):
+        validate_manifest(manifest_dict() | {"eod_version": ""})
 
 
 def test_dataset_credit_and_region_ref_round_trip() -> None:
@@ -486,6 +498,19 @@ def test_write_then_load_round_trips_a_tiny_catalog(tmp_path: Path) -> None:
     ]
     expected = sum(len(v) for v in media.values()) + sum((tmp_path / str(f)).stat().st_size for f in json_files)
     assert loaded.manifest.total_bytes == expected
+
+
+def test_write_catalog_carries_eod_version_through(tmp_path: Path) -> None:
+    out = tmp_path / "out"
+    written, _ = build_tiny(out)
+    assert written.eod_version is None
+    template = replace(written, eod_version="1.15")
+    loaded = load_catalog(out)
+    rewritten = write_catalog(
+        tmp_path / "again", template, list(loaded.regions.values()), loaded.species, loaded.provenance
+    )
+    assert rewritten.eod_version == "1.15"
+    assert load_catalog(tmp_path / "again").manifest.eod_version == "1.15"
 
 
 def test_write_catalog_is_deterministic(tmp_path: Path) -> None:

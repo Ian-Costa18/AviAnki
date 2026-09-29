@@ -72,7 +72,7 @@ Pushing the tag triggers the [publish workflow](../.github/workflows/publish.yml
 - `src/avianki/anki_model.py` — genanki models, card templates, and shared fields
 - `src/avianki/card.css` — shared CSS for all card types
 - `src/avianki/core/`, `taxonomy/`, `sources/`, `catalog/` — the 1.0 catalog pipeline (HTTP client, licences, species and regions, source contract, GBIF source, species lists); see [docs/source-layout.md](docs/source-layout.md) for the layout and dependency rule
-- `src/avianki/catalog_cli.py` — `avianki-catalog`, the maintainer-only catalog build
+- `src/avianki/catalog_cli.py` — `avianki-catalog`, the maintainer-only catalog build (`build`, or `build --species-only`); a dev run is `uv run avianki-catalog build --regions us-ri,us-dc --max-species 30 --out build --cache-dir .cache/http`, and the audio check needs the `verify` extra (or pass `--no-verify`). `data/pins.toml` holds reviewer pins and exclusions
 
 See [CLAUDE.md](CLAUDE.md) for a deeper walkthrough of the data flow and key constraints.
 

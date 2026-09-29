@@ -147,7 +147,9 @@ class Manifest:
     """``manifest.json``: small, fetched on every visit; everything else is found from it.
 
     ``provenance_file`` is an optional key beyond spec section 5's example. It is how the
-    audit file is found (the app never loads it), and readers may ignore it.
+    audit file is found (the app never loads it), and readers may ignore it. So is
+    ``eod_version``: the eBird Observation Dataset version the region lists came from
+    (informational; the build stamps it, nothing reads it back).
     """
 
     catalog_version: str
@@ -158,6 +160,7 @@ class Manifest:
     dataset_credits: list[DatasetCredit]
     total_bytes: int
     provenance_file: str | None = None
+    eod_version: str | None = None
     format: int = FORMAT_VERSION
 
     def to_dict(self) -> dict[str, Any]:
@@ -173,6 +176,8 @@ class Manifest:
         }
         if self.provenance_file is not None:
             d["provenance_file"] = self.provenance_file
+        if self.eod_version is not None:
+            d["eod_version"] = self.eod_version
         return d
 
     @classmethod
@@ -186,6 +191,7 @@ class Manifest:
             dataset_credits=[DatasetCredit.from_dict(c) for c in d["dataset_credits"]],
             total_bytes=d["total_bytes"],
             provenance_file=d.get("provenance_file"),
+            eod_version=d.get("eod_version"),
             format=d["format"],
         )
 
@@ -410,6 +416,7 @@ MANIFEST_SCHEMA: dict[str, Any] = {
         "gadm_version": _NONEMPTY,
         "species_file": {"type": "string", "pattern": r"^species\.[0-9a-f]{8}\.json$"},
         "provenance_file": {"type": "string", "pattern": r"^provenance\.[0-9a-f]{8}\.json$"},
+        "eod_version": _NONEMPTY,
         "regions": {
             "type": "array",
             "items": {
@@ -664,6 +671,7 @@ def write_catalog(
         dataset_credits=list(manifest.dataset_credits),
         total_bytes=sum(media_bytes.values()) + json_bytes,
         provenance_file=provenance_file,
+        eod_version=manifest.eod_version,
         format=manifest.format,
     )
     manifest_dict = written.to_dict()

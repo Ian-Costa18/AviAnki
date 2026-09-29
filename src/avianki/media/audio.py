@@ -19,7 +19,7 @@ from pathlib import Path
 
 from avianki.media.errors import MediaError
 
-__all__ = ["MediaError", "ProcessedAudio", "probe_duration", "process_audio"]
+__all__ = ["MediaError", "ProcessedAudio", "excerpt", "probe_duration", "process_audio"]
 
 log = logging.getLogger("bird_deck")
 
@@ -112,6 +112,35 @@ def probe_duration(data: bytes) -> float:
         src = Path(tmp) / "in.bin"
         src.write_bytes(data)
         return _probe_file(src)
+
+
+def excerpt(data: bytes, seconds: float = 60.0) -> bytes:
+    """The first ``seconds`` of ``data`` as 48 kHz mono 16-bit WAV, for BirdNET (ADR 0023).
+
+    Analysing only the opening minute keeps a cold build's compute bounded. Timing is
+    untouched (the cut starts at 0 and nothing is trimmed from the front), so a window
+    BirdNET picks in the excerpt starts at the same offset in the original recording. A clip
+    shorter than ``seconds`` comes back whole, in the same format. Raises `MediaError` if
+    ``data`` isn't audio.
+    """
+    if not math.isfinite(seconds) or seconds <= 0:
+        raise ValueError(f"seconds must be a finite number > 0, got {seconds}")
+    ffmpeg = _tool("ffmpeg")
+    with tempfile.TemporaryDirectory(prefix="avianki-audio-") as tmp:
+        src, dst = Path(tmp) / "in.bin", Path(tmp) / "out.wav"
+        src.write_bytes(data)
+        _probe_file(src)  # a clear "unreadable audio" before ffmpeg's own noise
+        proc = _run(
+            [
+                ffmpeg, "-nostdin", "-hide_banner", "-loglevel", "error", "-y",
+                "-i", str(src), "-t", f"{seconds:g}",
+                "-vn", "-map_metadata", "-1", "-ac", "1", "-ar", "48000",
+                "-c:a", "pcm_s16le", "-f", "wav", str(dst),
+            ]
+        )  # fmt: skip
+        if proc.returncode != 0 or not dst.exists() or dst.stat().st_size == 0:
+            raise MediaError(f"ffmpeg failed to cut the excerpt: {_stderr_tail(proc)}")
+        return dst.read_bytes()
 
 
 def process_audio(data: bytes, start_s: float = 0.0, *, seconds: float = 10.0) -> ProcessedAudio:
