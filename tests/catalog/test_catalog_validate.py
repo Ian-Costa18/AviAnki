@@ -488,3 +488,16 @@ def test_validation_is_deterministic(cat: LoadedCatalog) -> None:
     cat.media_path(only_photo(cat, "american-robin")).unlink()
     assert validate_catalog(cat) == validate_catalog(cat)
 
+
+
+def test_swapping_an_asset_is_not_a_loss(tmp_path: Path) -> None:
+    ids = [f"sp{i:03d}" for i in range(100)]
+    prev = big(tmp_path, "prev", ids, photos=1)
+    assert prev.provenance is not None
+    entries = dict(prev.species.entries)
+    for sid in ids[:20]:
+        old = entries[sid]
+        swapped = MediaRef("media/" + "f" * 16 + Path(old.photo[0].file).suffix, old.photo[0].bytes, old.photo[0].credit)
+        entries[sid] = SpeciesEntry(old.name, old.sci, [swapped], old.audio)
+    new = mutated_copy(prev, tmp_path / "new", species=SpeciesFile(entries), provenance=prev.provenance)
+    assert check_shrink(new, prev).errors == []

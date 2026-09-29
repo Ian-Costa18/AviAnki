@@ -328,10 +328,19 @@ def _preview(ids: list[str], limit: int = 5) -> str:
     return shown + (f", ... (+{len(ids) - limit})" if len(ids) > limit else "")
 
 
+def _filled_slots(catalog: LoadedCatalog) -> set[tuple[str, str]]:
+    return {
+        (sid, role)
+        for sid, entry in catalog.species.entries.items()
+        for role, refs in (("photo", entry.photo), ("audio", entry.audio))
+        if refs
+    }
+
+
 def check_shrink(
     new: LoadedCatalog, previous: LoadedCatalog, *, allow_shrink: bool = False
 ) -> ValidationResult:
-    """No region loses > 10% of its species; the catalog loses <= 5% of its media assets.
+    """No region loses > 10% of its species; the catalog loses <= 5% of its filled photo/audio slots.
 
     Species are compared by id, so newly added species can't mask lost ones. With
     ``allow_shrink`` (the deliberate-drop override) the same findings are warnings.
@@ -353,14 +362,17 @@ def check_shrink(
                 f"{_preview(lost)}",
                 slug,
             )
-    old_assets = set(previous.referenced_media())
-    if old_assets:
-        lost_assets = sorted(old_assets - set(new.referenced_media()))
-        if len(lost_assets) * 100 > len(old_assets) * ASSET_SHRINK_LIMIT_PCT:
+    # A slot is a (species, role) that holds an asset. Swapping one asset for another
+    # (a pin, a credit-removal exclusion) keeps the slot; only a slot that empties is a loss.
+    old_slots = _filled_slots(previous)
+    if old_slots:
+        lost_slots = sorted(old_slots - _filled_slots(new))
+        if len(lost_slots) * 100 > len(old_slots) * ASSET_SHRINK_LIMIT_PCT:
             res.error(
                 "shrink.assets",
-                f"{len(lost_assets)} of {len(old_assets)} media assets gone "
-                f"({100 * len(lost_assets) / len(old_assets):.1f}% > {ASSET_SHRINK_LIMIT_PCT}%)",
+                f"{len(lost_slots)} of {len(old_slots)} media assets gone "
+                f"({100 * len(lost_slots) / len(old_slots):.1f}% > {ASSET_SHRINK_LIMIT_PCT}%): "
+                f"{_preview([f'{sid}/{role}' for sid, role in lost_slots])}",
                 "",
             )
     return res.downgraded() if allow_shrink else res

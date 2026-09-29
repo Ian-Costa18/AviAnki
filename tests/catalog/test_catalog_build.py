@@ -468,8 +468,7 @@ def test_an_excluded_token_invalidates_the_sticky_asset_and_only_that_role_is_re
     commons, inat = full_sources()
     commons.add(ROBIN, PHOTO, "replacement")
     pins = pins_for(f'[turdus-migratorius]\nexclude = ["commons:{old_token}"]\nnote = "removal request"\n')
-    # One swap in a six-asset catalog is 16.7% "assets gone" to the percentage-based shrink gate.
-    result, _, _ = go(tmp_path / "two", commons, inat, previous=first.catalog, pins=pins, allow_shrink=True)
+    result, _, _ = go(tmp_path / "two", commons, inat, previous=first.catalog, pins=pins)
     assert result.catalog is not None
     new = result.catalog.species[ROBIN].photo[0].file
     assert new != old and result.catalog.provenance.entries[new].token == "replacement"  # type: ignore[union-attr]
