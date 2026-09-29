@@ -70,7 +70,14 @@ def test_a_good_previous_photo_is_kept():
 
 def test_a_good_verified_audio_is_kept_and_a_pinned_one_too():
     assert problem(audio()) is None
-    assert problem(audio(verified="pinned", confidence=None)) is None
+    pinned = audio(verified="pinned", confidence=None)
+    assert problem(pinned, p=pin(audio=AssetRef("commons", "M1"))) is None
+
+
+def test_pinned_audio_whose_pin_was_withdrawn_is_invalidated():
+    pinned = audio(verified="pinned", confidence=None)
+    assert "no pin names it" in (problem(pinned) or "")
+    assert "no pin names it" in (problem(pinned, p=pin(audio=AssetRef("commons", "M2"))) or "")
 
 
 def test_no_provenance_record_invalidates():

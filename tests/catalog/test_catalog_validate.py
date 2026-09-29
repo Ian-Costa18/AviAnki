@@ -306,12 +306,12 @@ def test_pins_may_be_objects(cat: LoadedCatalog) -> None:
     assert codes(res.errors) == ["pins.excluded_present"]
 
 
-def test_pinned_audio_without_a_pin_is_a_warning(cat: LoadedCatalog, tmp_path: Path) -> None:
+def test_pinned_audio_without_a_pin_is_an_error(cat: LoadedCatalog, tmp_path: Path) -> None:
     name = only_audio(cat, "blue-jay")
     alt = mutated_copy(cat, tmp_path / "b", provenance=with_prov(cat, name, verified="pinned"))
-    assert codes(check_pins(alt, {}).warnings) == ["pins.unbacked"]
-    assert check_pins(alt, {"blue-jay": {"audio": "blue-jay-audio-0"}}).warnings == []
-    assert check_pins(alt, None).warnings == []
+    assert codes(check_pins(alt, {}).errors) == ["pins.unbacked"]
+    assert check_pins(alt, {"blue-jay": {"audio": "blue-jay-audio-0"}}).errors == []
+    assert check_pins(alt, None).errors == []
 
 
 # ---------------------------------------------------------------------------------------

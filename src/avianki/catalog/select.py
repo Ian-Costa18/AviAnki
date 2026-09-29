@@ -121,9 +121,17 @@ def hard_problem(
         return f"missing credit fields: {', '.join(missing)}"
     if media_problem:
         return f"media: {media_problem}"
+    try:
+        render_credit(kind, prov.record)
+    except ValueError as exc:
+        return f"credit can't be rendered: {exc}"
     if kind == "audio":
         if prov.verified is None:
             return "audio was never verified"
+        if prov.verified == "pinned":
+            pinned = pin.forced(AssetKind.AUDIO) if pin is not None else None
+            if pinned is None or (pinned.source, pinned.token) != (prov.record.source, prov.token):
+                return "audio was pinned but no pin names it any more, and it never passed BirdNET"
         if prov.verified == "birdnet" and (
             prov.birdnet_confidence is None or prov.birdnet_confidence < BIRDNET_MIN_CONFIDENCE
         ):

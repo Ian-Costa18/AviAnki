@@ -22,7 +22,6 @@ import logging
 import re
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from typing import Any
 
 from avianki.core.http import HttpClient, Limits, SourceError
@@ -68,10 +67,6 @@ class PlausibilityFlag:
         return self.na_count / self.expected if self.expected else float("inf")
 
 
-def _utc_today() -> str:
-    return datetime.now(timezone.utc).date().isoformat()
-
-
 def _header(headers: Mapping[str, str], name: str) -> str:
     return next((v for k, v in headers.items() if k.lower() == name), "")
 
@@ -100,13 +95,13 @@ class INaturalistSource(AssetSource):
         *,
         expected_counts: Mapping[SpeciesId, int] | None = None,
         min_ratio: float = PLAUSIBILITY_MIN_RATIO,
-        today: Callable[[], str] = _utc_today,
+        today: Callable[[], str] | None = None,
     ) -> None:
         self._client = client
         self._species = species
         self._expected = dict(expected_counts or {})
         self._min_ratio = min_ratio
-        self._today = today
+        self._today = today or client.today
         self._matches: dict[SpeciesId, parse.TaxonMatch | None] = {}
         self._how: dict[SpeciesId, str] = {}
         self._flagged: dict[SpeciesId, PlausibilityFlag] = {}

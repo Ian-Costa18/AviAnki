@@ -44,6 +44,7 @@ from pathlib import Path
 from typing import Any
 
 from avianki.catalog.credit import credit_is_safe, licence_label
+from avianki.media.verify import MIN_CONFIDENCE
 from avianki.catalog.format import (
     FormatError,
     LoadedCatalog,
@@ -55,7 +56,7 @@ from avianki.core.licences import is_allowed
 log = logging.getLogger("bird_deck")
 
 MAX_SITE_BYTES = 900_000_000
-BIRDNET_MIN_CONFIDENCE = 0.5
+BIRDNET_MIN_CONFIDENCE = MIN_CONFIDENCE
 REGION_SHRINK_LIMIT_PCT = 10
 ASSET_SHRINK_LIMIT_PCT = 5
 # manifest.total_bytes should equal what's on disk; allow rounding-level slack only.
@@ -255,8 +256,8 @@ def check_pins(catalog: LoadedCatalog, pins: Pins | None) -> ValidationResult:
     """Honour exclusions (credit-removal requests, ADR 0011) and flag unbacked pins.
 
     An excluded token still in the catalog is an error: the CC licences oblige us to
-    honour removal. A ``pinned`` audio asset that no pin names any more is only a
-    warning, because sticky selections (ADR 0014) may outlive a pin that was withdrawn.
+    honour removal. A ``pinned`` audio asset that no pin names any more never passed
+    BirdNET, so it is an error too.
     """
     res = ValidationResult()
     if pins is None or catalog.provenance is None:
@@ -268,7 +269,7 @@ def check_pins(catalog: LoadedCatalog, pins: Pins | None) -> ValidationResult:
         if prov.kind == "audio" and prov.verified == "pinned":
             pinned = _pin_value(pin, "audio") if pin is not None else None
             if pinned != prov.token:
-                res.warn("pins.unbacked", f"marked pinned but no pin names token {prov.token!r}", name)
+                res.error("pins.unbacked", f"marked pinned but no pin names token {prov.token!r}", name)
     return res
 
 

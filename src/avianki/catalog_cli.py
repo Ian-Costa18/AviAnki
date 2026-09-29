@@ -227,7 +227,7 @@ def _build_catalog(args: argparse.Namespace, regions: list[Region], table: Regio
         except VerifyUnavailable as e:
             log.error("audio cannot be verified: %s", e)
             print(f"avianki-catalog: audio cannot be verified: {e}\n"
-                  "Install the extra (uv sync --extra birdnet) or pass --no-verify for a dev run.",
+                  "Install the extra (uv sync --extra verify) or pass --no-verify for a dev run.",
                   file=sys.stderr)
             return 2
     else:

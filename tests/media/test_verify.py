@@ -202,7 +202,6 @@ def tone_bytes(tmp_path: Path, seconds: float, *, suffix: str = "mp3") -> bytes:
     return out.read_bytes()
 
 
-@needs_ffmpeg
 def test_analyse_decodes_to_48k_mono_and_scores_with_the_fake(tmp_path):
     fake = FakeAnalyzer([0.2, 0.7])
     result = analyse(tone_bytes(tmp_path, 6.0), ROBIN, analyzer=fake)
@@ -214,14 +213,12 @@ def test_analyse_decodes_to_48k_mono_and_scores_with_the_fake(tmp_path):
     assert result.best_window() == (0.0, pytest.approx(result.duration_s))
 
 
-@needs_ffmpeg
 def test_analyse_applies_min_confidence(tmp_path):
     data = tone_bytes(tmp_path, 3.0, suffix="ogg")
     assert not analyse(data, ROBIN, analyzer=FakeAnalyzer([0.4])).passes
     assert analyse(data, ROBIN, min_confidence=0.4, analyzer=FakeAnalyzer([0.4])).passes
 
 
-@needs_ffmpeg
 def test_analyse_rejects_bytes_that_are_not_audio():
     with pytest.raises(UnreadableAudio):
         analyse(b"definitely not audio", ROBIN, analyzer=FakeAnalyzer([1.0]))
