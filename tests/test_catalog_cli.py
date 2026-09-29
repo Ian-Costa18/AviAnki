@@ -82,11 +82,6 @@ def test_responses_are_cached_per_dataset_version(env, tmp_path):
     assert len([p for p in (tmp_path / "cache").iterdir() if p.name.startswith("eod-")]) == 1
 
 
-def test_build_without_species_only_is_not_implemented_yet(env, capsys):
-    assert catalog_cli.main(["build"]) == 2
-    assert "M3" in capsys.readouterr().err
-
-
 def test_unknown_region_is_a_usage_error(env):
     args, *_ = env
     with pytest.raises(SystemExit) as e:

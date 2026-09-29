@@ -2,7 +2,7 @@
 
 The living map of the repo's layout, from [ADR 0018](adr/0018-package-layout.md). Update it in the same change as any file that adds, removes or moves a slice.
 
-**Status:** target layout, partly built (M2 done: core, taxonomy, the source contract, the GBIF source and the species-only build). Items marked *(today)* already exist; the flat 0.9 modules (`cli.py`, `ebird.py`, `allaboutbirds.py`, `media.py`, `anki_model.py`) are still in place.
+**Status:** target layout, partly built (M2 and M3 done: core, taxonomy, the source contract, the GBIF, Commons and iNaturalist sources, media processing, and the catalog build). Items marked *(today)* already exist; everything under `core/`, `taxonomy/`, `sources/` (except the eBird and All About Birds SpeciesSources), `media/` (except the 0.9 helpers) and `catalog/` (except `client.py`, which arrives with M5) is built. The flat 0.9 modules (`cli.py`, `ebird.py`, `allaboutbirds.py`, `anki_model.py`) are still in place.
 
 ```text
 src/avianki/
@@ -18,22 +18,30 @@ src/avianki/
     contract.py          SpeciesSource, AssetSource, Candidate, FetchedAsset, Limits  (today)
     registry.py          registered sources and the ordered list per asset kind  (today)
     gbif/                SpeciesSource: eBird Observation Dataset facets, IOC names  (today)
-    commons/             AssetSource: lead image, audio
-    inaturalist/         AssetSource: photo fallback, audio
+    commons/             AssetSource: Wikipedia lead image + Commons audio  (today)
+      source.py            CommonsSource: batched Wikipedia/Wikidata/Commons queries, fetch, resolve_pin
+      parse.py             pure: payload parsers, taxon guard, photo/audio gates, credit chain, ranking
+    inaturalist/         AssetSource: photo fallback, audio  (today)
+      source.py          INaturalistSource: taxon mapping + plausibility check (ADR 0008), candidates, fetch, pins
+      parse.py           pure: /taxa, species_counts and observation parsing; the photo and sound gates (ADR 0011)
     ebird/               SpeciesSource, republishable=False, CLI only      (today: ebird.py)
     allaboutbirds/       present, NOT registered                            (today: allaboutbirds.py)
   media/                 → core
-    images.py            resize → WebP, byte cap
-    audio.py             window trim, high-pass, loudnorm, MP3                (today: media.py)
-    verify.py            BirdNET gate (optional extra: avianki[verify])
+    __init__.py          the 0.9 helpers (download_file, trim_to_mp3, find_cached*) until the 1.0.0 CLI rewrite; re-exports MediaError  (today)
+    errors.py            MediaError, ImageRejected (no third-party imports)  (today)
+    images.py            inspect, resize → WebP, byte cap; needs Pillow (extra avianki[catalog])  (today)
+    audio.py             window trim, high-pass, loudnorm, MP3 via ffmpeg on PATH  (today)
+    verify.py            BirdNET gate (optional extra: avianki[verify]; Python 3.11-3.13)  (today)
   catalog/               → sources, media, taxonomy, core
     __init__.py          docstring only, so importing catalog.format never pulls in sources/
-    format.py            JSON Schemas + dataclasses for the published format  ← THE CONTRACT
+    format.py            JSON Schemas + dataclasses for the published format  ← THE CONTRACT  (today)
     species_lists.py     region species lists + minting into species.csv (§4 step 2)  (today)
-    select.py            ordered fill, ranking, pins, stickiness
-    build.py             pipeline orchestration; public build_species() used by --ebird
-    validate.py          the publish gate (ADR 0014)
-    report.py            build-report.md, contact-sheet.html, credits.html
+    credit.py            renders the answer-side credit HTML (ADR 0012)  (today)
+    pins.py              loads and validates data/pins.toml; a pin is "<source>:<token>"  (today)
+    select.py            pure selection rules: candidate screening, stickiness, provenance and credit for a chosen asset, overall species order  (today)
+    build.py             pipeline orchestration: run_build(), and the public build_species() used by --ebird  (today)
+    validate.py          the publish gate (ADR 0014): stable-coded checks, shrink limits, `format_result`  (today)
+    report.py            `BuildReport` + build-report.md, contact-sheet.html, credits.html  (today)
     client.py            reads a published catalog (manifest → species → media), with a local cache
   deck/                  → catalog.format, catalog.client, core   (never sources/ or media/)
     notetypes.py         three note types, frozen model seeds         (today: anki_model.py)
@@ -41,7 +49,7 @@ src/avianki/
     credits.py           Credits field + deck description
     build.py             genanki writer
   cli.py                 `avianki`: deck, catalog, --ebird         (today, to be rewritten at 1.0.0)
-  catalog_cli.py         `avianki-catalog build|validate|report`   (today: build --species-only)
+  catalog_cli.py         `avianki-catalog build`  (today; `build --species-only` runs the species half alone; validation and the reports run inside `build`)
   redact.py              CLI-only (core + itself), until Description→Name returns     (today)
 
 web/                     imports no Python; depends only on catalog/format.py's documented schema

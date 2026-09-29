@@ -1,0 +1,314 @@
+{
+ "batchcomplete": true,
+ "query": {
+  "normalized": [
+   {
+    "fromencoded": false,
+    "from": "File:Accipiter_striatus,_Canet_Road,_San_Luis_Obispo_1.jpg",
+    "to": "File:Accipiter striatus, Canet Road, San Luis Obispo 1.jpg"
+   },
+   {
+    "fromencoded": false,
+    "from": "File:Acridotheres_tristis00.jpg",
+    "to": "File:Acridotheres tristis00.jpg"
+   },
+   {
+    "fromencoded": false,
+    "from": "File:Aerodramus_bartschi_-_Damien_Wallace_-_555443620.jpeg",
+    "to": "File:Aerodramus bartschi - Damien Wallace - 555443620.jpeg"
+   },
+   {
+    "fromencoded": false,
+    "from": "File:Aethia_cristatella.jpg",
+    "to": "File:Aethia cristatella.jpg"
+   },
+   {
+    "fromencoded": false,
+    "from": "File:Skylark_2,_Lake_District,_England_-_June_2009.jpg",
+    "to": "File:Skylark 2, Lake District, England - June 2009.jpg"
+   }
+  ],
+  "pages": [
+   {
+    "pageid": 689132,
+    "ns": 6,
+    "title": "File:Aethia cristatella.jpg",
+    "imagerepository": "local",
+    "imageinfo": [
+     {
+      "user": "Tiouraren",
+      "size": 2180500,
+      "width": 1408,
+      "height": 2100,
+      "thumburl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4b/Aethia_cristatella.jpg/960px-Aethia_cristatella.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "thumbwidth": 960,
+      "thumbheight": 1432,
+      "url": "https://upload.wikimedia.org/wikipedia/commons/4/4b/Aethia_cristatella.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "descriptionurl": "https://commons.wikimedia.org/wiki/File:Aethia_cristatella.jpg",
+      "descriptionshorturl": "https://commons.wikimedia.org/w/index.php?curid=689132",
+      "extmetadata": {
+       "ObjectName": {
+        "value": "Aethia cristatella",
+        "source": "mediawiki-metadata"
+       },
+       "Categories": {
+        "value": "Aethia cristatella|PD US FWS|Images from the United States Fish and Wildlife Service|Unknown date",
+        "source": "commons-categories",
+        "hidden": ""
+       },
+       "Credit": {
+        "value": "<a rel=\"nofollow\" class=\"external free\" href=\"http://www.fhwa.dot.gov/byways/photos/58710\">http://www.fhwa.dot.gov/byways/photos/58710</a> <p class=\"mw-empty-elt\">\n</p><table class=\"layouttemplate sourcetemplate\" style=\"width:100%; clear:both; text-align:center; margin:0.5em auto; box-sizing: border-box; padding: 0; border-spacing: 8px; background-color: var(--background-color-neutral-subtle, #f6f7f5); color: var(--color-base, #202122); border: var(--border-subtle, 1px solid #555555);\" dir=\"ltr\" lang=\"en\">\n\n<tbody><tr>\n<td><span typeof=\"mw:File\"><a href=\"//commons.wikimedia.org/wiki/File:USFWS_alt_graphic_A.svg\" class=\"mw-file-description\"><img src=\"https://upload.wikimedia.org/wikipedia/commons/thumb/d/dc/USFWS_alt_graphic_A.svg/120px-USFWS_alt_graphic_A.svg.png?utm_source=commons.wikimedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail\" decoding=\"async\" loading=\"lazy\" width=\"120\" height=\"42\" class=\"mw-file-element\" srcset=\"https://upload.wikimedia.org/wikipedia/commons/thumb/d/dc/USFWS_alt_graphic_A.svg/250px-USFWS_alt_graphic_A.svg.png?utm_source=commons.wikimedia.org&amp;utm_campaign=parser&amp;utm_content=thumbnail 2x\" data-file-width=\"88\" data-file-height=\"31\"></a></span>\n</td>\n<td>This image originates from the <a rel=\"nofollow\" class=\"external text\" href=\"https://digitalmedia.fws.gov/cdm/\">National Digital Library</a> of the <a href=\"https://en.wikipedia.org/wiki/United_States_Fish_and_Wildlife_Service\" class=\"extiw\" title=\"w:United States Fish and Wildlife Service\">United States Fish and Wildlife Service</a> <br>at <a rel=\"nofollow\" class=\"external text\" href=\"https://digitalmedia.fws.gov/cdm/singleitem/collection/natdiglib/id/2599/rec/1\">this page</a><br>\n<p><small>This tag does not indicate the copyright status of the attached work. <span style=\"white-space:nowrap\">A normal <a href=\"//commons.wikimedia.org/wiki/Special:MyLanguage/Commons:Copyright_tags\" title=\"Special:MyLanguage/Commons:Copyright tags\">copyright tag</a> is still required.</span> <span style=\"white-space:nowrap\">See <a href=\"//commons.wikimedia.org/wiki/Special:MyLanguage/Commons:Licensing\" title=\"Special:MyLanguage/Commons:Licensing\">Commons:Licensing</a>.</span></small><br><small>See <a href=\"//commons.wikimedia.org/wiki/Category:Images_from_the_United_States_Fish_and_Wildlife_Service\" title=\"Category:Images from the United States Fish and Wildlife Service\">Category:Images from the United States Fish and Wildlife Service</a>.</small>\n</p>\n</td></tr></tbody></table>",
+        "source": "commons-desc-page"
+       },
+       "Artist": {
+        "value": "F. Deines, USFWS",
+        "source": "commons-desc-page"
+       },
+       "LicenseShortName": {
+        "value": "Public domain",
+        "source": "commons-desc-page",
+        "hidden": ""
+       },
+       "Restrictions": {
+        "value": "",
+        "source": "commons-desc-page",
+        "hidden": ""
+       },
+       "License": {
+        "value": "pd",
+        "source": "commons-templates",
+        "hidden": ""
+       }
+      },
+      "mime": "image/jpeg",
+      "mediatype": "BITMAP"
+     }
+    ]
+   },
+   {
+    "pageid": 7209988,
+    "ns": 6,
+    "title": "File:Skylark 2, Lake District, England - June 2009.jpg",
+    "imagerepository": "local",
+    "imageinfo": [
+     {
+      "user": "Alpsdake",
+      "size": 2642693,
+      "width": 2560,
+      "height": 1920,
+      "thumburl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f6/Skylark_2%2C_Lake_District%2C_England_-_June_2009.jpg/960px-Skylark_2%2C_Lake_District%2C_England_-_June_2009.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "thumbwidth": 960,
+      "thumbheight": 720,
+      "url": "https://upload.wikimedia.org/wikipedia/commons/f/f6/Skylark_2%2C_Lake_District%2C_England_-_June_2009.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "descriptionurl": "https://commons.wikimedia.org/wiki/File:Skylark_2,_Lake_District,_England_-_June_2009.jpg",
+      "descriptionshorturl": "https://commons.wikimedia.org/w/index.php?curid=7209988",
+      "extmetadata": {
+       "ObjectName": {
+        "value": "Skylark 2, Lake District, England - June 2009",
+        "source": "mediawiki-metadata"
+       },
+       "Categories": {
+        "value": "Alauda arvensis|GFDL|License migration redundant|Self-published work|Featured pictures on Wikipedia, English|Commons featured desktop backgrounds|Featured pictures on Wikipedia, German|Birds of Cumbria|Featured pictures of Cumbria|Photographs by User:Diliff|June 2009 in Cumbria|Featured pictures by User:Diliff|Alaudidae of the United Kingdom|Passeriformes eating insects|Featured pictures of birds in the United Kingdom|Featured pictures of Alaudidae|Alaudidae eating",
+        "source": "commons-categories",
+        "hidden": ""
+       },
+       "Credit": {
+        "value": "<span class=\"int-own-work\" lang=\"en\">Own work</span>",
+        "source": "commons-desc-page"
+       },
+       "Artist": {
+        "value": "<a href=\"//commons.wikimedia.org/wiki/User:Diliff\" title=\"User:Diliff\">User:Diliff</a>",
+        "source": "commons-desc-page"
+       },
+       "LicenseShortName": {
+        "value": "CC BY-SA 3.0",
+        "source": "commons-desc-page",
+        "hidden": ""
+       },
+       "Restrictions": {
+        "value": "",
+        "source": "commons-desc-page",
+        "hidden": ""
+       },
+       "License": {
+        "value": "cc-by-sa-3.0",
+        "source": "commons-templates",
+        "hidden": ""
+       }
+      },
+      "mime": "image/jpeg",
+      "mediatype": "BITMAP"
+     }
+    ]
+   },
+   {
+    "pageid": 49149910,
+    "ns": 6,
+    "title": "File:Accipiter striatus, Canet Road, San Luis Obispo 1.jpg",
+    "imagerepository": "local",
+    "imageinfo": [
+     {
+      "user": "MPF",
+      "size": 4606959,
+      "width": 2178,
+      "height": 3132,
+      "thumburl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c9/Accipiter_striatus%2C_Canet_Road%2C_San_Luis_Obispo_1.jpg/960px-Accipiter_striatus%2C_Canet_Road%2C_San_Luis_Obispo_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "thumbwidth": 960,
+      "thumbheight": 1380,
+      "url": "https://upload.wikimedia.org/wikipedia/commons/c/c9/Accipiter_striatus%2C_Canet_Road%2C_San_Luis_Obispo_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "descriptionurl": "https://commons.wikimedia.org/wiki/File:Accipiter_striatus,_Canet_Road,_San_Luis_Obispo_1.jpg",
+      "descriptionshorturl": "https://commons.wikimedia.org/w/index.php?curid=49149910",
+      "extmetadata": {
+       "ObjectName": {
+        "value": "Accipiter striatus, Canet Road, San Luis Obispo 1",
+        "source": "mediawiki-metadata"
+       },
+       "Categories": {
+        "value": "Accipiter striatus|CC-Zero|Flickr images reviewed by FlickreviewR|Media with estimated locations|Files with coordinates missing SDC location of creation",
+        "source": "commons-categories",
+        "hidden": ""
+       },
+       "Credit": {
+        "value": "<a rel=\"nofollow\" class=\"external text\" href=\"https://www.flickr.com/photos/sloalan/8735931270/\">216 - SHARP-SHINNED HAWK (11-30-08) canet rd, slo, ca (1)</a>",
+        "source": "commons-desc-page"
+       },
+       "Artist": {
+        "value": "<a rel=\"nofollow\" class=\"external text\" href=\"https://www.flickr.com/people/8101022@N05\">ALAN SCHMIERER</a> from near Patagonia, AZ, USA",
+        "source": "commons-desc-page"
+       },
+       "LicenseShortName": {
+        "value": "CC0",
+        "source": "commons-desc-page",
+        "hidden": ""
+       },
+       "Restrictions": {
+        "value": "",
+        "source": "commons-desc-page",
+        "hidden": ""
+       },
+       "License": {
+        "value": "cc0",
+        "source": "commons-templates",
+        "hidden": ""
+       }
+      },
+      "mime": "image/jpeg",
+      "mediatype": "BITMAP"
+     }
+    ]
+   },
+   {
+    "pageid": 66394278,
+    "ns": 6,
+    "title": "File:Acridotheres tristis00.jpg",
+    "imagerepository": "local",
+    "imageinfo": [
+     {
+      "user": "Praveenp",
+      "size": 45592,
+      "width": 610,
+      "height": 848,
+      "thumburl": "https://upload.wikimedia.org/wikipedia/commons/3/3c/Acridotheres_tristis00.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "thumbwidth": 960,
+      "thumbheight": 1335,
+      "url": "https://upload.wikimedia.org/wikipedia/commons/3/3c/Acridotheres_tristis00.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "descriptionurl": "https://commons.wikimedia.org/wiki/File:Acridotheres_tristis00.jpg",
+      "descriptionshorturl": "https://commons.wikimedia.org/w/index.php?curid=66394278",
+      "extmetadata": {
+       "ObjectName": {
+        "value": "Acridotheres tristis00",
+        "source": "mediawiki-metadata"
+       },
+       "Categories": {
+        "value": "GFDL|License migration redundant|Self-published work|Acridotheres tristis in South Africa",
+        "source": "commons-categories",
+        "hidden": ""
+       },
+       "Credit": {
+        "value": "<span class=\"int-own-work\" lang=\"en\">Own work</span>",
+        "source": "commons-desc-page"
+       },
+       "Artist": {
+        "value": "<a href=\"//commons.wikimedia.org/w/index.php?title=User:Gerrie_van_Vuuren&amp;action=edit&amp;redlink=1\" class=\"new\" title=\"User:Gerrie van Vuuren (page does not exist)\">Gerrie van Vuuren</a>",
+        "source": "commons-desc-page"
+       },
+       "LicenseShortName": {
+        "value": "CC BY-SA 4.0",
+        "source": "commons-desc-page",
+        "hidden": ""
+       },
+       "Restrictions": {
+        "value": "",
+        "source": "commons-desc-page",
+        "hidden": ""
+       },
+       "License": {
+        "value": "cc-by-sa-4.0",
+        "source": "commons-templates",
+        "hidden": ""
+       }
+      },
+      "mime": "image/jpeg",
+      "mediatype": "BITMAP"
+     }
+    ]
+   },
+   {
+    "pageid": 183218899,
+    "ns": 6,
+    "title": "File:Aerodramus bartschi - Damien Wallace - 555443620.jpeg",
+    "imagerepository": "local",
+    "imageinfo": [
+     {
+      "user": "Mitsingh",
+      "size": 49292,
+      "width": 667,
+      "height": 501,
+      "thumburl": "https://upload.wikimedia.org/wikipedia/commons/8/87/Aerodramus_bartschi_-_Damien_Wallace_-_555443620.jpeg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "thumbwidth": 960,
+      "thumbheight": 721,
+      "url": "https://upload.wikimedia.org/wikipedia/commons/8/87/Aerodramus_bartschi_-_Damien_Wallace_-_555443620.jpeg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "descriptionurl": "https://commons.wikimedia.org/wiki/File:Aerodramus_bartschi_-_Damien_Wallace_-_555443620.jpeg",
+      "descriptionshorturl": "https://commons.wikimedia.org/w/index.php?curid=183218899",
+      "extmetadata": {
+       "ObjectName": {
+        "value": "Aerodramus bartschi - Damien Wallace - 555443620",
+        "source": "mediawiki-metadata"
+       },
+       "Categories": {
+        "value": "Media from iNaturalist|Aerodramus bartschi|INaturalist images reviewed by iNaturalistReviewBot|Files with coordinates missing SDC location of creation|Media from GBIF|INaturalist images missing SDC depicts|Media uploaded with inat2wiki",
+        "source": "commons-categories",
+        "hidden": ""
+       },
+       "Credit": {
+        "value": "<a rel=\"nofollow\" class=\"external free\" href=\"https://www.inaturalist.org/photos/555443620\">https://www.inaturalist.org/photos/555443620</a>",
+        "source": "commons-desc-page"
+       },
+       "Artist": {
+        "value": "<a rel=\"nofollow\" class=\"external text\" href=\"https://www.inaturalist.org/users/5880267\">Damien Wallace</a>",
+        "source": "commons-desc-page"
+       },
+       "LicenseShortName": {
+        "value": "CC BY 4.0",
+        "source": "commons-desc-page",
+        "hidden": ""
+       },
+       "Restrictions": {
+        "value": "",
+        "source": "commons-desc-page",
+        "hidden": ""
+       },
+       "License": {
+        "value": "cc-by-4.0",
+        "source": "commons-templates",
+        "hidden": ""
+       }
+      },
+      "mime": "image/jpeg",
+      "mediatype": "BITMAP"
+     }
+    ]
+   }
+  ]
+ }
+}

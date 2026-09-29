@@ -70,6 +70,28 @@ def test_region_file_is_species_ids_and_monthly_in_rank_order():
     assert result.dataset_version == "2025-08-08 test"
 
 
+def test_species_totals_sum_record_counts_across_regions_for_kept_species_only():
+    source = FakeSource({
+        "us-ri": [
+            rec("Turdus migratorius", "American Robin", 9510564, 1, count=700),
+            rec("Cardinalis cardinalis", "Northern Cardinal", 2490384, 2, count=200),
+            rec("Zonotrichia albicollis", "White-throated Sparrow", 9515886, 3, count=5),
+        ],
+        "us-ma": [rec("Turdus migratorius", "American Robin", 9510564, 1, count=1300)],
+    })
+    result = build_species_lists(source, [RI, MA], SpeciesTable([ROBIN]), top_n=2)
+    assert result.species_totals == {"turdus-migratorius": 2000, "cardinalis-cardinalis": 200}
+
+
+def test_a_failed_region_adds_nothing_to_species_totals():
+    source = FakeSource({
+        "us-ri": SourceError("gbif is down"),
+        "us-ma": [rec("Turdus migratorius", "American Robin", 9510564, 1, count=40)],
+    })
+    result = build_species_lists(source, [RI, MA], SpeciesTable([ROBIN]))
+    assert result.species_totals == {"turdus-migratorius": 40}
+
+
 def test_new_species_are_minted_and_reported_once():
     source = FakeSource({
         "us-ri": [rec("Cardinalis cardinalis", "Northern Cardinal", 2490384, 1)],

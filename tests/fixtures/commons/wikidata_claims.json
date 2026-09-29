@@ -1,0 +1,136 @@
+{
+ "entities": {
+  "Q25961": {
+   "type": "item",
+   "id": "Q25961",
+   "claims": {
+    "P225": [
+     {
+      "mainsnak": {
+       "snaktype": "value",
+       "property": "P225",
+       "hash": "d90bb05cef663fb5ee9eed01aef14fedc1aa9ece",
+       "datavalue": {
+        "value": "Alauda arvensis",
+        "type": "string"
+       },
+       "datatype": "string"
+      },
+      "type": "statement",
+      "rank": "normal"
+     }
+    ]
+   }
+  },
+  "Q2822501": {
+   "type": "item",
+   "id": "Q2822501",
+   "claims": {
+    "P225": [
+     {
+      "mainsnak": {
+       "snaktype": "value",
+       "property": "P225",
+       "hash": "8f78d4f6bd73160e70d751a266984af785d80f64",
+       "datavalue": {
+        "value": "Acanthis",
+        "type": "string"
+       },
+       "datatype": "string"
+      },
+      "type": "statement",
+      "rank": "normal"
+     }
+    ]
+   }
+  },
+  "Q386569": {
+   "type": "item",
+   "id": "Q386569",
+   "claims": {
+    "P225": [
+     {
+      "mainsnak": {
+       "snaktype": "value",
+       "property": "P225",
+       "hash": "f0b6766469fa17a65f55c8b919cc978300beb1f1",
+       "datavalue": {
+        "value": "Accipiter striatus",
+        "type": "string"
+       },
+       "datatype": "string"
+      },
+      "type": "statement",
+      "rank": "normal"
+     }
+    ]
+   }
+  },
+  "Q116667": {
+   "type": "item",
+   "id": "Q116667",
+   "claims": {
+    "P225": [
+     {
+      "mainsnak": {
+       "snaktype": "value",
+       "property": "P225",
+       "hash": "096dbdcc71116cf77fe040a157dd7b984e6a08ae",
+       "datavalue": {
+        "value": "Acridotheres tristis",
+        "type": "string"
+       },
+       "datatype": "string"
+      },
+      "type": "statement",
+      "rank": "normal"
+     }
+    ]
+   }
+  },
+  "Q1166020": {
+   "type": "item",
+   "id": "Q1166020",
+   "claims": {
+    "P225": [
+     {
+      "mainsnak": {
+       "snaktype": "value",
+       "property": "P225",
+       "hash": "54b70a6343c35b294ae16711acb85f0ffcdb19de",
+       "datavalue": {
+        "value": "Aethia cristatella",
+        "type": "string"
+       },
+       "datatype": "string"
+      },
+      "type": "statement",
+      "rank": "normal"
+     }
+    ]
+   }
+  },
+  "Q27581": {
+   "type": "item",
+   "id": "Q27581",
+   "claims": {
+    "P225": [
+     {
+      "mainsnak": {
+       "snaktype": "value",
+       "property": "P225",
+       "hash": "28037f3a4b70086dfdf6202be34ed10e7a0c921c",
+       "datavalue": {
+        "value": "Aerodramus bartschi",
+        "type": "string"
+       },
+       "datatype": "string"
+      },
+      "type": "statement",
+      "rank": "normal"
+     }
+    ]
+   }
+  }
+ }
+}

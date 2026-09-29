@@ -77,6 +77,13 @@ def make_client(session, tmp_path=None, ft=None, **kw):
     return client, ft
 
 
+def test_today_is_the_injected_clocks_utc_date():
+    client, ft = make_client(FakeSession())
+    assert client.today() == "2026-09-28"
+    ft.now = datetime(2026, 9, 28, 23, 30, tzinfo=timezone(timedelta(hours=-5)))  # already 29 Sep in UTC
+    assert client.today() == "2026-09-29"
+
+
 # ── User-Agent ───────────────────────────────────────────────────────────────
 
 
@@ -369,3 +376,23 @@ def test_logs_requests_at_debug_and_retries_at_warning(caplog):
     levels = [(r.levelname, r.getMessage()) for r in caplog.records if r.name == "bird_deck"]
     assert any(lvl == "DEBUG" and URL in msg for lvl, msg in levels)
     assert any(lvl == "WARNING" and "503" in msg for lvl, msg in levels)
+
+
+MAXLAG_BODY = b'{"error": {"code": "maxlag", "info": "Waiting for a database server: 6 seconds lagged."}}'
+
+
+def test_maxlag_json_is_retried_after_retry_after_and_never_cached(tmp_path):
+    session = FakeSession(
+        FakeResponse(content=MAXLAG_BODY, headers={"Retry-After": "5"}), FakeResponse(content=b'{"ok": 1}')
+    )
+    client, ft = make_client(session, tmp_path)
+    assert client.get_json("a", FAST, URL) == {"ok": 1}
+    assert len(session.calls) == 2
+    assert sum(ft.sleeps) >= 5
+
+
+def test_maxlag_that_never_clears_is_returned_uncached(tmp_path):
+    session = FakeSession(*[FakeResponse(content=MAXLAG_BODY) for _ in range(3)], FakeResponse(content=b'{"ok": 1}'))
+    client, _ = make_client(session, tmp_path, max_retries=2)
+    assert client.get_json("a", FAST, URL)["error"]["code"] == "maxlag"
+    assert client.get_json("a", FAST, URL) == {"ok": 1}

@@ -1,10 +1,28 @@
-"""Media download, caching, and ffmpeg audio trimming."""
+"""Media processing.
+
+The 0.9 helpers (download, cache lookup, ``trim_to_mp3``) live here until the 1.0.0 CLI
+rewrite. The catalog pipeline uses the submodules: ``images`` (resize to WebP) and
+``audio`` (window, filter, MP3).
+"""
 
 import logging
 import subprocess
 from pathlib import Path
 
 import requests
+
+from avianki.media.errors import MediaError
+
+__all__ = [
+    "AUDIO_MAX_SECONDS",
+    "HEADERS",
+    "MediaError",
+    "download_file",
+    "find_cached",
+    "find_cached_audio",
+    "find_cached_image",
+    "trim_to_mp3",
+]
 
 log = logging.getLogger("bird_deck")
 

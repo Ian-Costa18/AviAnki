@@ -123,7 +123,6 @@ RULES: dict[str, tuple[str, ...]] = {
     "avianki.allaboutbirds": ("avianki.core",),  # -> sources/allaboutbirds/
     "avianki.ebird": ("avianki.core",),  # -> sources/ebird/
     "avianki.anki_model": ("avianki.core",),  # -> deck/notetypes.py
-    # (flat media.py is covered by the "avianki.media" rule above.)
 }
 
 ROOT_ALLOWED: tuple[str, ...] = ("avianki.core",)
@@ -137,10 +136,16 @@ LEGACY_ALLOWED: dict[str, frozenset[str]] = {
         {
             "avianki.allaboutbirds",
             "avianki.ebird",
-            "avianki.media",
             "avianki.anki_model",
         }
     ),
+}
+
+# LEGACY: media.py became the media/ package (its 0.9 helpers now live in media/__init__.py)
+# but the flat cli.py still calls them. Exact match only: cli may import the package
+# itself, never a submodule (media.images, media.audio). Deleted with the 1.0.0 cli rewrite.
+LEGACY_EXACT_ALLOWED: dict[str, frozenset[str]] = {
+    "avianki.cli": frozenset({"avianki.media"}),
 }
 
 
@@ -257,6 +262,7 @@ def check_module(
         ]
     allowed = _allowed_for(module.name, key)
     legacy = [t for t in LEGACY_ALLOWED.get(module.name, ()) if t in flat_modules]
+    legacy_exact = LEGACY_EXACT_ALLOWED.get(module.name, frozenset())
     problems = []
     for lineno, target in imported_names(module, source):
         if target.startswith("<"):
@@ -267,6 +273,8 @@ def check_module(
         if any(_matches(a, target) for a in allowed):
             continue
         if any(_matches(t, target) for t in legacy):
+            continue
+        if target in legacy_exact:
             continue
         problems.append(
             f"{where}:{lineno}: {module.name} (rule {key!r}) may not import {target}"
@@ -446,9 +454,16 @@ def test_cli_may_only_reach_build_species() -> None:
 
 
 def test_legacy_allowance_only_while_flat_module_exists() -> None:
-    source = "from . import media\n"
-    assert _check("avianki.cli", source, flat={"avianki.media"}) == []
-    assert _check("avianki.cli", source, flat=set())  # media/ is now a package
+    source = "from . import allaboutbirds\n"
+    assert _check("avianki.cli", source, flat={"avianki.allaboutbirds"}) == []
+    assert _check("avianki.cli", source, flat=set())  # allaboutbirds/ became a package
+
+
+def test_cli_may_import_the_media_package_but_not_its_submodules() -> None:
+    # The 0.9 helpers live in media/__init__.py until the 1.0.0 cli rewrite.
+    assert _check("avianki.cli", "from . import media\n", flat=set()) == []
+    assert _check("avianki.cli", "from avianki.media import images\n", flat=set())
+    assert _check("avianki.cli", "import avianki.media.audio\n", flat=set())
 
 
 def test_non_avianki_imports_are_ignored() -> None:

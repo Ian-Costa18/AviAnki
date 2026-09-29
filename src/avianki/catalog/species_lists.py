@@ -35,6 +35,9 @@ class ReportsNameFallbacks(Protocol):
 class SpeciesListsResult:
     region_files: dict[str, dict[str, Any]] = field(default_factory=dict)  # slug -> spec §5 region file
     species_counts: dict[str, int] = field(default_factory=dict)  # slug -> species the source listed
+    # species id -> its annual record count summed over every region built: the "expected count"
+    # for the iNaturalist plausibility check (ADR 0022). Only species that made a region's top N.
+    species_totals: dict[str, int] = field(default_factory=dict)
     minted: list[SpeciesRow] = field(default_factory=list)  # new species.csv rows: the diff to commit
     no_ioc_match: list[Any] = field(default_factory=list)  # the source's name fallbacks
     unmintable: list[SpeciesRecord] = field(default_factory=list)  # names mint_id refuses (e.g. hybrids)
@@ -98,6 +101,7 @@ def build_species_lists(
                 log.warning("%s: %s maps to %s twice; keeping the higher rank", region.slug, record.sci_name, species_id)
                 continue
             seen.add(species_id)
+            result.species_totals[species_id] = result.species_totals.get(species_id, 0) + record.count
             listed.append([species_id, list(record.monthly)])
         result.region_files[region.slug] = {"slug": region.slug, "species": listed}
         log.info("%s: %d species listed by %s, kept %d", region.slug, len(records), source.name, len(listed))
