@@ -129,7 +129,7 @@ jobs:
             args+=(--allow-shrink)
           fi
           # --no-sync: keep the environment installed above (uv run would re-sync without the extras).
-          uv run --no-sync avianki-catalog "${args[@]}"
+          uv run --no-sync --python 3.13 avianki-catalog "${args[@]}"
 
       # ---- always: the report, the review artifacts and both caches -------------------------
 
