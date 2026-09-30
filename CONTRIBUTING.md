@@ -28,6 +28,8 @@ uv run ty check src/
 ```bash
 uv run ruff check src/ tests/                  # lint
 uv run ty check src/                           # type check
+uv run --with vulture vulture                  # dead code (settings in pyproject.toml; CI runs it)
+uv run --with deptry deptry src                # undeclared or unused dependencies (CI runs it)
 uv run pytest --integration --cov=avianki --cov-report=html # run all tests, including the integration tests, and coverage with HTML report
 uv run pytest tests/acceptance                 # build decks and import them into Anki's own backend
 # Test all Python versions we have in the classifiers
