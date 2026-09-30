@@ -431,9 +431,10 @@ pre{margin:.2em 0;white-space:pre-wrap;font-size:.8rem}
 """
 
 
-def _toml_pin(species_id: str, kind: str, token: str) -> str:
-    """The lines to paste into src/avianki/data/pins.toml to force this asset."""
-    return f"[{species_id}]\n{kind} = {json.dumps(token, ensure_ascii=False)}"
+def _toml_pin(species_id: str, kind: str, source: str, token: str) -> str:
+    """The lines to paste into src/avianki/data/pins.toml to force this asset (a note is required)."""
+    ref = json.dumps(f"{source}:{token}", ensure_ascii=False)
+    return f'[{species_id}]\n{kind} = {ref}\nnote = "why this {kind} is forced"'
 
 
 def _asset_html(catalog: LoadedCatalog, sid: str, kind: str, ref: MediaRef, prefix: str) -> str:
@@ -451,7 +452,7 @@ def _asset_html(catalog: LoadedCatalog, sid: str, kind: str, ref: MediaRef, pref
         facts.append(f"BirdNET {prov.birdnet_confidence:.2f}")
     return (
         f'<div class="asset">{media}<div>{" &middot; ".join(facts)}</div>'
-        f"<pre>{_e(_toml_pin(sid, kind, prov.token))}</pre></div>"
+        f"<pre>{_e(_toml_pin(sid, kind, prov.record.source, prov.token))}</pre></div>"
     )
 
 

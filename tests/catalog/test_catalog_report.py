@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html
 from dataclasses import replace
 import re
 from pathlib import Path
@@ -24,8 +25,10 @@ from avianki.catalog.report import (
     render_contact_sheet,
     render_credits_page,
 )
+from avianki.catalog.pins import parse_pins
 from avianki.catalog.validate import Problem, ValidationResult
 from avianki.sources.gbif import DroppedMinority, ReResolved
+from avianki.taxonomy.species import SpeciesRow, SpeciesTable
 from catalog_fakes import Sp, build_catalog, mutated_copy, write_parts
 
 EVIL = "<script>alert(1)</script>"
@@ -170,8 +173,16 @@ def test_contact_sheet_shows_source_licence_verification_and_pin_token(cat: Load
     assert "CC-BY-SA-3.0" in sheet
     assert "verified: birdnet" in sheet
     assert "BirdNET 0.90" in sheet
-    assert "[american-robin]\nphoto = &quot;american-robin-photo-0&quot;" in sheet
-    assert "[american-robin]\naudio = &quot;american-robin-audio-0&quot;" in sheet
+    assert "[american-robin]\nphoto = &quot;commons:american-robin-photo-0&quot;" in sheet
+    assert "[american-robin]\naudio = &quot;inaturalist:american-robin-audio-0&quot;" in sheet
+
+
+def test_contact_sheet_pin_lines_paste_into_pins_toml(cat: LoadedCatalog) -> None:
+    snippets = [html.unescape(m) for m in re.findall(r"<pre>(.*?)</pre>", render_contact_sheet(cat), re.S)]
+    assert snippets
+    table = SpeciesTable([SpeciesRow(sid, e.sci, e.name) for sid, e in cat.species.items()])
+    for snippet in snippets:
+        assert parse_pins(snippet, table), snippet
 
 
 def test_contact_sheet_lists_species_without_a_photo_first(cat: LoadedCatalog) -> None:
