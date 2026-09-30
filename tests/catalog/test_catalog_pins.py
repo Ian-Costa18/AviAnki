@@ -9,7 +9,7 @@ import pytest
 from avianki.catalog.pins import AssetRef, PinsError, load_pins, parse_pins, parse_ref
 from avianki.sources.contract import AssetKind
 from avianki.taxonomy import DATA_DIR
-from avianki.taxonomy.species import SpeciesRow, SpeciesTable
+from avianki.taxonomy.species import SpeciesRow, SpeciesTable, load_species
 
 TABLE = SpeciesTable(
     [
@@ -58,10 +58,12 @@ def test_an_empty_file_is_no_pins():
     assert pins.for_validation() == {}
 
 
-def test_the_shipped_pins_file_loads_and_is_empty():
-    path = DATA_DIR / "pins.toml"
-    assert path.is_file()
-    assert len(load_pins(path, TABLE)) == 0
+def test_the_shipped_pins_file_loads_against_the_shipped_species_table():
+    pins = load_pins(DATA_DIR / "pins.toml", load_species())
+    for species_id in pins.by_species:
+        pin = pins.by_species[species_id]
+        assert pin.note.strip(), species_id
+        assert pin.photo or pin.audio or pin.exclude, species_id
 
 
 def test_a_missing_note_is_an_error_naming_the_species_and_line():
