@@ -48,6 +48,9 @@ BLANK_PAGE = b"<!doctype html><meta charset=utf-8><title>web test</title><body><
 
 class _Handler(http.server.SimpleHTTPRequestHandler):
     extensions_map = {**http.server.SimpleHTTPRequestHandler.extensions_map, **MIME_TYPES}
+    # Keep-alive: with HTTP/1.0 every module is a new connection, and on Windows one of a
+    # burst is occasionally refused, failing a dynamic import at random.
+    protocol_version = "HTTP/1.1"
 
     def translate_path(self, path: str) -> str:
         path = path.split("?", 1)[0].split("#", 1)[0]
