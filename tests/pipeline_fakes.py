@@ -71,7 +71,7 @@ def image_bytes(seed: int = 0, size: tuple[int, int] = (1000, 750)) -> bytes:
     """A JPEG that `process_image` accepts (long side >= 800). Each seed is a different picture."""
     img = Image.new("RGB", size, ((seed * 53) % 256, (seed * 97 + 40) % 256, (seed * 31 + 120) % 256))
     ImageDraw.Draw(img).ellipse(
-        (size[0] // 4 + seed, size[1] // 4, 3 * size[0] // 4, 3 * size[1] // 4),
+        (size[0] // 4 + seed % 200, size[1] // 4, 3 * size[0] // 4, 3 * size[1] // 4),
         fill=((seed * 11) % 256, 255 - (seed * 29) % 256, (seed * 7) % 256),
     )
     out = io.BytesIO()

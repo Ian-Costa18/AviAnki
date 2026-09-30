@@ -1,406 +1,468 @@
-#!/usr/bin/env python3
+"""The ``avianki`` command: read the published catalog and write an Anki .apkg (ADR 0017).
+
+    avianki us-ma                       # a catalog slug ...
+    avianki "Massachusetts" --tier everything --cards photo,audio,photo-audio
+    avianki --ebird US-MA-017           # any eBird region, for personal use
+
+The default path needs no ffmpeg, API key or scraping: manifest -> region -> species ->
+only the media the deck uses, then genanki. ``--ebird`` is the one escape hatch; its
+upstream work (eBird, live media building) sits behind `avianki.catalog.adhoc`, the only
+part of the pipeline this module may import (dependency rule, ADR 0018).
+
+Exit codes: 0 done, 1 the network or the catalog failed (or nothing to write), 2 a usage
+problem (unknown region, missing key, bad flag combination, missing tool).
 """
-avianki.py — CLI entry point.
 
-Scrapes images, audio, and descriptions from allaboutbirds.org and packages
-everything into an Anki .apkg deck. Accepts three location formats:
-
-Usage:
-    avianki "https://www.allaboutbirds.org/guide/browse/..."
-    avianki ChIJGzE9DS1l44kRoOhiASS_fHg   # Google Place ID
-    avianki US-MA                           # eBird region code
-    avianki US-MA --limit 40
-
-Output:
-    Birds_<location>.apkg — import into Anki via File > Import
-"""
+from __future__ import annotations
 
 import argparse
-import hashlib
-import json
+import csv
 import logging
 import os
-import re
-import shutil
 import sys
-import tempfile
-import time
+import traceback
+from collections.abc import Sequence
 from pathlib import Path
 
-import genanki
-import tqdm as tqdm_module
+import tqdm
 from dotenv import load_dotenv
+
+from avianki.catalog.client import (
+    AmbiguousRegion,
+    CatalogClient,
+    CatalogError,
+    RegionNotFound,
+    default_cache_dir,
+)
+from avianki.catalog.format import DEFAULT_BASE_URL, Manifest, RegionFile, SpeciesFile
+from avianki.core.http import SourceError
 from avianki.core.log import setup_logging, teardown_logging
-from avianki.redact import redact_name
+from avianki.deck.build import (
+    DECK_NAME,
+    STANDARD_LIMIT,
+    TIER_EVERYTHING,
+    TIER_STANDARD,
+    PlannedNote,
+    plan_notes,
+    select_species,
+    write_deck,
+)
+from avianki.deck.credits import EBIRD_NOTICE
 
-from . import allaboutbirds, anki_model, ebird, media
-
-load_dotenv()
-
-# ─── Logging ──────────────────────────────────────────────────────────────────
 log = logging.getLogger("bird_deck")
 
+EBIRD_KEY_VAR = "EBIRD_API_KEY"
+EBIRD_KEY_URL = "https://ebird.org/api/keygen"
+DEFAULT_CARDS = "photo,audio"
 
-# ─── Helpers ──────────────────────────────────────────────────────────────────
+# The CLI spells the combined card type with a hyphen; note types use an underscore.
+_CARD_SPELLINGS = {"photo": "photo", "audio": "audio", "photo-audio": "photo_audio"}
+_CARD_LABELS = {"photo": "photo", "audio": "audio", "photo_audio": "photo-audio"}
 
+EXIT_OK, EXIT_FAILED, EXIT_USAGE = 0, 1, 2
 
-def _safe_name(com_name: str) -> str:
-    """Filesystem-safe version of a common name for use in filenames."""
-    return re.sub(r"[^A-Za-z0-9_]", "_", com_name)
-
-
-
-def _get_audio(
-    sounds: dict, kind: str, safe: str, media_dir: Path, no_cache: bool = False
-) -> tuple[str, list[Path]]:
-    """
-    Download, trim, and cache one audio clip (call or song).
-    Returns ([sound:file] field value, [absolute path]) tuple.
-    """
-    base = f"bird_{safe}_{kind}"
-    if not no_cache:
-        cached = media.find_cached_audio(media_dir, base)
-        if cached:
-            log.info("  ✓ %s (cached)", kind)
-            return f"[sound:{cached}]", [media_dir / cached]
-
-    urls = sounds.get(kind + "s", [])  # "calls" or "songs"
-    if not urls:
-        log.warning("  no %s audio found", kind)
-        return "", []
-
-    raw_path = media_dir / f"{base}_raw.mp3"
-    out_file = f"{base}.mp3"
-    out_path = media_dir / out_file
-
-    if media.download_file(urls[0], raw_path) and media.trim_to_mp3(raw_path, out_path):
-        raw_path.unlink()
-        log.info("  ✓ %s  %.1f KB", kind, out_path.stat().st_size / 1024)
-        return f"[sound:{out_file}]", [out_path]
-
-    log.warning("  %s download/trim failed", kind)
-    return "", []
+# regions.csv is read directly (not through avianki.taxonomy, which cli may not import) only
+# to recognise an eBird code or a place name that the catalog does not have. It ships inside
+# the package (issue #51); tests/cli pins that this is the same file as taxonomy.DATA_DIR.
+REGIONS_CSV = Path(__file__).resolve().parent / "data" / "regions.csv"
 
 
-def _get_images(
-    img_urls: list[str], safe: str, media_dir: Path, no_cache: bool = False, delay: float = 0
-) -> tuple[list[str], list[Path], bool]:
-    """
-    Download and cache up to 2 images.
-    Returns (img_fields, media_paths, fetched) where fetched is True if any network request was made.
-    """
-    img_fields = []
-    media_paths = []
-    fetched = False
-
-    for idx, img_url in enumerate(img_urls, 1):
-        ext = Path(img_url.split("?")[0]).suffix.lower() or ".jpg"
-        img_base = f"bird_{safe}_img{idx}"
-        cached = None if no_cache else media.find_cached_image(media_dir, img_base)
-        if cached:
-            log.info("  ✓ image %d (cached)", idx)
-            img_fields.append(f'<img src="{cached}">')
-            media_paths.append(media_dir / cached)
-        else:
-            img_file = img_base + ext
-            img_path = media_dir / img_file
-            if media.download_file(img_url, img_path):
-                log.info("  ✓ image %d  %.1f KB", idx, img_path.stat().st_size / 1024)
-                img_fields.append(f'<img src="{img_file}">')
-                media_paths.append(img_path)
-            fetched = True
-            if delay:
-                time.sleep(delay)
-
-    while len(img_fields) < 2:
-        img_fields.append("")
-
-    return img_fields, media_paths, fetched
+# ---------------------------------------------------------------------------------------
+# Arguments
+# ---------------------------------------------------------------------------------------
 
 
-# ─── Main ─────────────────────────────────────────────────────────────────────
+def _cards(text: str) -> list[str]:
+    """``photo,audio,photo-audio`` -> card types, in the order given, without repeats."""
+    chosen: list[str] = []
+    for part in text.split(","):
+        key = part.strip().lower()
+        if not key:
+            continue
+        if key not in _CARD_SPELLINGS:
+            raise argparse.ArgumentTypeError(
+                f"unknown card type {part.strip()!r}; choose from {', '.join(_CARD_SPELLINGS)}"
+            )
+        card_type = _CARD_SPELLINGS[key]
+        if card_type not in chosen:
+            chosen.append(card_type)
+    if not chosen:
+        raise argparse.ArgumentTypeError("give at least one card type")
+    return chosen
 
 
-def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    """Parse CLI args and apply AVIANKI_* env var fallbacks. CLI always wins."""
+def _month(text: str) -> int:
+    try:
+        value = int(text)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"{text!r} is not a month number (1-12)") from None
+    if not 1 <= value <= 12:
+        raise argparse.ArgumentTypeError(f"month must be 1-12, got {value}")
+    return value
+
+
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Build an Anki bird ID deck from allaboutbirds.org",
+        prog="avianki",
+        description="Build an Anki deck for learning the birds of a region by photo and by sound.",
         epilog=(
-            "LOCATION can be:\n"
-            "  - An allaboutbirds.org browse URL  (copy from your browser)\n"
-            "  - A Google Place ID                (e.g. ChIJGzE9DS1l44kRoOhiASS_fHg)\n"
-            "  - An eBird region code             (e.g. US-MA or US-MA-017)\n"
+            "Examples:\n"
+            "  avianki us-ma\n"
+            '  avianki "Massachusetts" --tier everything --cards photo,audio,photo-audio\n'
+            "  avianki us-az --month 5 --subdeck\n"
+            "  avianki --ebird US-MA-017    (needs EBIRD_API_KEY; for personal use only)\n"
+            "\n"
+            "Then open the .apkg in Anki (double-click it, or File > Import)."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
-        "location", nargs="?", default=None,
-        help="allaboutbirds.org URL, Google Place ID, or eBird region code (or set AVIANKI_LOCATION)",
+        "region",
+        nargs="?",
+        metavar="REGION",
+        help="a catalog region: its slug (us-ma) or display name (Massachusetts). "
+        "Required unless --ebird is given",
     )
     parser.add_argument(
-        "-n", "--limit", type=int, default=None, help="Max number of species to include"
+        "--tier",
+        choices=[TIER_STANDARD, TIER_EVERYTHING],
+        default=TIER_STANDARD,
+        help=f"standard: the {STANDARD_LIMIT} most common species; everything: all of them "
+        "(default: standard)",
     )
     parser.add_argument(
-        "-o", "--output", default=None, help="Output .apkg filename (default: auto-generated)"
+        "--cards",
+        type=_cards,
+        default=_cards(DEFAULT_CARDS),
+        metavar="TYPES",
+        help=f"comma-separated card types: photo, audio, photo-audio (default: {DEFAULT_CARDS})",
     )
     parser.add_argument(
-        "-d", "--deck-name", default=None, help="Override the deck name shown in Anki"
+        "--month",
+        type=_month,
+        metavar="1-12",
+        help="only species likely to be seen in this month (default: all year)",
     )
     parser.add_argument(
-        "-A", "--no-audio", action="store_true", help="Skip downloading audio clips"
-    )
-    parser.add_argument(
-        "-I", "--no-images", action="store_true", help="Skip downloading images"
-    )
-    parser.add_argument(
-        "-j", "--json-file",
-        default=None,
-        help="Path for birds.json output (default: <work-dir>/birds.json, use /dev/null to skip)",
-    )
-    parser.add_argument(
-        "-D", "--delay",
-        type=float,
-        default=None,
-        help="Seconds to wait between requests (default: 0)",
-    )
-    parser.add_argument(
-        "-w", "--work-dir",
-        default=None,
-        help="Directory for cached media and logs (default: <tmp>/avianki)",
-    )
-    parser.add_argument(
-        "-m", "--media-dir",
-        default=None,
-        help="Directory for cached media files (default: <work-dir>/media)",
-    )
-    parser.add_argument(
-        "-e", "--ephemeral",
+        "--subdeck",
         action="store_true",
-        help="Use a temporary work dir and delete it after packaging (no persistent files)",
+        help="put the notes in a subdeck named after the region (AviAnki::<Region>)",
     )
     parser.add_argument(
-        "-X", "--no-cache",
-        action="store_true",
-        help="Skip cache lookup and delete downloaded media after packaging",
+        "--ebird",
+        metavar="CODE",
+        help="build from any eBird region code (US-MA, CA-QC, MX-ROO...) instead of the catalog. "
+        f"Needs {EBIRD_KEY_VAR}. Species outside the catalog are built live (needs the "
+        "avianki[catalog] extra, plus ffmpeg and avianki[verify] for audio). "
+        "The deck is for personal use only",
     )
     parser.add_argument(
-        "-l", "--log-file",
-        default=None,
-        help="Log file path (default: next to <media-dir> as avianki.log)",
+        "-o",
+        "--output",
+        type=Path,
+        metavar="FILE",
+        help="where to write the deck (default: AviAnki-<region>.apkg, or AviAnki-<CODE>.apkg "
+        "with --ebird)",
     )
-    verbosity = parser.add_mutually_exclusive_group()
-    verbosity.add_argument("-v", "--verbose", action="store_true", help="Show debug output")
-    verbosity.add_argument(
-        "-q", "--quiet", action="store_true", help="Only show warnings and errors"
+    parser.add_argument(
+        "--catalog-url",
+        default=DEFAULT_BASE_URL,
+        metavar="URL_OR_DIR",
+        help="where to read the catalog: a URL or a local directory (default: the published catalog)",
     )
+    parser.add_argument(
+        "--cache-dir",
+        type=Path,
+        metavar="DIR",
+        help="where downloaded catalog files are kept (default: your per-user cache directory)",
+    )
+    advanced = parser.add_argument_group("advanced")
+    advanced.add_argument(
+        "--deck-name",
+        default=DECK_NAME,
+        metavar="NAME",
+        help=f"the deck's name (default: {DECK_NAME}). Changing it puts the notes into a "
+        "different deck in Anki, so a later import will not update the notes you already have",
+    )
+    noise = parser.add_mutually_exclusive_group()
+    noise.add_argument("-v", "--verbose", action="store_true", help="show debug output and tracebacks")
+    noise.add_argument("-q", "--quiet", action="store_true", help="show only warnings and errors")
+    return parser
+
+
+# ---------------------------------------------------------------------------------------
+# Small helpers
+# ---------------------------------------------------------------------------------------
+
+
+def _region_rows() -> list[dict[str, str]]:
+    """Rows of the packaged regions.csv, or [] when unreadable (the hint is only a courtesy)."""
+    try:
+        with REGIONS_CSV.open(encoding="utf-8", newline="") as fh:
+            return list(csv.DictReader(fh))
+    except OSError:
+        return []
+
+
+def _fold(text: str) -> str:
+    return " ".join(text.casefold().split())
+
+
+def _known_ebird_region(query: str) -> tuple[str, str] | None:
+    """``(eBird code, display name)`` when ``query`` is the code, slug or name of a regions.csv row."""
+    key = _fold(query)
+    for row in _region_rows():
+        if key in (_fold(row["ebird_code"]), _fold(row["slug"]), _fold(row["name"])):
+            return row["ebird_code"], row["name"]
+    return None
+
+
+def _region_name_for_code(code: str) -> str:
+    """The display name of an eBird code from regions.csv, else the code itself."""
+    for row in _region_rows():
+        if row["ebird_code"].upper() == code.upper():
+            return row["name"]
+    return code.upper()
+
+
+def _human_size(n: int) -> str:
+    size = float(n)
+    for unit in ("bytes", "KB", "MB", "GB"):
+        if size < 1024 or unit == "GB":
+            return f"{int(size)} {unit}" if unit == "bytes" else f"{size:.1f} {unit}"
+        size /= 1024
+    return f"{n} bytes"
+
+
+class _Bar:
+    """A tqdm bar driven by ``progress(done, total)`` callbacks; silent when ``disable``."""
+
+    def __init__(self, label: str, disable: bool) -> None:
+        self._bar = tqdm.tqdm(total=0, desc=label, unit="file", disable=disable, leave=False)
+
+    def __call__(self, done: int, total: int) -> None:
+        self._bar.total = total
+        self._bar.n = done
+        self._bar.refresh()
+
+    def close(self) -> None:
+        self._bar.close()
+
+
+def _fetch_media(client: CatalogClient, files: list[str], quiet: bool) -> dict[str, Path]:
+    """Download the catalog files a deck needs (cached ones are free), with a progress bar."""
+    bar = _Bar("Downloading media", disable=quiet or not files)
+    try:
+        return client.media_many(files, bar)
+    finally:
+        bar.close()
+
+
+def _needed_files(notes: Sequence[PlannedNote]) -> list[str]:
+    files: list[str] = []
+    for note in notes:
+        files.extend(ref.file for ref in (note.photo, note.audio) if ref is not None)
+    return list(dict.fromkeys(files))
+
+
+def _error(message: str) -> None:
+    print(f"avianki: error: {message}", file=sys.stderr)
+
+
+# ---------------------------------------------------------------------------------------
+# The two paths
+# ---------------------------------------------------------------------------------------
+
+
+def _report_missing_region(exc: RegionNotFound | AmbiguousRegion, query: str) -> None:
+    _error(str(exc))
+    known = _known_ebird_region(query)
+    if isinstance(exc, RegionNotFound) and known is not None:
+        code, name = known
+        print(
+            f"{name} ({code}) is an eBird region that this catalog does not cover. "
+            f"You can still build it for personal use: avianki --ebird {code}",
+            file=sys.stderr,
+        )
+    else:
+        print(
+            "For a place outside the catalog, use --ebird CODE with an eBird region code "
+            "(for example US-MA-017).",
+            file=sys.stderr,
+        )
+
+
+def _finish(
+    notes: list[PlannedNote],
+    species: SpeciesFile,
+    manifest: Manifest,
+    *,
+    client: CatalogClient,
+    extra_media: dict[str, Path],
+    args: argparse.Namespace,
+    out: Path,
+    subdeck: str | None,
+    ebird: bool,
+    selected: int,
+) -> int:
+    """Fetch the catalog media, write the deck, print the summary."""
+    catalog_files = [f for f in _needed_files(notes) if f not in extra_media]
+    downloaded = _fetch_media(client, catalog_files, args.quiet)
+
+    def media(name: str) -> Path:
+        return extra_media[name] if name in extra_media else downloaded[name]
+
+    summary = write_deck(
+        notes,
+        species,
+        manifest,
+        media=media,
+        out=out,
+        deck_name=args.deck_name,
+        subdeck=subdeck,
+        ebird=ebird,
+    )
+    if args.quiet:
+        return EXIT_OK
+    species_count = len({n.species_id for n in notes})
+    by_type = ", ".join(
+        f"{count} {_CARD_LABELS[card_type]}"
+        for card_type, count in summary.notes_by_type.items()
+        if count
+    )
+    print(
+        f"Wrote {out} ({_human_size(out.stat().st_size)}): {summary.note_count} notes ({by_type}) "
+        f"for {species_count} species."
+    )
+    if species_count < selected:
+        print(
+            f"{selected - species_count} of the {selected} selected species have no media for the "
+            "chosen card types, so they have no cards."
+        )
+    print(f"Next: open {out.name} in Anki (double-click it, or File > Import).")
+    return EXIT_OK
+
+
+def _catalog_deck(args: argparse.Namespace, client: CatalogClient) -> int:
+    manifest = client.manifest()
+    try:
+        ref = client.find_region(args.region)
+    except (RegionNotFound, AmbiguousRegion) as exc:
+        _report_missing_region(exc, args.region)
+        return EXIT_USAGE
+    region = client.region(ref)
+    species = client.species()
+    ids = select_species(region, tier=args.tier, month=args.month)
+    notes = plan_notes(ids, species, args.cards)
+    if not notes:
+        _error(
+            f"nothing to write: none of the {len(ids)} selected species in {ref.name} has media "
+            "for the chosen cards"
+            + (f" in month {args.month}" if args.month else "")
+            + "."
+        )
+        return EXIT_FAILED
+    out = args.output or Path(f"AviAnki-{ref.slug}.apkg")
+    return _finish(
+        notes, species, manifest, client=client, extra_media={}, args=args, out=out,
+        subdeck=ref.name if args.subdeck else None, ebird=False, selected=len(ids),
+    )
+
+
+def _ebird_deck(args: argparse.Namespace, client: CatalogClient) -> int:
+    # Imported here: it pulls in the sources and, lazily, the pipeline. The default path
+    # never needs them.
+    from avianki.catalog.adhoc import AdhocUnavailable, InvalidRegionCode, build_ebird_species
+
+    code = args.ebird.strip().upper()
+    api_key = os.environ.get(EBIRD_KEY_VAR, "").strip()
+    if not api_key:
+        _error(
+            f"--ebird needs an eBird API key in the {EBIRD_KEY_VAR} environment variable "
+            f"(or a .env file). Get one free at {EBIRD_KEY_URL}."
+        )
+        return EXIT_USAGE
+
+    manifest = client.manifest()  # the catalog still supplies names, media and credits it has
+    species = client.species()
+    bar = _Bar("Building species", disable=args.quiet)
+    try:
+        adhoc = build_ebird_species(
+            code,
+            api_key=api_key,
+            catalog_species=species,
+            cache_dir=client.cache_dir,
+            limit=STANDARD_LIMIT if args.tier == TIER_STANDARD else None,
+            progress=bar,
+        )
+    except InvalidRegionCode as exc:
+        _error(str(exc))
+        return EXIT_USAGE
+    except AdhocUnavailable as exc:
+        _error(str(exc))
+        return EXIT_USAGE
+    finally:
+        bar.close()
+
+    for line in adhoc.notes:
+        print(f"avianki: warning: {line}", file=sys.stderr)
+    for line in adhoc.skipped:
+        log.info("skipped %s", line)
+    if adhoc.unfinished:
+        print(
+            f"avianki: warning: a source failed for {len(adhoc.unfinished)} species "
+            f"({', '.join(adhoc.unfinished[:5])}{'...' if len(adhoc.unfinished) > 5 else ''}); "
+            "they may be missing media. Run again to retry.",
+            file=sys.stderr,
+        )
+
+    merged = SpeciesFile({**species.entries, **adhoc.entries})
+    region = RegionFile(code.lower(), [(sid, (0,) * 12) for sid in adhoc.species_ids])
+    ids = select_species(region, tier=args.tier, month=None)
+    notes = plan_notes(ids, merged, args.cards)
+    if not notes:
+        _error(f"nothing to write: none of the species eBird lists for {code} has media for the chosen cards.")
+        return EXIT_FAILED
+    out = args.output or Path(f"AviAnki-{code}.apkg")
+    status = _finish(
+        notes, merged, manifest, client=client, extra_media=adhoc.media, args=args, out=out,
+        subdeck=_region_name_for_code(code) if args.subdeck else None, ebird=True, selected=len(ids),
+    )
+    print(EBIRD_NOTICE)  # always shown, even with -q: it is a licence condition
+    return status
+
+
+# ---------------------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------------------
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    load_dotenv()  # lets a .env file supply EBIRD_API_KEY
+    parser = build_parser()
     args = parser.parse_args(argv)
+    if args.ebird is None and not args.region:
+        parser.error("a REGION is required (a catalog slug such as us-ma), or use --ebird CODE")
+    if args.ebird is not None and args.region:
+        parser.error("give either REGION or --ebird CODE, not both")
+    if args.ebird is not None and args.month is not None:
+        parser.error("--month needs the catalog's monthly data and cannot be used with --ebird")
 
-    # ── Env-var fallbacks (CLI flags always take precedence) ──────────────────
-    def _bool_env(key: str) -> bool:
-        return os.environ.get(key, "").lower() in ("1", "true", "yes")
-
-    if not args.location:
-        args.location = os.environ.get("AVIANKI_LOCATION") or ""
-    if not args.location:
-        parser.error("LOCATION is required — pass as argument or set AVIANKI_LOCATION in .env")
-    if args.limit is None and os.environ.get("AVIANKI_LIMIT"):
-        args.limit = int(os.environ["AVIANKI_LIMIT"])
-    if args.output is None:
-        args.output = os.environ.get("AVIANKI_OUTPUT")
-    if args.deck_name is None:
-        args.deck_name = os.environ.get("AVIANKI_DECK_NAME")
-    if args.delay is None:
-        args.delay = float(os.environ.get("AVIANKI_DELAY") or "0")
-    if args.work_dir is None:
-        args.work_dir = os.environ.get("AVIANKI_WORK_DIR") or str(Path(tempfile.gettempdir()) / "avianki")
-    if args.media_dir is None:
-        args.media_dir = os.environ.get("AVIANKI_MEDIA_DIR")
-    if args.json_file is None:
-        args.json_file = os.environ.get("AVIANKI_JSON_FILE")
-    if args.log_file is None:
-        args.log_file = os.environ.get("AVIANKI_LOG_FILE")
-    args.no_audio = args.no_audio or _bool_env("AVIANKI_NO_AUDIO")
-    args.no_images = args.no_images or _bool_env("AVIANKI_NO_IMAGES")
-    args.ephemeral = args.ephemeral or _bool_env("AVIANKI_EPHEMERAL")
-    args.no_cache = args.no_cache or _bool_env("AVIANKI_NO_CACHE")
-    if not args.verbose and not args.quiet:
-        if _bool_env("AVIANKI_VERBOSE"):
-            args.verbose = True
-        elif _bool_env("AVIANKI_QUIET"):
-            args.quiet = True
-
-    return args
-
-
-def main() -> None:
-    args = _parse_args()
-    location = args.location
-    work_dir = Path(args.work_dir)
-    if args.ephemeral:
-        ephemeral_dir = work_dir / ".ephemeral"
-        ephemeral_dir.mkdir(parents=True, exist_ok=True)
-        media_dir = Path(args.media_dir) if args.media_dir else ephemeral_dir / "media"
-    else:
-        ephemeral_dir = None
-        media_dir = Path(args.media_dir) if args.media_dir else work_dir / "media"
-    media_dir.mkdir(parents=True, exist_ok=True)
-
-    default_dir = work_dir / ".ephemeral" if args.ephemeral else work_dir
-    log_file = Path(args.log_file) if args.log_file else default_dir / "avianki.log"
-    log_file.parent.mkdir(parents=True, exist_ok=True)
-    setup_logging(log_file, args.verbose, args.quiet)
-
-    # Determine species source: allaboutbirds URL/place ID, or eBird region code
-    use_ebird = re.match(r"^[A-Z]{2}(-[A-Z]{2}(-\d+)?)?$", location.upper())
-    if use_ebird:
-        region = location.upper()
-        if not os.getenv("EBIRD_API_KEY"):
-            log.error("EBIRD_API_KEY not set — add it to .env")
-            sys.exit(1)
-        raw = ebird.fetch_species(region, limit=args.limit)
-        slugs = [allaboutbirds.species_slug(b["comName"]) for b in raw]
-        names = {allaboutbirds.species_slug(b["comName"]): b for b in raw}
-        deck_name = args.deck_name or f"AviAnki – {region}"
-        deck_seed = region
-    else:
-        slugs = allaboutbirds.fetch_browse_species(location, limit=args.limit)
-        names = {}  # resolved lazily from each overview page
-        deck_name = args.deck_name or "AviAnki – Local Birds"
-        place_id_match = re.search(r"/loc/([^/]+)", location)
-        deck_seed = place_id_match.group(1) if place_id_match else location
-
-    if not slugs:
-        log.error("No species found for: %s", location)
-        sys.exit(1)
-
-    deck_id = int(hashlib.md5(deck_seed.encode()).hexdigest()[:8], 16)
-    deck = genanki.Deck(deck_id, deck_name)
-    all_media: list[Path] = []
-    birds_data: list[dict] = []
-    skipped = 0
-
-    pbar = tqdm_module.tqdm(slugs, unit="bird", desc="Downloading", leave=True, disable=args.quiet)
-    for slug in pbar:
-        # Resolve common + scientific name
-        if slug in names:
-            name = names[slug]["comName"]
-            sci = names[slug]["sciName"]
+    setup_logging(None, args.verbose, args.quiet)
+    try:
+        cache_dir = args.cache_dir if args.cache_dir is not None else default_cache_dir()
+        client = CatalogClient(args.catalog_url, cache_dir=cache_dir)
+        return _ebird_deck(args, client) if args.ebird is not None else _catalog_deck(args, client)
+    except (CatalogError, SourceError, OSError) as exc:
+        _error(str(exc))
+        if args.verbose:
+            traceback.print_exc()
         else:
-            resolved = allaboutbirds.slug_to_names(slug)
-            name = resolved["comName"]
-            sci = resolved["sciName"]
-
-        safe = _safe_name(name)
-        pbar.set_postfix_str(name)
-        log.info("── %s ──", name)
-
-        overview = allaboutbirds.fetch_overview(slug)
-        if not overview["desc"] and not overview["images"]:
-            log.warning("  no allaboutbirds page found — skipping")
-            skipped += 1
-            time.sleep(args.delay)
-            continue
-
-        if not sci:
-            sci = overview.get("sciName", "")
-
-        img_paths: list[Path] = []
-        call_paths: list[Path] = []
-        song_paths: list[Path] = []
-
-        if not args.no_images:
-            img_fields, img_paths, imgs_fetched = _get_images(
-                overview["images"], safe, media_dir, no_cache=args.no_cache, delay=args.delay
-            )
-            all_media.extend(img_paths)
-        else:
-            imgs_fetched = False
-            img_fields = ["", ""]
-
-        # overview was always fetched (needed for desc); sleep once after it
-        if args.delay and imgs_fetched:
-            time.sleep(args.delay)
-
-        if not args.no_audio:
-            call_cached = not args.no_cache and bool(media.find_cached_audio(media_dir, f"bird_{safe}_call"))
-            song_cached = not args.no_cache and bool(media.find_cached_audio(media_dir, f"bird_{safe}_song"))
-            if not (call_cached and song_cached):
-                sounds = allaboutbirds.fetch_sounds(slug)
-                if args.delay:
-                    time.sleep(args.delay)
-            else:
-                sounds = {"calls": [], "songs": []}
-            call_field, call_paths = _get_audio(
-                sounds, "call", safe, media_dir, no_cache=args.no_cache
-            )
-            all_media.extend(call_paths)
-            song_field, song_paths = _get_audio(
-                sounds, "song", safe, media_dir, no_cache=args.no_cache
-            )
-            all_media.extend(song_paths)
-        else:
-            call_field, song_field = "", ""
-
-        desc = overview["desc"]
-        note_fields = [
-            name,
-            sci,
-            img_fields[0],
-            img_fields[1],
-            call_field,
-            song_field,
-            desc,
-            redact_name(desc, name),
-        ]
-        deck.add_note(genanki.Note(
-            model=anki_model.PHOTO_MODEL,
-            fields=note_fields,
-            guid=genanki.guid_for(deck_seed, name, "v1_photo"),
-        ))
-        deck.add_note(genanki.Note(
-            model=anki_model.DESC_MODEL,
-            fields=note_fields,
-            guid=genanki.guid_for(deck_seed, name, "v1_desc"),
-        ))
-        birds_data.append({
-            "name": name,
-            "sci_name": sci,
-            "description": desc,
-            "images": [str(p.relative_to(media_dir)) for p in img_paths] if not args.no_images else [],
-            "call": str(call_paths[0].relative_to(media_dir)) if call_paths else None,
-            "song": str(song_paths[0].relative_to(media_dir)) if song_paths else None,
-        })
-
-    json_path = Path(args.json_file) if args.json_file else default_dir / "birds.json"
-    json_path.parent.mkdir(parents=True, exist_ok=True)
-    json_path.write_text(json.dumps(birds_data, indent=2, ensure_ascii=False), encoding="utf-8")
-    log.info("    Birds data → %s", json_path)
-
-    pkg = genanki.Package(deck)
-    pkg.media_files = [str(p) for p in all_media]
-    output = args.output or f"Birds_{re.sub(r'[^A-Za-z0-9_-]', '_', deck_seed)}.apkg"
-    pkg.write_to_file(output)
-
-    if args.ephemeral:
-        if ephemeral_dir is None:
-            raise RuntimeError("ephemeral_dir was not set despite --ephemeral flag")
-        shutil.rmtree(ephemeral_dir, ignore_errors=True)
-    elif args.no_cache:
-        for p in all_media:
-            p.unlink(missing_ok=True)
-
-    log.info("✅  Saved → %s", output)
-    log.info(
-        "    %d species, %d skipped, %d notes, %d media files",
-        len(slugs),
-        skipped,
-        len(deck.notes),
-        len(all_media),
-    )
-    log.info("    File > Import > %s", output)
-
-    teardown_logging()
+            print("(run again with -v for details)", file=sys.stderr)
+        return EXIT_FAILED
+    finally:
+        teardown_logging()
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

@@ -156,8 +156,13 @@ class HttpClient:
         params: Mapping[str, Any] | None = None,
         *,
         cache: bool = True,
+        headers: Mapping[str, str] | None = None,
     ) -> Response:
-        """GET ``url`` on behalf of ``source``. Returns a 2xx response or raises `SourceError`."""
+        """GET ``url`` on behalf of ``source``. Returns a 2xx response or raises `SourceError`.
+
+        ``headers`` are sent besides the User-Agent (eBird's API token goes here). Like
+        ``params`` they are never written to the cache, and they are not part of the cache key.
+        """
         if not _SOURCE_NAME.match(source):
             raise ValueError(f"invalid source name: {source!r}")
         key = _cache_key(source, "GET", url, params)
@@ -165,7 +170,7 @@ class HttpClient:
             hit = self._cache_read(source, key)
             if hit is not None:
                 return hit
-        resp = self._send_with_retry(source, limits, url, params)
+        resp = self._send_with_retry(source, limits, url, params, headers)
         if cache:
             self._cache_write(source, key, resp)
         return resp
@@ -178,6 +183,7 @@ class HttpClient:
         params: Mapping[str, Any] | None = None,
         *,
         cache: bool = True,
+        headers: Mapping[str, str] | None = None,
     ) -> Any:
         """`get` then parse JSON. A malformed body raises and is evicted from the cache.
 
@@ -188,7 +194,7 @@ class HttpClient:
         key = _cache_key(source, "GET", url, params)
         attempt = 0
         while True:
-            resp = self.get(source, limits, url, params, cache=cache)
+            resp = self.get(source, limits, url, params, cache=cache, headers=headers)
             try:
                 payload = resp.json()
             except SourceError:
@@ -209,7 +215,12 @@ class HttpClient:
     # ── sending ───────────────────────────────────────────────────────────────
 
     def _send_with_retry(
-        self, source: str, limits: Limits, url: str, params: Mapping[str, Any] | None
+        self,
+        source: str,
+        limits: Limits,
+        url: str,
+        params: Mapping[str, Any] | None,
+        headers: Mapping[str, str] | None = None,
     ) -> Response:
         attempt = 0
         while True:
@@ -220,7 +231,7 @@ class HttpClient:
                 raw = self._session.get(
                     url,
                     params=dict(params) if params else None,
-                    headers={"User-Agent": self.user_agent},
+                    headers={**(headers or {}), "User-Agent": self.user_agent},
                     timeout=self.timeout,
                 )
             except requests.RequestException as e:
@@ -234,15 +245,15 @@ class HttpClient:
                 continue
 
             status = int(raw.status_code)
-            headers = {str(k): str(v) for k, v in dict(raw.headers or {}).items()}
+            reply_headers = {str(k): str(v) for k, v in dict(raw.headers or {}).items()}
             if 200 <= status < 300:
-                return Response(status=status, url=url, content=bytes(raw.content), headers=headers)
+                return Response(status=status, url=url, content=bytes(raw.content), headers=reply_headers)
             if status not in _RETRY_STATUSES:
                 raise HttpError(status, url, _snippet(raw.content))
             if attempt >= self.max_retries:
                 raise HttpError(status, url, f"gave up after {attempt + 1} attempts")
             wait = self._backoff(attempt)
-            retry_after = self._retry_after(headers)
+            retry_after = self._retry_after(reply_headers)
             if retry_after is not None:
                 if retry_after > self.max_retry_after:
                     raise HttpError(status, url, f"Retry-After {retry_after:.0f}s exceeds cap")

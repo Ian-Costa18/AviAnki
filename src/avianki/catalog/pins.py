@@ -1,4 +1,4 @@
-"""``data/pins.toml``: reviewer overrides and credit-removal requests (ADR 0011).
+"""``src/avianki/data/pins.toml``: reviewer overrides and credit-removal requests (ADR 0011).
 
 One table per species id::
 

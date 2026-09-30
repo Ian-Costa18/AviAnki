@@ -79,7 +79,7 @@ class BuildReport:
     # Species the run did not get to (request budget or job cap, ADR 0014): absent this month.
     unfinished_species: list[str] = field(default_factory=list)
     budget_exhausted: bool = False
-    # Pins (data/pins.toml) that could not be honoured: unresolvable, unlicensed, unprocessable,
+    # Pins (src/avianki/data/pins.toml) that could not be honoured: unresolvable, unlicensed, unprocessable,
     # or naming a different species. A hard error for the build (ADR 0011), exit code 1.
     pin_errors: list[str] = field(default_factory=list)
     # Candidates turned down: licence, generic rejects, BirdNET (kind="audio").
@@ -91,7 +91,7 @@ class BuildReport:
     # species id -> which of "birdnet_label", "inat_taxon_id", "wikipedia_title" it lacks.
     unmapped_species: dict[str, list[str]] = field(default_factory=dict)
     # species id -> {"inat_taxon_id"|"wikipedia_title"|"birdnet_label": value} found this
-    # run; the diff a maintainer commits to data/species.csv.
+    # run; the diff a maintainer commits to src/avianki/data/species.csv.
     new_ids_discovered: dict[str, dict[str, str]] = field(default_factory=dict)
     # GBIF backbone keys named by eBird's own names, not the IOC entry for the key (ADR 0024), and the
     # regional records dropped from split keys over 10%. The source's `ReResolved`/`DroppedMinority` items.
@@ -100,7 +100,7 @@ class BuildReport:
     # Species that reuse their previous release entry vs species built fresh this run.
     reused: int = 0
     built: int = 0
-    # Assets taken from data/pins.toml, and previous sticky assets dropped as invalid.
+    # Assets taken from src/avianki/data/pins.toml, and previous sticky assets dropped as invalid.
     pinned_used: int = 0
     sticky_invalidated: int = 0
     # Totals in the assembled catalog.
@@ -170,7 +170,7 @@ def _report_markdown(r: BuildReport, validation: ValidationResult | None = None)
             "## PIN ERRORS",
             "",
             f"**{len(r.pin_errors)} pin(s) could not be honoured.** The species keep their previous "
-            "entry (or have none yet); fix data/pins.toml or the pinned asset and rerun.",
+            "entry (or have none yet); fix src/avianki/data/pins.toml or the pinned asset and rerun.",
             "",
             *_bullets([_md(e) for e in r.pin_errors]),
             "",
@@ -281,7 +281,7 @@ def _report_markdown(r: BuildReport, validation: ValidationResult | None = None)
         _bullets([f"{_md(sid)}: no {_md(', '.join(sorted(m)))}" for sid, m in sorted(r.unmapped_species.items())]),
     )
     lines += _section(
-        f"New ids discovered ({len(r.new_ids_discovered)}); commit to data/species.csv",
+        f"New ids discovered ({len(r.new_ids_discovered)}); commit to src/avianki/data/species.csv",
         _bullets(
             [
                 f"{_md(sid)}: " + ", ".join(f"{_md(k)}={_md(v)}" for k, v in sorted(ids.items()))
@@ -419,7 +419,7 @@ pre{margin:.2em 0;white-space:pre-wrap;font-size:.8rem}
 
 
 def _toml_pin(species_id: str, kind: str, token: str) -> str:
-    """The lines to paste into data/pins.toml to force this asset."""
+    """The lines to paste into src/avianki/data/pins.toml to force this asset."""
     return f"[{species_id}]\n{kind} = {json.dumps(token, ensure_ascii=False)}"
 
 

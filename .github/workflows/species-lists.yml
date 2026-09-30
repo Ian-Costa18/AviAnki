@@ -1,6 +1,6 @@
 # Maintainer-only: build every region's species list from GBIF's eBird Observation
 # Dataset and mint new species (spec §4 step 2). Nothing is committed or deployed:
-# download the artifact, review species-lists-report.md, and commit data/species.csv.
+# download the artifact, review species-lists-report.md, and commit src/avianki/data/species.csv.
 name: Species lists
 
 on:
@@ -77,5 +77,5 @@ jobs:
           name: species-lists-${{ github.run_id }}
           path: |
             build/
-            data/species.csv
+            src/avianki/data/species.csv
           if-no-files-found: error

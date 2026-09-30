@@ -37,8 +37,8 @@ A free, static website where a bird watcher picks their state or province, taps 
 
 ## 3. Data identity
 
-- **Species:** minted ids in `data/species.csv`, with IOC as the declared authority ([ADR 0008](adr/0008-species-and-region-identity.md)).
-- **Regions:** slugs in `data/regions.csv` over GADM level-1, with the GADM version pinned (ADR 0008).
+- **Species:** minted ids in `src/avianki/data/species.csv`, with IOC as the declared authority ([ADR 0008](adr/0008-species-and-region-identity.md)).
+- **Regions:** slugs in `src/avianki/data/regions.csv` over GADM level-1, with the GADM version pinned (ADR 0008).
 - **Notes:** deck `AviAnki`; GUID `guid_for("avianki", species_id, card_type)` with `card_type ∈ {photo, audio, photo_audio}`; model seeds `AviAnki_{Photo,Audio,PhotoAudio}_v2` ([ADR 0009](adr/0009-note-identity.md)). All of these strings are frozen, and `tests/deck/test_identity.py` pins them.
 
 ## 4. The catalog pipeline
@@ -150,9 +150,9 @@ The `credit` values are pipeline-rendered, escaped HTML that uses only `a`, `b` 
 **Selection.**
 
 1. Take the region's ordered list.
-2. Apply the month filter if one is set: keep species with `monthly[m] ≥ 0.1 × max(monthly)`.
+2. Apply the month filter if one is set: keep species with `monthly[m] ≥ 0.1 × max(monthly)`, computed in integers as `10 × monthly[m] ≥ max(monthly)` so exactly 10% is kept. A species whose values are all zero is dropped.
 3. Take the first 100 (Standard) or all of them (Everything).
-4. For each species, make one note per selected card type whose media exists.
+4. For each species, make one note per selected card type whose media exists. Every note carries both of the species' first photo and first recording (when it has them) and both credit lines, because every back shows the photo and plays the recording.
 
 The browser (`web/js/select.js`) and the CLI (`deck/`) implement this identically, and a shared fixture test proves it.
 

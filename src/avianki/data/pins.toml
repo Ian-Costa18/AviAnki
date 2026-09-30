@@ -1,0 +1,27 @@
+# Pins, exclusions and credit-removal requests for the catalog build (ADR 0011).
+#
+# One table per species id from src/avianki/data/species.csv. Keys:
+#
+#   photo   = "<source>:<token>"    force this photo (skips ranking)
+#   audio   = "<source>:<token>"    force this recording (skips ranking and BirdNET)
+#   exclude = ["<source>:<token>"]  never use these; honoured even for assets already
+#                                   in the catalog. Credit-removal requests go here.
+#   note    = "why"                 required: a sentence for the next reviewer
+#
+# <source> is "commons" or "inaturalist". <token> is the source's own pin token, split on
+# the first colon, so an iNaturalist token keeps its own colon:
+#
+#   commons       M12345         the Commons page id
+#   inaturalist   P123:456       a photo: P<observation>:<photo>
+#   inaturalist   S123:456       a sound: S<observation>:<sound>
+#
+# The contact sheet (build/contact-sheet.html) prints the lines to paste for every
+# asset it shows. A pin is still checked against the licence allowlist and processed
+# like any other asset; a pin that can't be resolved fails the build for that species.
+#
+# Example (delete the leading "# " to use):
+#
+# [turdus-migratorius]
+# audio = "inaturalist:S123:456"
+# exclude = ["commons:M777"]
+# note = "The top-ranked recording is a different bird in the background."

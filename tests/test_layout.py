@@ -101,14 +101,16 @@ RULES: dict[str, tuple[str, ...]] = {
         "avianki.catalog.client",
         "avianki.deck",
     ),
-    # cli is downstream. The single crossing is --ebird calling build_species().
+    # cli is downstream. The single crossing is --ebird calling build_ebird_species(), the one
+    # public function of catalog/adhoc.py, which holds the upstream work (eBird, live media
+    # building) so cli itself imports no source, media or pipeline code. Amended in M5: the
+    # crossing was build_species() before adhoc.py existed.
     "avianki.cli": (
         "avianki.core",
         "avianki.catalog.format",
         "avianki.catalog.client",
         "avianki.deck",
-        "avianki.redact",
-        "avianki.catalog.build.build_species",
+        "avianki.catalog.adhoc",
     ),
     "avianki.catalog_cli": (
         "avianki.core",
@@ -119,35 +121,9 @@ RULES: dict[str, tuple[str, ...]] = {
     ),
     # CLI-only helper, until Description->Name returns.
     "avianki.redact": ("avianki.core", "avianki.redact"),
-    # --- LEGACY: flat 0.9 modules. M5 moves these into their slices; delete then. ---
-    "avianki.allaboutbirds": ("avianki.core",),  # -> sources/allaboutbirds/
-    "avianki.ebird": ("avianki.core",),  # -> sources/ebird/
-    "avianki.anki_model": ("avianki.core",),  # -> deck/notetypes.py
 }
 
 ROOT_ALLOWED: tuple[str, ...] = ("avianki.core",)
-
-# LEGACY: today's flat 0.9 cli.py imports these flat modules. M5 rewrites cli.py and
-# deletes this table. An entry only applies while the target is still a flat ``.py``
-# module in the tree, so once media.py becomes the media/ package, cli -> media is a
-# violation again without anyone having to remember to edit this.
-LEGACY_ALLOWED: dict[str, frozenset[str]] = {
-    "avianki.cli": frozenset(
-        {
-            "avianki.allaboutbirds",
-            "avianki.ebird",
-            "avianki.anki_model",
-        }
-    ),
-}
-
-# LEGACY: media.py became the media/ package (its 0.9 helpers now live in media/__init__.py)
-# but the flat cli.py still calls them. Exact match only: cli may import the package
-# itself, never a submodule (media.images, media.audio). Deleted with the 1.0.0 cli rewrite.
-LEGACY_EXACT_ALLOWED: dict[str, frozenset[str]] = {
-    "avianki.cli": frozenset({"avianki.media"}),
-}
-
 
 @dataclass(frozen=True)
 class Module:
@@ -242,17 +218,8 @@ def imported_names(module: Module, source: str) -> list[tuple[int, str]]:
     return found
 
 
-def check_module(
-    module: Module,
-    source: str,
-    flat_modules: frozenset[str] = frozenset(),
-    where: str = "",
-) -> list[str]:
-    """Return one human-readable line per dependency-rule violation in ``source``.
-
-    ``flat_modules`` are the names of plain ``.py`` modules in the tree; a LEGACY_ALLOWED
-    entry only applies while its target is one of them.
-    """
+def check_module(module: Module, source: str, where: str = "") -> list[str]:
+    """Return one human-readable line per dependency-rule violation in ``source``."""
     where = where or module.name
     key = rule_for(module.name)
     if key is None:
@@ -261,8 +228,6 @@ def check_module(
             f"Add a rule for {module.name} in tests/test_layout.py and docs/source-layout.md."
         ]
     allowed = _allowed_for(module.name, key)
-    legacy = [t for t in LEGACY_ALLOWED.get(module.name, ()) if t in flat_modules]
-    legacy_exact = LEGACY_EXACT_ALLOWED.get(module.name, frozenset())
     problems = []
     for lineno, target in imported_names(module, source):
         if target.startswith("<"):
@@ -271,10 +236,6 @@ def check_module(
         if not _matches(PKG, target):
             continue
         if any(_matches(a, target) for a in allowed):
-            continue
-        if any(_matches(t, target) for t in legacy):
-            continue
-        if target in legacy_exact:
             continue
         problems.append(
             f"{where}:{lineno}: {module.name} (rule {key!r}) may not import {target}"
@@ -305,12 +266,9 @@ def check_tree(package_dir: Path) -> list[str]:
             )
         seen[mod.name] = path
 
-    flat = frozenset(m.name for m in modules.values() if not m.is_package)
     for path, mod in modules.items():
         where = path.relative_to(REPO_ROOT).as_posix()
-        problems.extend(
-            check_module(mod, path.read_text(encoding="utf-8"), flat, where)
-        )
+        problems.extend(check_module(mod, path.read_text(encoding="utf-8"), where))
     return problems
 
 
@@ -334,10 +292,8 @@ def test_web_contains_no_python() -> None:
 # --- the checker itself ------------------------------------------------------------
 
 
-def _check(
-    name: str, source: str, *, package: bool = False, flat: set[str] | None = None
-):
-    return check_module(Module(name, package), source, frozenset(flat or ()))
+def _check(name: str, source: str, *, package: bool = False):
+    return check_module(Module(name, package), source)
 
 
 @pytest.mark.parametrize(
@@ -445,25 +401,58 @@ def test_catalog_boundary_is_downstream_safe() -> None:
     assert _check("avianki.catalog", "from . import build\n", package=True)
 
 
-def test_cli_may_only_reach_build_species() -> None:
-    assert (
-        _check("avianki.cli", "from avianki.catalog.build import build_species\n") == []
+def test_client_may_only_import_format_and_core() -> None:
+    ok = (
+        "from avianki.catalog.format import Manifest\n"
+        "from avianki.core.http import default_user_agent\n"
     )
-    assert _check("avianki.cli", "from avianki.catalog.build import build_catalog\n")
+    assert _check("avianki.catalog.client", ok) == []
+    for bad in (
+        "from avianki.catalog import build\n",
+        "from avianki.catalog.credit import render_credit\n",
+        "from avianki.sources import registry\n",
+        "from avianki.taxonomy import species\n",
+        "from avianki.media import images\n",
+        "from avianki.deck import build\n",
+    ):
+        assert _check("avianki.catalog.client", bad), bad
+
+
+def test_cli_may_only_reach_the_adhoc_module() -> None:
+    # The one crossing (ADR 0017/0018, amended in M5): --ebird calls build_ebird_species().
+    assert (
+        _check("avianki.cli", "from avianki.catalog.adhoc import build_ebird_species\n") == []
+    )
+    assert _check("avianki.cli", "from avianki.catalog.build import build_species\n")
     assert _check("avianki.cli", "import avianki.catalog.build\n")
+    assert _check("avianki.cli", "from avianki.catalog import validate\n")
+    assert _check("avianki.cli", "from avianki.sources.ebird import EbirdSpeciesSource\n")
+    assert _check("avianki.cli", "from avianki.taxonomy import species\n")
 
 
-def test_legacy_allowance_only_while_flat_module_exists() -> None:
-    source = "from . import allaboutbirds\n"
-    assert _check("avianki.cli", source, flat={"avianki.allaboutbirds"}) == []
-    assert _check("avianki.cli", source, flat=set())  # allaboutbirds/ became a package
+def test_cli_may_not_import_the_media_package() -> None:
+    assert _check("avianki.cli", "from avianki import media\n")
+    assert _check("avianki.cli", "from avianki.media import images\n")
+    assert _check("avianki.cli", "import avianki.media.audio\n")
 
 
-def test_cli_may_import_the_media_package_but_not_its_submodules() -> None:
-    # The 0.9 helpers live in media/__init__.py until the 1.0.0 cli rewrite.
-    assert _check("avianki.cli", "from . import media\n", flat=set()) == []
-    assert _check("avianki.cli", "from avianki.media import images\n", flat=set())
-    assert _check("avianki.cli", "import avianki.media.audio\n", flat=set())
+def test_legacy_flat_modules_are_gone() -> None:
+    for name in ("allaboutbirds.py", "ebird.py", "anki_model.py", "card.css"):
+        assert not (PACKAGE_DIR / name).exists(), name
+    assert (PACKAGE_DIR / "sources" / "ebird").is_dir()
+    assert (PACKAGE_DIR / "sources" / "allaboutbirds").is_dir()
+
+
+def test_allaboutbirds_is_not_registered() -> None:
+    # The scraper is kept but dormant (ADR 0002): nothing may import it.
+    importers = [
+        p.relative_to(REPO_ROOT).as_posix()
+        for p in PACKAGE_DIR.rglob("*.py")
+        if "sources/allaboutbirds" not in p.as_posix()
+        and "allaboutbirds" in p.read_text(encoding="utf-8")
+        and any("allaboutbirds" in name for _, name in imported_names(module_name(p, PACKAGE_DIR), p.read_text(encoding="utf-8")))
+    ]
+    assert not importers, importers
 
 
 def test_non_avianki_imports_are_ignored() -> None:
