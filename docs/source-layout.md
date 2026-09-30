@@ -2,7 +2,7 @@
 
 The living map of the repo's layout, from [ADR 0018](adr/0018-package-layout.md). Update it in the same change as any file that adds, removes or moves a slice.
 
-**Status:** M5 is done: the 1.0 pipeline (catalog client, then deck) is built end to end, `cli.py` is rewritten, and the 0.9 flat modules are gone. Everything under `src/avianki/` is built; items marked *(today)* exist. `web/` and `tests/web/` are not built yet (M6). `sources/allaboutbirds/` is present but deliberately unregistered ([ADR 0002](adr/0002-allaboutbirds-dormant.md)).
+**Status:** M5 is done: the 1.0 pipeline (catalog client, then deck) is built end to end, `cli.py` is rewritten, and the 0.9 flat modules are gone. Everything under `src/avianki/` is built; items marked *(today)* exist. In `web/`, the deck half is built (M6: `js/select.js`, `js/deck.js`, `js/apkg/`, `js/notetypes.json`, `vendor/`) with its tests in `tests/web/`; the page, catalog fetching and last-mile modules are not yet. `sources/allaboutbirds/` is present but deliberately unregistered ([ADR 0002](adr/0002-allaboutbirds-dormant.md)).
 
 ```text
 src/avianki/
@@ -61,10 +61,18 @@ web/                     imports no Python; depends only on catalog/format.py's 
   js/
     app.js               the page: picker, advanced, progress, last mile
     catalog.js           manifest/region/species fetch; Cache Storage for media
-    select.js            tier, month filter, card-type selection (mirrors deck/ logic)
+    select.js            `selectSpecies` (tier, month filter) and `planNotes` (card types, first assets); mirrors deck/build.py, proven on tests/fixtures/selection/cases.json  (today)
+    deck.js              `buildDeck`: notes, fields, credits, description, ids; documents the media-feed contract  (today)
+    notetypes.json       the three note types (with `req`) and the fixed description strings, generated from deck/ by scripts/gen_web_notetypes.py  (today)
     lastmile.js          platform detection + instructions
-    apkg/                writer ported from prototype/apkg-in-browser (md5, guid, pyjson, req, schema)
-  vendor/                sql-wasm.js, sql-wasm.wasm, fflate.js (pinned versions, checked in)
+    apkg/                the .apkg writer, reproducing genanki 0.13.1's output  (today)
+      writer.js          SQLite via sql.js, then a streamed store-mode zip (fflate) into Blob parts
+      schema.js          the collection schema and the col row's literals
+      pyjson.js          `json.dumps`-compatible JSON (separators, ensure_ascii, key order)
+      md5.js             md5 for the frozen deck and note-type ids
+      guid.js            genanki's `guid_for` (SHA-256, base 91) for the frozen note GUID
+      prefetch.js        `orderedPrefetch`: a bounded (6 in flight), in-order media feed
+  vendor/                sql-wasm.js, sql-wasm.wasm, fflate.js (pinned versions, checked in; README.md records versions, sources and sha256)
   css/app.css
 
 src/avianki/data/        package data: ships in the wheel, found through taxonomy.DATA_DIR (issue #51)
@@ -74,9 +82,18 @@ src/avianki/data/        package data: ships in the wheel, found through taxonom
 
 tests/                   mirrors src/avianki/
   core/ taxonomy/ sources/ media/ catalog/ deck/ cli/ packaging/  (today)
-  scripts/               assemble_site.py and fetch_latest_catalog.sh (fake `gh` on PATH)
+  scripts/               assemble_site.py and fetch_latest_catalog.sh (fake `gh` on PATH); gen_web_notetypes.py keeps web/js/notetypes.json equal to deck/  (today)
   test_layout.py         enforces the dependency rule
-  web/                   Playwright, incl. mobile emulation + heap cap
+  web/                   pytest + Playwright (Chromium and WebKit; skipped when a browser is missing)  (today)
+    web_support.py       static server for web/ + the fixture catalog, the in-page build driver, the same build through Python, a package reader
+    conftest.py          session server and browsers; `page` runs each test in both engines
+    test_web_select.py            select.js against the shared selection cases and plan_notes
+    test_web_apkg_equivalence.py  browser .apkg vs genanki's: col JSON text, every row and column, media map and bytes
+    test_web_units.py             md5, GUID, JSON, escaping, description, prefetch, media-feed misuse
+    test_web_anki_import.py       browser decks imported by Anki's backend (clean media, no name leak, credits)
+    test_web_heap.py              JS heap before/after a build (records, never asserts)
+    test_web_vendor.py            web/vendor hashes match its README
+    (mobile emulation arrives with the UI)
   acceptance/            built decks through Anki's own backend (ADR 0019); the live us-ma check is marked integration  (today)
   fixtures/catalog/      a tiny published catalog (3 regions, 12 species, ~90 KB) for web + CLI tests; make_fixture.py regenerates it with the real writers (needs the catalog extra and ffmpeg)  (today)
   fixtures/selection/    cases.json: language-neutral selection cases shared by deck/ and web/js/select.js  (today)
@@ -84,9 +101,10 @@ tests/                   mirrors src/avianki/
 scripts/
   assemble_site.py         stdlib-only: catalog dir + web/ (or a stub index) → the Pages tree, .nojekyll, 900 MB guard  (today)
   fetch_latest_catalog.sh  downloads and extracts the newest catalog-* release; shared by catalog.yml and pages.yml  (today)
+  gen_web_notetypes.py     dumps deck/'s note types and description strings to web/js/notetypes.json; `--check` for drift  (today)
 
 .github/workflows/
-  ci.yml                 lint, types, unit tests, layout test                (today)
+  ci.yml                 lint, types, unit tests, layout test, browser tests (installs Chromium and WebKit)  (today)
   catalog.yml            monthly + dispatch: load previous release → build → validate → release → deploy Pages  (today)
   pages.yml              on push to web/: pull latest catalog release → deploy Pages  (today)
   species-lists.yml      dispatch, maintainer-only: species lists + minted species.csv as an artifact  (today)

@@ -1,0 +1,374 @@
+{
+  "card_types": [
+    "photo",
+    "audio",
+    "photo_audio"
+  ],
+  "fields": [
+    "SpeciesId",
+    "Name",
+    "SciName",
+    "Photo",
+    "Photo2",
+    "Audio",
+    "Audio2",
+    "Credits"
+  ],
+  "models": {
+    "photo": {
+      "seed": "AviAnki_Photo_v2",
+      "id": 717156105,
+      "json": {
+        "css": ".card {\n  font-family: Georgia, serif;\n  font-size: 16px;\n  color: #1a1a1a;\n  background-color: #fafaf7;\n  max-width: 600px;\n  margin: 0 auto;\n  padding: 16px;\n  line-height: 1.5;\n}\n.bird-name { font-size: 1.6em; font-weight: bold; color: #2c5f2e; margin: 12px 0 4px 0; }\n.sci-name  { font-style: italic; color: #666; font-size: 0.9em; margin-bottom: 14px; }\n.image-row {\n  display: flex;\n  gap: 8px;\n  margin: 8px 0;\n}\n.image-row img {\n  flex: 1;\n  width: 0;\n  height: 190px;\n  object-fit: contain;\n  background: #e8e8e4;\n  border-radius: 8px;\n}\n.audio-row {\n  display: flex;\n  gap: 12px;\n  margin: 8px 0;\n}\n.audio-item {\n  flex: 1;\n}\n.audio-item audio { width: 100%; }\n.desc-box {\n  background: #f0f4f0;\n  border-left: 4px solid #2c5f2e;\n  padding: 10px 14px;\n  border-radius: 0 6px 6px 0;\n  margin: 10px 0;\n  font-size: 0.95em;\n}\n.prompt-label {\n  font-size: 0.85em; font-weight: bold; color: #888;\n  text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px;\n}\n.divider { border-top: 1px solid #ddd; margin: 14px 0; }\n.credits { font-size: .75em; opacity: .7; margin-top: 14px; }\n.credits a { text-decoration: underline; }\n",
+        "did": 0,
+        "flds": [
+          {
+            "name": "SpeciesId",
+            "ord": 0,
+            "font": "Liberation Sans",
+            "media": [],
+            "rtl": false,
+            "size": 20,
+            "sticky": false
+          },
+          {
+            "name": "Name",
+            "ord": 1,
+            "font": "Liberation Sans",
+            "media": [],
+            "rtl": false,
+            "size": 20,
+            "sticky": false
+          },
+          {
+            "name": "SciName",
+            "ord": 2,
+            "font": "Liberation Sans",
+            "media": [],
+            "rtl": false,
+            "size": 20,
+            "sticky": false
+          },
+          {
+            "name": "Photo",
+            "ord": 3,
+            "font": "Liberation Sans",
+            "media": [],
+            "rtl": false,
+            "size": 20,
+            "sticky": false
+          },
+          {
+            "name": "Photo2",
+            "ord": 4,
+            "font": "Liberation Sans",
+            "media": [],
+            "rtl": false,
+            "size": 20,
+            "sticky": false
+          },
+          {
+            "name": "Audio",
+            "ord": 5,
+            "font": "Liberation Sans",
+            "media": [],
+            "rtl": false,
+            "size": 20,
+            "sticky": false
+          },
+          {
+            "name": "Audio2",
+            "ord": 6,
+            "font": "Liberation Sans",
+            "media": [],
+            "rtl": false,
+            "size": 20,
+            "sticky": false
+          },
+          {
+            "name": "Credits",
+            "ord": 7,
+            "font": "Liberation Sans",
+            "media": [],
+            "rtl": false,
+            "size": 20,
+            "sticky": false
+          }
+        ],
+        "id": "717156105",
+        "latexPost": "\\end{document}",
+        "latexPre": "\\documentclass[12pt]{article}\n\\special{papersize=3in,5in}\n\\usepackage[utf8]{inputenc}\n\\usepackage{amssymb,amsmath}\n\\pagestyle{empty}\n\\setlength{\\parindent}{0in}\n\\begin{document}\n",
+        "latexsvg": false,
+        "mod": 0,
+        "name": "AviAnki · Photo",
+        "req": [
+          [
+            0,
+            "all",
+            [
+              3
+            ]
+          ]
+        ],
+        "sortf": 1,
+        "tags": [],
+        "tmpls": [
+          {
+            "name": "Photo → Name",
+            "qfmt": "<div class=\"card\">\n  <div class=\"prompt-label\">What bird is this?</div>\n  <div class=\"image-row\">{{Photo}}</div>\n</div>",
+            "afmt": "<div class=\"card\">\n  <div class=\"bird-name\">{{Name}}</div>\n  <div class=\"sci-name\">{{SciName}}</div>\n  {{#Photo}}<div class=\"image-row\">{{Photo}}</div>{{/Photo}}\n  {{#Audio}}<div class=\"audio-row\">{{Audio}}</div>{{/Audio}}\n  {{Credits}}\n</div>",
+            "ord": 0,
+            "bafmt": "",
+            "bqfmt": "",
+            "bfont": "",
+            "bsize": 0,
+            "did": null
+          }
+        ],
+        "type": 0,
+        "usn": -1,
+        "vers": []
+      }
+    },
+    "audio": {
+      "seed": "AviAnki_Audio_v2",
+      "id": 3710911882,
+      "json": {
+        "css": ".card {\n  font-family: Georgia, serif;\n  font-size: 16px;\n  color: #1a1a1a;\n  background-color: #fafaf7;\n  max-width: 600px;\n  margin: 0 auto;\n  padding: 16px;\n  line-height: 1.5;\n}\n.bird-name { font-size: 1.6em; font-weight: bold; color: #2c5f2e; margin: 12px 0 4px 0; }\n.sci-name  { font-style: italic; color: #666; font-size: 0.9em; margin-bottom: 14px; }\n.image-row {\n  display: flex;\n  gap: 8px;\n  margin: 8px 0;\n}\n.image-row img {\n  flex: 1;\n  width: 0;\n  height: 190px;\n  object-fit: contain;\n  background: #e8e8e4;\n  border-radius: 8px;\n}\n.audio-row {\n  display: flex;\n  gap: 12px;\n  margin: 8px 0;\n}\n.audio-item {\n  flex: 1;\n}\n.audio-item audio { width: 100%; }\n.desc-box {\n  background: #f0f4f0;\n  border-left: 4px solid #2c5f2e;\n  padding: 10px 14px;\n  border-radius: 0 6px 6px 0;\n  margin: 10px 0;\n  font-size: 0.95em;\n}\n.prompt-label {\n  font-size: 0.85em; font-weight: bold; color: #888;\n  text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px;\n}\n.divider { border-top: 1px solid #ddd; margin: 14px 0; }\n.credits { font-size: .75em; opacity: .7; margin-top: 14px; }\n.credits a { text-decoration: underline; }\n",
+        "did": 0,
+        "flds": [
+          {
+            "name": "SpeciesId",
+            "ord": 0,
+            "font": "Liberation Sans",
+            "media": [],
+            "rtl": false,
+            "size": 20,
+            "sticky": false
+          },
+          {
+            "name": "Name",
+            "ord": 1,
+            "font": "Liberation Sans",
+            "media": [],
+            "rtl": false,
+            "size": 20,
+            "sticky": false
+          },
+          {
+            "name": "SciName",
+            "ord": 2,
+            "font": "Liberation Sans",
+            "media": [],
+            "rtl": false,
+            "size": 20,
+            "sticky": false
+          },
+          {
+            "name": "Photo",
+            "ord": 3,
+            "font": "Liberation Sans",
+            "media": [],
+            "rtl": false,
+            "size": 20,
+            "sticky": false
+          },
+          {
+            "name": "Photo2",
+            "ord": 4,
+            "font": "Liberation Sans",
+            "media": [],
+            "rtl": false,
+            "size": 20,
+            "sticky": false
+          },
+          {
+            "name": "Audio",
+            "ord": 5,
+            "font": "Liberation Sans",
+            "media": [],
+            "rtl": false,
+            "size": 20,
+            "sticky": false
+          },
+          {
+            "name": "Audio2",
+            "ord": 6,
+            "font": "Liberation Sans",
+            "media": [],
+            "rtl": false,
+            "size": 20,
+            "sticky": false
+          },
+          {
+            "name": "Credits",
+            "ord": 7,
+            "font": "Liberation Sans",
+            "media": [],
+            "rtl": false,
+            "size": 20,
+            "sticky": false
+          }
+        ],
+        "id": "3710911882",
+        "latexPost": "\\end{document}",
+        "latexPre": "\\documentclass[12pt]{article}\n\\special{papersize=3in,5in}\n\\usepackage[utf8]{inputenc}\n\\usepackage{amssymb,amsmath}\n\\pagestyle{empty}\n\\setlength{\\parindent}{0in}\n\\begin{document}\n",
+        "latexsvg": false,
+        "mod": 0,
+        "name": "AviAnki · Audio",
+        "req": [
+          [
+            0,
+            "all",
+            [
+              5
+            ]
+          ]
+        ],
+        "sortf": 1,
+        "tags": [],
+        "tmpls": [
+          {
+            "name": "Audio → Name",
+            "qfmt": "<div class=\"card\">\n  <div class=\"prompt-label\">Who's calling?</div>\n  <div class=\"audio-row\">{{Audio}}</div>\n</div>",
+            "afmt": "<div class=\"card\">\n  <div class=\"bird-name\">{{Name}}</div>\n  <div class=\"sci-name\">{{SciName}}</div>\n  {{#Photo}}<div class=\"image-row\">{{Photo}}</div>{{/Photo}}\n  {{#Audio}}<div class=\"audio-row\">{{Audio}}</div>{{/Audio}}\n  {{Credits}}\n</div>",
+            "ord": 0,
+            "bafmt": "",
+            "bqfmt": "",
+            "bfont": "",
+            "bsize": 0,
+            "did": null
+          }
+        ],
+        "type": 0,
+        "usn": -1,
+        "vers": []
+      }
+    },
+    "photo_audio": {
+      "seed": "AviAnki_PhotoAudio_v2",
+      "id": 327952205,
+      "json": {
+        "css": ".card {\n  font-family: Georgia, serif;\n  font-size: 16px;\n  color: #1a1a1a;\n  background-color: #fafaf7;\n  max-width: 600px;\n  margin: 0 auto;\n  padding: 16px;\n  line-height: 1.5;\n}\n.bird-name { font-size: 1.6em; font-weight: bold; color: #2c5f2e; margin: 12px 0 4px 0; }\n.sci-name  { font-style: italic; color: #666; font-size: 0.9em; margin-bottom: 14px; }\n.image-row {\n  display: flex;\n  gap: 8px;\n  margin: 8px 0;\n}\n.image-row img {\n  flex: 1;\n  width: 0;\n  height: 190px;\n  object-fit: contain;\n  background: #e8e8e4;\n  border-radius: 8px;\n}\n.audio-row {\n  display: flex;\n  gap: 12px;\n  margin: 8px 0;\n}\n.audio-item {\n  flex: 1;\n}\n.audio-item audio { width: 100%; }\n.desc-box {\n  background: #f0f4f0;\n  border-left: 4px solid #2c5f2e;\n  padding: 10px 14px;\n  border-radius: 0 6px 6px 0;\n  margin: 10px 0;\n  font-size: 0.95em;\n}\n.prompt-label {\n  font-size: 0.85em; font-weight: bold; color: #888;\n  text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px;\n}\n.divider { border-top: 1px solid #ddd; margin: 14px 0; }\n.credits { font-size: .75em; opacity: .7; margin-top: 14px; }\n.credits a { text-decoration: underline; }\n",
+        "did": 0,
+        "flds": [
+          {
+            "name": "SpeciesId",
+            "ord": 0,
+            "font": "Liberation Sans",
+            "media": [],
+            "rtl": false,
+            "size": 20,
+            "sticky": false
+          },
+          {
+            "name": "Name",
+            "ord": 1,
+            "font": "Liberation Sans",
+            "media": [],
+            "rtl": false,
+            "size": 20,
+            "sticky": false
+          },
+          {
+            "name": "SciName",
+            "ord": 2,
+            "font": "Liberation Sans",
+            "media": [],
+            "rtl": false,
+            "size": 20,
+            "sticky": false
+          },
+          {
+            "name": "Photo",
+            "ord": 3,
+            "font": "Liberation Sans",
+            "media": [],
+            "rtl": false,
+            "size": 20,
+            "sticky": false
+          },
+          {
+            "name": "Photo2",
+            "ord": 4,
+            "font": "Liberation Sans",
+            "media": [],
+            "rtl": false,
+            "size": 20,
+            "sticky": false
+          },
+          {
+            "name": "Audio",
+            "ord": 5,
+            "font": "Liberation Sans",
+            "media": [],
+            "rtl": false,
+            "size": 20,
+            "sticky": false
+          },
+          {
+            "name": "Audio2",
+            "ord": 6,
+            "font": "Liberation Sans",
+            "media": [],
+            "rtl": false,
+            "size": 20,
+            "sticky": false
+          },
+          {
+            "name": "Credits",
+            "ord": 7,
+            "font": "Liberation Sans",
+            "media": [],
+            "rtl": false,
+            "size": 20,
+            "sticky": false
+          }
+        ],
+        "id": "327952205",
+        "latexPost": "\\end{document}",
+        "latexPre": "\\documentclass[12pt]{article}\n\\special{papersize=3in,5in}\n\\usepackage[utf8]{inputenc}\n\\usepackage{amssymb,amsmath}\n\\pagestyle{empty}\n\\setlength{\\parindent}{0in}\n\\begin{document}\n",
+        "latexsvg": false,
+        "mod": 0,
+        "name": "AviAnki · Photo + Audio",
+        "req": [
+          [
+            0,
+            "any",
+            [
+              3,
+              5
+            ]
+          ]
+        ],
+        "sortf": 1,
+        "tags": [],
+        "tmpls": [
+          {
+            "name": "Photo + Audio → Name",
+            "qfmt": "<div class=\"card\">\n  <div class=\"prompt-label\">What bird is this?</div>\n  <div class=\"image-row\">{{Photo}}</div>\n  <div class=\"audio-row\">{{Audio}}</div>\n</div>",
+            "afmt": "<div class=\"card\">\n  <div class=\"bird-name\">{{Name}}</div>\n  <div class=\"sci-name\">{{SciName}}</div>\n  {{#Photo}}<div class=\"image-row\">{{Photo}}</div>{{/Photo}}\n  {{#Audio}}<div class=\"audio-row\">{{Audio}}</div>{{/Audio}}\n  {{Credits}}\n</div>",
+            "ord": 0,
+            "bafmt": "",
+            "bqfmt": "",
+            "bfont": "",
+            "bsize": 0,
+            "did": null
+          }
+        ],
+        "type": 0,
+        "usn": -1,
+        "vers": []
+      }
+    }
+  },
+  "description": {
+    "study_guidance": [
+      "Look at the photo or listen, think of the name, then tap Show Answer.",
+      "Tap Good if you knew it and Again if you didn't.",
+      "Anki shows you 20 new birds a day so you're never swamped. The rest arrive over the next few days. That's normal, not broken."
+    ],
+    "licence_notice": "This deck is a compilation. AviAnki's templates and selection are MIT-licensed. Each photo and recording keeps its own licence, credited on its card, and no further terms are imposed on it.",
+    "ebird_notice": "Built from eBird data for personal use. eBird's terms don't allow redistributing this deck."
+  }
+}
