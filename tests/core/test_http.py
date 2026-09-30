@@ -105,6 +105,26 @@ def test_user_agent_and_timeout_sent_on_every_request():
     assert "@" not in call["headers"]["User-Agent"]
 
 
+def test_extra_headers_are_sent_but_never_cached_or_keyed(tmp_path):
+    session = FakeSession(FakeResponse(), FakeResponse())
+    client, _ = make_client(session, tmp_path)
+    client.get("src", FAST, URL, headers={"X-Token": "s3cret"})
+    call = session.calls[0]
+    assert call["headers"]["X-Token"] == "s3cret"
+    assert call["headers"]["User-Agent"] == default_user_agent()
+    # The same request with another token is a cache hit, and nothing on disk holds the token.
+    again = client.get("src", FAST, URL, headers={"X-Token": "another"})
+    assert again.from_cache and len(session.calls) == 1
+    assert not any(b"s3cret" in f.read_bytes() for f in tmp_path.rglob("*") if f.is_file())
+
+
+def test_a_caller_cannot_override_the_user_agent():
+    session = FakeSession(FakeResponse())
+    client, _ = make_client(session)
+    client.get("src", FAST, URL, headers={"User-Agent": "sneaky"})
+    assert session.calls[0]["headers"]["User-Agent"] == default_user_agent()
+
+
 def test_response_parses_json_and_text():
     session = FakeSession(FakeResponse(content=b'{"a": [1, 2]}'))
     client, _ = make_client(session)
