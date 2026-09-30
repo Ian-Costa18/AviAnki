@@ -41,13 +41,24 @@ uv run --python 3.13 pytest
 uv run --python 3.14 pytest
 ```
 
-The integration tests hit real network sources and are skipped by default. Pass `--integration` to opt in. They are the eBird smoke test (needs `EBIRD_API_KEY`, skipped without it) and the live acceptance test, which builds the Standard us-ma deck from the published catalog (about 200 media files) and imports it into Anki. A network failure fails the test; nothing else skips.
+The integration tests hit real network sources and are skipped by default. Pass `--integration` to opt in, and add `-m integration` to run only them. They are the weekly check's tests (below) plus the live BirdNET test, which needs the `verify` extra (`uv sync --extra verify` on Python 3.11-3.13). A network failure fails the test; the only skip is the eBird test without `EBIRD_API_KEY`.
+
+### The weekly integration check
+
+[`weekly-integration.yml`](.github/workflows/weekly-integration.yml) runs every Friday and on demand, and follows [ADR 0020](docs/adr/0020-integration-monitoring.md). It covers four checks:
+
+1. **Source smoke tests** (`tests/sources/test_sources_live.py`): Commons and iNaturalist each return photo candidates for Northern Cardinal, Brown Pelican and Whimbrel, and every photo and audio candidate has a complete licence record. A source with no audio returns an empty result, never an error. The sources are built like the catalog build builds them, with no HTTP cache.
+2. **GBIF EOD** (`tests/sources/test_gbif_live.py`): `species_for("us-ma")` lists at least 300 species. Uncached, this is about 400 extra requests and takes 6-8 minutes. A changed EOD dataset version is a notice in the job summary, not a failure: the next catalog build picks it up.
+3. **The published site** (`tests/catalog/test_published_site_live.py`, plus the live deck in `tests/acceptance/test_acceptance_live.py` and the live web build in `tests/web/test_web_live_catalog.py`): the manifest loads, random media files return 200 with `access-control-allow-origin: *`, and the web app root serves the app's `<title>`.
+4. **eBird** (`tests/sources/test_ebird_live.py`): runs only when the `EBIRD_API_KEY` secret is set. That is the one allowed skip, and the job summary says so prominently.
+
+`scripts/weekly_summary.py` reads the JUnit report, writes the job summary and fails the job if any other test was skipped, or a check ran no tests. A failed run opens (or updates) a "Weekly integration check is failing" issue. To run it locally, use Python 3.13 so BirdNET runs: `uv run --python 3.13 --extra catalog --extra verify pytest --integration -m integration -rs`.
 
 The acceptance tests (ADR 0019) use the `anki` package, a dev dependency, so they run wherever the dev group is installed. They cover imports, re-imports, tier upgrades, front-of-card name leaks and credits.
 
 ## Publishing a release
 
-Publishing is automated via GitHub Actions and triggers on a version tag push. To cut a release:
+Pushing a tag does **not** publish anything: PyPI needs the maintainer's explicit approval. A release is five steps:
 
 1. Bump the version in `pyproject.toml` (see the [Versioning](#versioning) section for which bump to use):
 
@@ -55,16 +66,24 @@ Publishing is automated via GitHub Actions and triggers on a version tag push. T
    uv version --bump patch   # or minor / major
    ```
 
-2. Commit, tag, and push:
+2. Commit it with the lockfile and merge it to `main` through a pull request:
 
    ```bash
    git add pyproject.toml uv.lock
    git commit -m "Bump version to $(uv version --short)"
-   git tag v$(uv version --short)
-   git push && git push origin v$(uv version --short)
    ```
 
-Pushing the tag triggers the [publish workflow](../.github/workflows/publish.yml), which builds the package and publishes it to PyPI using OIDC trusted publishing — no token needed.
+3. Tag the merge commit on `main` and push the tag (the tag is `v` plus the version, e.g. `v1.0.0`):
+
+   ```bash
+   git tag v$(uv version --short)
+   git push origin v$(uv version --short)
+   ```
+
+4. Create the GitHub release from that tag (for example `gh release create v1.0.0 --generate-notes`).
+5. A maintainer runs the **Publish to PyPI** workflow from the Actions tab (Run workflow) with the tag, e.g. `v1.0.0`.
+
+The [publish workflow](.github/workflows/publish.yml) checks out that tag and fails if it is not `v` plus `project.version` in `pyproject.toml`. It then runs the test suite (the same setup as CI: the `catalog` extra and the Playwright browsers), builds the package, and uploads it to PyPI using OIDC trusted publishing under the `pypi` environment, so no token is needed. The upload job builds the exact commit the tests ran on. Configure required reviewers on the `pypi` environment if you want a second approval before the upload.
 
 ## Project structure
 
