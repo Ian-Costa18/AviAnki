@@ -34,6 +34,10 @@ from avianki.core.licences import AssetRecord
 FORMAT_VERSION = 1
 MONTHS = 12
 MANIFEST_NAME = "manifest.json"
+# Where the published catalog lives (the web-app spec's example). Here rather than in
+# catalog.build so the downstream client can use it without importing the pipeline; the
+# build writes it into the manifest by default (`avianki-catalog build --base-url`).
+DEFAULT_BASE_URL = "https://ian-costa18.github.io/AviAnki/catalog/"
 MEDIA_EXTENSIONS = ("webp", "mp3")
 
 Kind = Literal["photo", "audio"]

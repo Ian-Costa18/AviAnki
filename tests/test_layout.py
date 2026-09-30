@@ -445,6 +445,23 @@ def test_catalog_boundary_is_downstream_safe() -> None:
     assert _check("avianki.catalog", "from . import build\n", package=True)
 
 
+def test_client_may_only_import_format_and_core() -> None:
+    ok = (
+        "from avianki.catalog.format import Manifest\n"
+        "from avianki.core.http import default_user_agent\n"
+    )
+    assert _check("avianki.catalog.client", ok) == []
+    for bad in (
+        "from avianki.catalog import build\n",
+        "from avianki.catalog.credit import render_credit\n",
+        "from avianki.sources import registry\n",
+        "from avianki.taxonomy import species\n",
+        "from avianki.media import images\n",
+        "from avianki.deck import build\n",
+    ):
+        assert _check("avianki.catalog.client", bad), bad
+
+
 def test_cli_may_only_reach_build_species() -> None:
     assert (
         _check("avianki.cli", "from avianki.catalog.build import build_species\n") == []

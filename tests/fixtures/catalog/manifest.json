@@ -1,0 +1,41 @@
+{
+  "base_url": "https://fixture.invalid/catalog/",
+  "catalog_version": "2026-01-01",
+  "dataset_credits": [
+    {
+      "licence_id": "CC-BY-4.0",
+      "modifications": "filtered and ranked by region",
+      "text": "eBird Observation Dataset, Cornell Lab of Ornithology, via GBIF (fixture)",
+      "url": "https://example.org/fixture/dataset"
+    }
+  ],
+  "eod_version": "fixture",
+  "format": 1,
+  "gadm_version": "4.1",
+  "provenance_file": "provenance.fbf65fa8.json",
+  "regions": [
+    {
+      "country": "US",
+      "file": "regions/us-ma.8402e7c3.json",
+      "name": "Massachusetts",
+      "slug": "us-ma",
+      "species_count": 12
+    },
+    {
+      "country": "CA",
+      "file": "regions/ca-qc.520da296.json",
+      "name": "Québec",
+      "slug": "ca-qc",
+      "species_count": 7
+    },
+    {
+      "country": "US",
+      "file": "regions/us-az.932fddbd.json",
+      "name": "Arizona",
+      "slug": "us-az",
+      "species_count": 6
+    }
+  ],
+  "species_file": "species.20c6b0ba.json",
+  "total_bytes": 82171
+}
