@@ -92,12 +92,14 @@ def new_analyzer() -> Any:
     return default_analyzer()
 
 
-def _identify(
-    records: Iterable[Any], table: SpeciesTable, result: AdhocSpecies
-) -> list[tuple[str, SpeciesRow]]:
-    """``(id, row)`` for each eBird species in order; ``row`` is transient when not in the table."""
+def _identify(records: Iterable[Any], table: SpeciesTable) -> tuple[list[tuple[str, SpeciesRow]], list[str]]:
+    """``(id, row)`` for each eBird species in order, and the species that could not be used, and why.
+
+    ``row`` is transient when the species is not in the table.
+    """
     by_code = {r.ebird_code: r for r in table if r.ebird_code}
     out: list[tuple[str, SpeciesRow]] = []
+    skipped: list[str] = []
     seen: set[str] = set()
     for rec in records:
         row = by_code.get(rec.source_key)
@@ -110,13 +112,13 @@ def _identify(
             try:
                 row = SpeciesRow(id=mint_id(rec.sci_name), sci_name=rec.sci_name, common_name=rec.common_name)
             except ValueError as exc:
-                result.skipped.append(f"{rec.common_name} ({rec.sci_name}): {exc}")
+                skipped.append(f"{rec.common_name} ({rec.sci_name}): {exc}")
                 continue
         if row.id in seen:  # two eBird taxa on one species id would only make duplicate notes
             continue
         seen.add(row.id)
         out.append((row.id, row))
-    return out
+    return out, skipped
 
 
 def build_ebird_species(
@@ -145,9 +147,9 @@ def build_ebird_species(
     source = EbirdSpeciesSource(client, api_key)
     records = source.species_for(code)
 
-    result = AdhocSpecies()
     table = load_species()
-    identified = _identify(records, table, result)
+    identified, skipped = _identify(records, table)
+    result = AdhocSpecies(skipped=skipped)
     if limit is not None:
         identified = identified[:limit]
     result.species_ids = [sid for sid, _ in identified]
