@@ -176,7 +176,7 @@ def _note_fields(note: PlannedNote, species: SpeciesFile) -> list[str]:
         "Photo2": "",
         "Audio": f"[sound:{package_media_name(note.audio.file)}]" if note.audio else "",
         "Audio2": "",
-        "Credits": credits_field(entry, note.photo, note.audio),
+        "Credits": credits_field(note.photo, note.audio),
     }
     return [values[name] for name in FIELDS]
 

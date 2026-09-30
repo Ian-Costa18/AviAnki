@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-from deck_fakes import ROBIN_AUDIO, ROBIN_PHOTO, manifest, species_file
+from deck_fakes import ROBIN_AUDIO, ROBIN_PHOTO, manifest
 
 from avianki.catalog.format import DatasetCredit
 from avianki.deck.credits import credits_field, deck_description
@@ -20,8 +20,7 @@ EBIRD_LINE = (
 
 
 def test_credits_field_joins_the_assets_used_without_escaping() -> None:
-    entry = species_file()["turdus-migratorius"]
-    both = credits_field(entry, ROBIN_PHOTO, ROBIN_AUDIO)
+    both = credits_field(ROBIN_PHOTO, ROBIN_AUDIO)
     assert both.startswith('<div class="credits">') and both.endswith("</div>")
     assert ROBIN_PHOTO.credit in both and ROBIN_AUDIO.credit in both  # verbatim, not re-escaped
     assert both.index(ROBIN_PHOTO.credit) < both.index(ROBIN_AUDIO.credit)
@@ -29,15 +28,14 @@ def test_credits_field_joins_the_assets_used_without_escaping() -> None:
 
 
 def test_credits_field_only_lists_assets_actually_used() -> None:
-    entry = species_file()["turdus-migratorius"]
-    photo_only = credits_field(entry, ROBIN_PHOTO, None)
+    photo_only = credits_field(ROBIN_PHOTO, None)
     assert ROBIN_PHOTO.credit in photo_only and ROBIN_AUDIO.credit not in photo_only
-    audio_only = credits_field(entry, None, ROBIN_AUDIO)
+    audio_only = credits_field(None, ROBIN_AUDIO)
     assert ROBIN_AUDIO.credit in audio_only and ROBIN_PHOTO.credit not in audio_only
 
 
 def test_credits_field_is_empty_when_nothing_is_used() -> None:
-    assert credits_field(species_file()["empty-bird"], None, None) == ""
+    assert credits_field(None, None) == ""
 
 
 def test_description_has_guidance_then_dataset_credit_then_notice() -> None:
