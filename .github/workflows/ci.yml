@@ -32,6 +32,18 @@ jobs:
       - name: Install dependencies
         run: uv sync --group dev --extra catalog
 
+      # The browser tests (tests/web) skip themselves when a browser is missing, so a failed
+      # install would hide them: keep this step strict. The download is cached per lockfile; the
+      # system libraries (--with-deps) are apt packages and are installed on every run.
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+
+      - name: Install Playwright browsers
+        run: uv run playwright install --with-deps chromium webkit
+
       - name: Run tests
         run: uv run pytest
 

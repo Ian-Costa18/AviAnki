@@ -3,3 +3,7 @@
 
 # The fixture catalog is content-addressed: line-ending conversion would break its hashes.
 tests/fixtures/catalog/** -text
+
+# Vendored libraries are byte-for-byte copies of npm tarball files whose sha256 is recorded in
+# web/vendor/README.md; a CRLF checkout on Windows would change them.
+web/vendor/** -text

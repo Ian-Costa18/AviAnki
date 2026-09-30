@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AviAnki: learn the birds where you live</title>
+<meta name="description" content="Make a free Anki deck of the birds where you live, with photos and recordings, in a few taps.">
+<link rel="stylesheet" href="css/app.css">
+<script type="module" src="js/app.js"></script>
+</head>
+<body>
+<header class="site">
+  <h1>AviAnki</h1>
+</header>
+
+<main id="main">
+  <div id="error" class="error" role="alert" hidden>
+    <p id="error-text"></p>
+    <button type="button" id="error-action" class="secondary"></button>
+  </div>
+
+  <!-- Screen 1: Pick -->
+  <section id="screen-pick" aria-labelledby="pick-title">
+    <h2 id="pick-title" class="pitch" tabindex="-1">Learn to recognise the birds where you live, by sight and sound.</h2>
+
+    <form id="form" novalidate>
+      <div class="field">
+        <label for="region">Where do you go birding?</label>
+        <select id="region" name="region" required disabled aria-describedby="not-listed">
+          <option value="">Loading the list&hellip;</option>
+        </select>
+        <p id="region-problem" class="problem" hidden>Choose your state or province first.</p>
+      </div>
+      <p id="not-listed" class="hint">Not in the list? AviAnki's website covers the US and Canada.
+        <a href="https://github.com/Ian-Costa18/AviAnki#readme">The command-line tool works anywhere.</a></p>
+
+      <button type="submit" id="build" class="primary" disabled>Build my deck</button>
+      <p class="hint" id="anki-line">You'll study these in <strong>Anki</strong>, a free flashcard app. We'll show you how once your deck is ready.</p>
+      <p id="parts-hint" class="hint" aria-live="polite" hidden></p>
+
+      <details id="advanced">
+        <summary>Advanced</summary>
+
+        <fieldset>
+          <legend>How many birds?</legend>
+          <label class="choice"><input type="radio" name="tier" value="standard" checked>
+            <span><strong>Standard:</strong> the 100 birds seen most here</span></label>
+          <label class="choice"><input type="radio" name="tier" value="everything">
+            <span><strong>Everything:</strong> every bird in the catalog for this place, up to 400</span></label>
+        </fieldset>
+
+        <div class="field">
+          <label for="month">Only birds seen here in:</label>
+          <select id="month" name="month">
+            <option value="">All year</option>
+            <option value="1">January</option>
+            <option value="2">February</option>
+            <option value="3">March</option>
+            <option value="4">April</option>
+            <option value="5">May</option>
+            <option value="6">June</option>
+            <option value="7">July</option>
+            <option value="8">August</option>
+            <option value="9">September</option>
+            <option value="10">October</option>
+            <option value="11">November</option>
+            <option value="12">December</option>
+          </select>
+        </div>
+
+        <fieldset>
+          <legend>Cards to make</legend>
+          <label class="choice"><input type="checkbox" name="cards" value="photo" checked>
+            <span><strong>Photo:</strong> see the bird, name it</span></label>
+          <label class="choice"><input type="checkbox" name="cards" value="audio" checked>
+            <span><strong>Audio:</strong> hear the bird, name it</span></label>
+          <label class="choice"><input type="checkbox" name="cards" value="photo_audio">
+            <span><strong>Photo and audio:</strong> see and hear it together</span></label>
+          <p id="cards-problem" class="problem" hidden>Pick at least one kind of card.</p>
+        </fieldset>
+
+        <label class="choice"><input type="checkbox" id="subdeck" name="subdeck">
+          <span>Put these in a subdeck named after the region</span></label>
+      </details>
+    </form>
+  </section>
+
+  <!-- Screen 2: Building -->
+  <section id="screen-build" aria-labelledby="build-title" hidden>
+    <h2 id="build-title" tabindex="-1">Building your deck</h2>
+    <p id="parts-announce" class="notice" hidden></p>
+    <p id="progress" class="progress-text"></p>
+    <progress id="bar" max="100" value="0" aria-label="Deck progress"></progress>
+    <p id="announce" class="sr-only" role="status" aria-live="polite"></p>
+  </section>
+
+  <!-- Screen 3: Done -->
+  <section id="screen-done" aria-labelledby="done-title" hidden>
+    <h2 id="done-title" tabindex="-1">Your deck is ready</h2>
+    <p id="done-summary"></p>
+    <ul id="downloads" class="downloads"></ul>
+
+    <div id="lastmile"></div>
+
+    <aside class="box" aria-labelledby="see-title">
+      <h3 id="see-title">What you'll see</h3>
+      <p id="what-youll-see">Look at the photo or listen, think of the name, then tap <strong>Show Answer</strong>.
+        Tap <strong>Good</strong> if you knew it and <strong>Again</strong> if you didn't.
+        Anki shows you <strong>20 new birds a day</strong> so you're never swamped.
+        The rest arrive over the next few days. That's normal, not broken.</p>
+    </aside>
+
+    <button type="button" id="again" class="primary">Add another region</button>
+  </section>
+</main>
+
+<footer class="site">
+  <div id="dataset-credits"></div>
+  <p id="licence-notice"></p>
+  <p><a id="credits-link" href="catalog/credits.html">Credits for every photo and recording</a>
+    &middot; <a href="https://github.com/Ian-Costa18/AviAnki">AviAnki on GitHub</a></p>
+</footer>
+</body>
+</html>
