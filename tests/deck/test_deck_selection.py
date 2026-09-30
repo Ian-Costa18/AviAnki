@@ -53,11 +53,11 @@ def test_select_species_matches_fixture(case: dict) -> None:
 
 def test_select_species_rejects_bad_arguments() -> None:
     region = RegionFile("x", [("a", (1,) * 12)])
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="tier must be one of"):
         select_species(region, tier="huge", month=None)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="month must be 1-12"):
         select_species(region, tier="standard", month=13)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="month must be 1-12"):
         select_species(region, tier="standard", month=0)
 
 
@@ -147,5 +147,5 @@ def test_repeated_species_ids_are_planned_once() -> None:
 
 
 def test_unknown_card_type_is_an_error() -> None:
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="unknown card types"):
         plan_notes(["turdus-migratorius"], species_file(), {"description"})

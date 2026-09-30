@@ -51,6 +51,20 @@ pythonpath = ["src", "tests"]
 markers = ["integration: hits the real network; run with --integration"]
 filterwarnings = ["ignore::DeprecationWarning:cached_property"]
 
+# Dead code (CI runs `uv run --with vulture vulture`). `decl` is HTMLParser.handle_decl's
+# parameter: the override must keep the name, and never reads it.
+[tool.vulture]
+paths = ["src"]
+min_confidence = 80
+ignore_names = ["decl"]
+
+# Declared vs imported dependencies (CI runs `uv run --with deptry deptry src`). media/verify.py imports birdnet and
+# its runtime ai_edge_litert through importlib, so deptry cannot see the first used or the
+# second declared; the verify extra's birdnet brings ai-edge-litert.
+[tool.deptry.per_rule_ignores]
+DEP001 = ["ai_edge_litert"]
+DEP002 = ["birdnet"]
+
 [dependency-groups]
 dev = [
     "anki>=26.9",

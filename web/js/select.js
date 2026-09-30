@@ -5,8 +5,8 @@
 // writer, so a drift in either language fails a test.
 
 export const TIER_STANDARD = "standard";
-export const TIER_EVERYTHING = "everything";
-export const TIERS = [TIER_STANDARD, TIER_EVERYTHING];
+const TIER_EVERYTHING = "everything";
+const TIERS = [TIER_STANDARD, TIER_EVERYTHING];
 export const STANDARD_LIMIT = 100;
 
 // Card types in the order notes are written (ADR 0010). Frozen.

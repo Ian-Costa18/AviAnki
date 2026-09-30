@@ -22,6 +22,7 @@ import os
 import sys
 import traceback
 from collections.abc import Sequence
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import tqdm
@@ -37,6 +38,7 @@ from avianki.catalog.client import (
 from avianki.catalog.format import DEFAULT_BASE_URL, Manifest, RegionFile, SpeciesFile
 from avianki.core.http import SourceError
 from avianki.core.log import setup_logging, teardown_logging
+from avianki.core.text import fold
 from avianki.deck.build import (
     DECK_NAME,
     STANDARD_LIMIT,
@@ -48,6 +50,7 @@ from avianki.deck.build import (
     write_deck,
 )
 from avianki.deck.credits import EBIRD_NOTICE
+from avianki.deck.notetypes import CARD_TYPES
 
 log = logging.getLogger("bird_deck")
 
@@ -55,9 +58,13 @@ EBIRD_KEY_VAR = "EBIRD_API_KEY"
 EBIRD_KEY_URL = "https://ebird.org/api/keygen"
 DEFAULT_CARDS = "photo,audio"
 
-# The CLI spells the combined card type with a hyphen; note types use an underscore.
-_CARD_SPELLINGS = {"photo": "photo", "audio": "audio", "photo-audio": "photo_audio"}
-_CARD_LABELS = {"photo": "photo", "audio": "audio", "photo_audio": "photo-audio"}
+
+def _card_label(card_type: str) -> str:
+    """The CLI spells the combined card type with a hyphen; note types use an underscore."""
+    return card_type.replace("_", "-")
+
+
+_CARD_SPELLINGS = {_card_label(ct): ct for ct in CARD_TYPES}
 
 EXIT_OK, EXIT_FAILED, EXIT_USAGE = 0, 1, 2
 
@@ -204,15 +211,11 @@ def _region_rows() -> list[dict[str, str]]:
         return []
 
 
-def _fold(text: str) -> str:
-    return " ".join(text.casefold().split())
-
-
 def _known_ebird_region(query: str) -> tuple[str, str] | None:
     """``(eBird code, display name)`` when ``query`` is the code, slug or name of a regions.csv row."""
-    key = _fold(query)
+    key = fold(query)
     for row in _region_rows():
-        if key in (_fold(row["ebird_code"]), _fold(row["slug"]), _fold(row["name"])):
+        if key in (fold(row["ebird_code"]), fold(row["slug"]), fold(row["name"])):
             return row["ebird_code"], row["name"]
     return None
 
@@ -292,20 +295,22 @@ def _report_missing_region(exc: RegionNotFound | AmbiguousRegion, query: str) ->
         )
 
 
-def _finish(
-    notes: list[PlannedNote],
-    species: SpeciesFile,
-    manifest: Manifest,
-    *,
-    client: CatalogClient,
-    extra_media: dict[str, Path],
-    args: argparse.Namespace,
-    out: Path,
-    subdeck: str | None,
-    ebird: bool,
-    selected: int,
-) -> int:
+@dataclass(frozen=True)
+class _Deck:
+    """What either path hands to `_finish`: the planned notes and what writing them needs."""
+
+    notes: list[PlannedNote]
+    species: SpeciesFile
+    manifest: Manifest
+    out: Path
+    subdeck: str | None
+    selected: int  # species selected, including any left without cards
+    extra_media: dict[str, Path] = field(default_factory=dict)  # files built live by --ebird
+
+
+def _finish(deck: _Deck, client: CatalogClient, args: argparse.Namespace) -> int:
     """Fetch the catalog media, write the deck, print the summary."""
+    notes, out, extra_media = deck.notes, deck.out, deck.extra_media
     catalog_files = [f for f in _needed_files(notes) if f not in extra_media]
     downloaded = _fetch_media(client, catalog_files, args.quiet)
 
@@ -314,19 +319,20 @@ def _finish(
 
     summary = write_deck(
         notes,
-        species,
-        manifest,
+        deck.species,
+        deck.manifest,
         media=media,
         out=out,
         deck_name=args.deck_name,
-        subdeck=subdeck,
-        ebird=ebird,
+        subdeck=deck.subdeck,
+        ebird=args.ebird is not None,
     )
     if args.quiet:
         return EXIT_OK
+    selected = deck.selected
     species_count = len({n.species_id for n in notes})
     by_type = ", ".join(
-        f"{count} {_CARD_LABELS[card_type]}"
+        f"{count} {_card_label(card_type)}"
         for card_type, count in summary.notes_by_type.items()
         if count
     )
@@ -363,10 +369,8 @@ def _catalog_deck(args: argparse.Namespace, client: CatalogClient) -> int:
         )
         return EXIT_FAILED
     out = args.output or Path(f"AviAnki-{ref.slug}.apkg")
-    return _finish(
-        notes, species, manifest, client=client, extra_media={}, args=args, out=out,
-        subdeck=ref.name if args.subdeck else None, ebird=False, selected=len(ids),
-    )
+    subdeck = ref.name if args.subdeck else None
+    return _finish(_Deck(notes, species, manifest, out, subdeck, selected=len(ids)), client, args)
 
 
 def _ebird_deck(args: argparse.Namespace, client: CatalogClient) -> int:
@@ -395,10 +399,7 @@ def _ebird_deck(args: argparse.Namespace, client: CatalogClient) -> int:
             limit=STANDARD_LIMIT if args.tier == TIER_STANDARD else None,
             progress=bar,
         )
-    except InvalidRegionCode as exc:
-        _error(str(exc))
-        return EXIT_USAGE
-    except AdhocUnavailable as exc:
+    except (InvalidRegionCode, AdhocUnavailable) as exc:
         _error(str(exc))
         return EXIT_USAGE
     finally:
@@ -424,10 +425,9 @@ def _ebird_deck(args: argparse.Namespace, client: CatalogClient) -> int:
         _error(f"nothing to write: none of the species eBird lists for {code} has media for the chosen cards.")
         return EXIT_FAILED
     out = args.output or Path(f"AviAnki-{code}.apkg")
-    status = _finish(
-        notes, merged, manifest, client=client, extra_media=adhoc.media, args=args, out=out,
-        subdeck=_region_name_for_code(code) if args.subdeck else None, ebird=True, selected=len(ids),
-    )
+    subdeck = _region_name_for_code(code) if args.subdeck else None
+    deck = _Deck(notes, merged, manifest, out, subdeck, selected=len(ids), extra_media=adhoc.media)
+    status = _finish(deck, client, args)
     print(EBIRD_NOTICE)  # always shown, even with -q: it is a licence condition
     return status
 

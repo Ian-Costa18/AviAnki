@@ -9,7 +9,6 @@
  *       manifest,      // parsed manifest.json (only `dataset_credits` is read)
  *       speciesFile,   // parsed species.<hash>.json: { [speciesId]: { name, sci, photo, audio } }
  *       notes,         // planNotes(...) output, in the order to write them
- *       deckName,      // default "AviAnki" (frozen, ADR 0009)
  *       subdeck,       // e.g. the region's name -> "AviAnki::Massachusetts", or null
  *       ebird,         // true adds the not-for-redistribution notice to the description
  *       timestamp,     // seconds since the epoch; default now. Fix it to compare with genanki
@@ -44,14 +43,14 @@ import { guidFor } from "./apkg/guid.js";
 import { writeApkg } from "./apkg/writer.js";
 import { CARD_TYPES } from "./select.js";
 
-export const DECK_NAME = "AviAnki"; // frozen (ADR 0009)
-export const MEDIA_PREFIX = "avianki_";
+const DECK_NAME = "AviAnki"; // frozen (ADR 0009)
+const MEDIA_PREFIX = "avianki_";
 
 // --- identity (frozen, ADR 0009) -------------------------------------------------------
 
 /** `AviAnki`, or `AviAnki::<Region name>` when a subdeck is asked for. */
-export function fullDeckName(deckName, subdeck) {
-  return subdeck ? `${deckName}::${subdeck}` : deckName;
+function fullDeckName(subdeck) {
+  return subdeck ? `${DECK_NAME}::${subdeck}` : DECK_NAME;
 }
 
 /** `int(md5(name).hexdigest()[:8], 16)`. */
@@ -88,13 +87,13 @@ export function escapeAttr(s) {
  * recording), or "" when it uses none. Credits arrive as escaped HTML from the catalog and
  * are joined as they are.
  */
-export function creditsField(photo, audio) {
+function creditsField(photo, audio) {
   const lines = [photo, audio].filter(Boolean).map((m) => m.credit);
   return lines.length ? '<div class="credits">' + lines.join("<br>") + "</div>" : "";
 }
 
 /** The note's field values in the note type's order (`fieldNames` from notetypes.json). */
-export function noteFields(note, entry, fieldNames) {
+function noteFields(note, entry, fieldNames) {
   const values = {
     SpeciesId: escapeText(note.speciesId),
     Name: escapeText(entry.name),
@@ -176,11 +175,11 @@ async function* packageFeed(feed, files) {
  *           bytes: number, noteCount: number, deckName: string}}>}
  */
 export async function buildDeck({
-  manifest, speciesFile, notes, deckName = DECK_NAME, subdeck = null, ebird = false,
+  manifest, speciesFile, notes, subdeck = null, ebird = false,
   timestamp = Date.now() / 1000, media, notetypes, onProgress,
 }) {
   const nt = notetypes ?? (await loadNotetypes());
-  const name = fullDeckName(deckName, subdeck);
+  const name = fullDeckName(subdeck);
 
   const notesByType = Object.fromEntries(CARD_TYPES.map((t) => [t, 0]));
   const rows = [];

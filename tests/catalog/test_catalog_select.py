@@ -233,7 +233,7 @@ def test_the_audio_cap_is_five_and_counts_down():
 
 def test_kind_name():
     assert kind_name(AssetKind.PHOTO) == "photo" and kind_name(AssetKind.AUDIO) == "audio"
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="not a catalog media kind"):
         kind_name(AssetKind.DESCRIPTION)
 
 
@@ -251,7 +251,7 @@ def test_media_ref_renders_the_credit_with_the_modifications():
 
 
 def test_media_ref_refuses_an_uncreditable_record():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="missing required fields: creator"):
         media_ref("photo", FILE, 1, make_record(creator=None))
 
 
@@ -269,9 +269,9 @@ def test_provenance_entry_carries_verification():
 
 def test_provenance_entry_rejects_inconsistent_verification():
     rec = make_record()
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="needs its confidence"):
         provenance_entry(rec, species_id=SID, kind="audio", token="t", verified="birdnet")
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="only birdnet-verified assets carry a confidence"):
         provenance_entry(rec, species_id=SID, kind="audio", token="t", verified="pinned", birdnet_confidence=0.9)
 
 

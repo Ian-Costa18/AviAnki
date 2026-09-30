@@ -84,7 +84,7 @@ def test_mint_id_rejects_hybrids(sci_name):
 
 @pytest.mark.parametrize("sci_name", ["", "   ", "Anas sp.", "Anas 2", "Anas/Aythya"])
 def test_mint_id_rejects_non_binomials(sci_name):
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="not a plain scientific name"):
         mint_id(sci_name)
 
 

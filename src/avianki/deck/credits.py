@@ -10,7 +10,7 @@ from __future__ import annotations
 import html
 from typing import Final
 
-from avianki.catalog.format import DatasetCredit, Manifest, MediaRef, SpeciesEntry
+from avianki.catalog.format import DatasetCredit, Manifest, MediaRef
 
 # ADR 0016's "What you'll see" text, split into the three lines the description carries.
 STUDY_GUIDANCE: Final[tuple[str, ...]] = (
@@ -33,14 +33,11 @@ EBIRD_NOTICE: Final[str] = (
 )
 
 
-def credits_field(
-    entry: SpeciesEntry, photo: MediaRef | None, audio: MediaRef | None
-) -> str:
+def credits_field(photo: MediaRef | None, audio: MediaRef | None) -> str:
     """One ``<div class="credits">`` holding the credit line of each asset actually used.
 
-    ``entry`` is accepted so the writer has one call shape per note; the lines come only
-    from the assets passed, never from other media the species happens to have. Returns
-    ``""`` when no asset is used, so the answer side shows no empty box.
+    The lines come only from the assets passed, never from other media the species happens
+    to have. Returns ``""`` when no asset is used, so the answer side shows no empty box.
     """
     lines = [m.credit for m in (photo, audio) if m is not None]
     if not lines:

@@ -10,6 +10,7 @@ src/avianki/
     http.py              throttled, cached, budgeted client; honours Limits and Retry-After; one User-Agent  (today)
     licences.py          exact versioned allowlist; AssetRecord (licence research §5.1)  (today)
     log.py               the "bird_deck" logger setup  (today)
+    text.py              `fold`, the case-, accent- and space-insensitive key every name lookup uses  (today)
   taxonomy/              → core
     species.py           loads data/species.csv (shipped in the wheel): minted ids, per-source keys, aliases  (today)
     regions.py           loads data/regions.csv (shipped in the wheel): slug ↔ GADM gid ↔ eBird code  (today)
@@ -113,7 +114,7 @@ scripts/
   gen_web_notetypes.py     dumps deck/'s note types and description strings to web/js/notetypes.json; `--check` for drift  (today)
 
 .github/workflows/
-  ci.yml                 lint, types, unit tests, layout test, browser tests (installs Chromium and WebKit)  (today)
+  ci.yml                 lint, types, unit tests, layout test, browser tests (installs Chromium and WebKit); vulture, deptry and a 1% jscpd threshold  (today)
   catalog.yml            monthly + dispatch: load previous release → build → validate → release → deploy Pages  (today)
   pages.yml              on push to web/: pull latest catalog release → deploy Pages  (today)
   species-lists.yml      dispatch, maintainer-only: species lists + minted species.csv as an artifact  (today)

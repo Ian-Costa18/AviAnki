@@ -113,7 +113,7 @@ def test_disagreeing_gadm_versions_raise(tmp_path):
 
 
 def test_empty_table_has_no_gadm_version():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="exactly one gadm_version"):
         _ = RegionTable([]).gadm_version
 
 

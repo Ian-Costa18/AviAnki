@@ -375,7 +375,7 @@ def test_cache_metadata_holds_no_params(tmp_path):
 
 def test_invalid_source_name_rejected(tmp_path):
     client, _ = make_client(FakeSession(), tmp_path)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="invalid source name"):
         client.get("../etc", FAST, URL)
 
 

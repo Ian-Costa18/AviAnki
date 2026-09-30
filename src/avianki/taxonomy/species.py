@@ -8,12 +8,12 @@ from __future__ import annotations
 
 import csv
 import re
-import unicodedata
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, fields
 from pathlib import Path
 from typing import NamedTuple
 
+from avianki.core.text import strip_accents
 from avianki.taxonomy import DATA_DIR
 
 SPECIES_CSV = DATA_DIR / "species.csv"
@@ -54,9 +54,7 @@ def mint_id(sci_name: str) -> str:
     """Slug an IOC scientific name: ``"Cardinalis cardinalis"`` -> ``"cardinalis-cardinalis"``."""
     if "×" in sci_name:
         raise ValueError(f"refusing to mint an id for a hybrid: {sci_name!r}")
-    decomposed = unicodedata.normalize("NFKD", sci_name)
-    ascii_name = "".join(c for c in decomposed if not unicodedata.combining(c))
-    slug = "-".join(ascii_name.lower().split())
+    slug = "-".join(strip_accents(sci_name).lower().split())
     if not _ID_RE.fullmatch(slug):
         raise ValueError(f"not a plain scientific name, can't mint an id: {sci_name!r}")
     return slug

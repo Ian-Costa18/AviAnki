@@ -19,7 +19,7 @@ import threading
 import zipfile
 from collections.abc import Iterator
 from contextlib import contextmanager
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
 from typing import Any
@@ -163,13 +163,9 @@ async (spec) => {
   const ids = selectSpecies(region, { tier: spec.tier, month: spec.month });
   const notes = planNotes(ids, speciesFile, spec.cards);
   const before = performance.memory ? performance.memory.usedJSHeapSize : null;
-  let peakInFlight = 0, inFlight = 0;
   const fetchBytes = async (file, signal) => {
-    inFlight++; peakInFlight = Math.max(peakInFlight, inFlight);
-    try {
-      const response = await fetch('/catalog/' + file, { signal });
-      return new Uint8Array(await response.arrayBuffer());
-    } finally { inFlight--; }
+    const response = await fetch('/catalog/' + file, { signal });
+    return new Uint8Array(await response.arrayBuffer());
   };
   const { blob, summary } = await buildDeck({
     manifest, speciesFile, notes,
@@ -183,7 +179,7 @@ async (spec) => {
     binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
   }
   return {
-    b64: btoa(binary), summary, type: blob.type, before, after, peakInFlight,
+    b64: btoa(binary), summary, type: blob.type, before, after,
     noteCount: notes.length,
   };
 }
@@ -197,9 +193,7 @@ class BrowserBuild:
     type: str
     heap_before: int | None
     heap_after: int | None
-    peak_in_flight: int
     note_count: int
-    extras: dict[str, Any] = field(default_factory=dict)
 
 
 def build_in_browser(page: Any, spec: Spec) -> BrowserBuild:
@@ -210,7 +204,6 @@ def build_in_browser(page: Any, spec: Spec) -> BrowserBuild:
         out["type"],
         out["before"],
         out["after"],
-        out["peakInFlight"],
         out["noteCount"],
     )
 

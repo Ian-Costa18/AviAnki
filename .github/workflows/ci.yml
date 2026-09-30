@@ -54,3 +54,12 @@ jobs:
       - name: Type check
         if: matrix.python-version == '3.14'
         run: uv run ty check src/
+
+      # Settings for vulture and deptry are in pyproject.toml. jscpd fails above 1% copy-paste;
+      # notetypes.json is generated (one CSS string per note type), so it is left out.
+      - name: Dead code, dependencies and duplication
+        if: matrix.python-version == '3.14'
+        run: |
+          uv run --with vulture==2.16 vulture
+          uv run --with deptry==0.25.1 deptry src
+          npx -y jscpd@4 src tests web --ignore "**/fixtures/**,**/vendor/**,**/notetypes.json" --threshold 1 --reporters console

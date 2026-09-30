@@ -251,7 +251,7 @@ def test_temp_files_are_cleaned_up_on_success_and_failure(long_wav, tmp_path, mo
 
 @pytest.mark.parametrize("kwargs", [{"start_s": -1.0}, {"seconds": 0}, {"start_s": float("nan")}])
 def test_bad_arguments_are_rejected(long_wav, kwargs):
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="must be a finite number"):
         process_audio(long_wav, **kwargs)
 
 
@@ -292,5 +292,5 @@ def test_excerpt_keeps_timing_so_window_offsets_still_line_up(tmp_path):
 def test_excerpt_rejects_garbage_and_bad_arguments(long_wav):
     with pytest.raises(MediaError):
         excerpt(b"not audio")
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="seconds must be a finite number"):
         excerpt(long_wav, seconds=0)

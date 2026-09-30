@@ -136,6 +136,11 @@ def test_a_region_only_in_regions_csv_points_at_its_ebird_code(tmp_path, monkeyp
         assert "avianki --ebird CA-ON" in r.err
 
 
+def test_the_ebird_hint_folds_accents_like_the_catalog_lookup():
+    # The same fold as CatalogClient.find_region, so "quebec" names Québec in both places.
+    assert cli._known_ebird_region("  QUEBEC ") == ("CA-QC", "Québec")
+
+
 def test_no_region_is_a_usage_error(tmp_path, monkeypatch, capsys):
     with pytest.raises(SystemExit) as exc:
         run_cli([], tmp_path, monkeypatch, capsys)

@@ -169,7 +169,7 @@ def test_licence_label_derivation() -> None:
     assert licence_label("CC-BY-2.5") == "CC BY 2.5"
     assert licence_label("CC0-1.0") == "CC0 1.0"
     assert licence_label("PDM-1.0") == "Public Domain Mark 1.0"
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="not an allowed licence id"):
         licence_label("CC-BY-NC-4.0")
 
 
