@@ -1,14 +1,33 @@
+# Publishing to PyPI needs the maintainer's explicit approval, so pushing a tag never publishes
+# (issue #47). A maintainer starts this workflow from the Actions tab and names the tag, after the
+# version is bumped, merged, tagged and the GitHub release exists (CONTRIBUTING.md, "Publishing a
+# release"). The `pypi` environment's protection rules are a second gate before the upload.
 name: Publish to PyPI
 
 on:
-  push:
-    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "The release tag to publish, e.g. v1.0.0 (must equal v<project.version>)"
+        required: true
+        type: string
 
 jobs:
   sanity-test:
     runs-on: ubuntu-latest
+    env:
+      TAG: ${{ inputs.tag }}
+    # The exact commit the tests ran on, so the publish job builds that commit even if the tag moves.
+    outputs:
+      sha: ${{ steps.sha.outputs.sha }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+
+      - name: Record the commit
+        id: sha
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -19,69 +38,36 @@ jobs:
         with:
           enable-cache: true
 
-      - name: Install dev dependencies
-        run: uv sync --group dev
+      # Fail before anything is built or uploaded if the tag and pyproject.toml disagree.
+      - name: Check the tag matches the project version
+        run: |
+          version="$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")"
+          if [ "$TAG" != "v$version" ]; then
+            echo "::error::Tag '$TAG' does not match project.version '$version' in pyproject.toml (expected 'v$version')."
+            exit 1
+          fi
 
-      - name: Run sanity tests
-        run: uv run pytest
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
 
-  update-examples:
-    needs: sanity-test
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    outputs:
-      sha: ${{ steps.push.outputs.sha }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: main
+      - name: Install dependencies
+        run: uv sync --group dev --extra catalog
 
-      - uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-
-      - name: Install dev dependencies
-        run: uv sync --group dev
-
+      # Same as ci.yml: the browser tests skip when a browser is missing, so the install is strict.
       - name: Cache Playwright browsers
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+          key: playwright-${{ runner.os }}-${{ hashFiles('uv.lock') }}
 
-      - name: Install Playwright browser
-        run: uv run playwright install chromium --with-deps
+      - name: Install Playwright browsers
+        run: uv run playwright install --with-deps chromium webkit
 
-      - name: Install ffmpeg
-        run: sudo apt-get install -y ffmpeg
-
-      - name: Run integration test
-        run: uv run pytest --integration
-        env:
-          EBIRD_API_KEY: ${{ secrets.EBIRD_API_KEY }}
-
-      - name: Regenerate examples
-        run: |
-          git rm --ignore-unmatch -r examples/*.png
-          uv run python scripts/gen_examples.py
-
-      - name: Commit and push updated examples
-        id: push
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add examples/
-          if git diff --cached --quiet; then
-            echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-          else
-            git commit -m "Update examples for ${{ github.ref_name }} [skip ci]"
-            git push
-            echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-          fi
+      - name: Run sanity tests
+        run: uv run pytest
 
   publish:
-    needs: [sanity-test, update-examples]
+    needs: sanity-test
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
@@ -89,7 +75,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.update-examples.outputs.sha }}
+          ref: ${{ needs.sanity-test.outputs.sha }}
 
       - uses: astral-sh/setup-uv@v5
 

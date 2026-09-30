@@ -25,3 +25,95 @@
 # audio = "inaturalist:S123:456"
 # exclude = ["commons:M777"]
 # note = "The top-ranked recording is a different bird in the background."
+
+# Contact sheet review for 1.0.0 (2026-09-30): photos that are unusable or doubtful.
+# Absence is acceptable, wrongness is not (PRD section 7); the next build picks another candidate or none.
+
+[aeronautes-saxatalis]
+exclude = ["inaturalist:P180371298:314176716"]
+note = "White-throated Swift: an unclear bird-in-hand photo that doesn't show the species well (1.0.0 contact sheet review)"
+
+[aethia-pygmaea]
+exclude = ["inaturalist:P394038132:722325563"]
+note = "Whiskered Auklet: a distant flock of specks on the sea (1.0.0 contact sheet review)"
+
+[anous-ceruleus]
+exclude = ["inaturalist:P18003449:27522324"]
+note = "Blue Noddy: the bird is barely visible against rock (1.0.0 contact sheet review)"
+
+[anser-cygnoides]
+exclude = ["inaturalist:P398190188:730416650"]
+note = "Swan Goose: a white domestic goose, not the wild brown-necked Swan Goose (1.0.0 contact sheet review)"
+
+[baeolophus-atricristatus]
+exclude = ["inaturalist:P145396698:249720329"]
+note = "Black-crested Titmouse: washed-out, blurred photo; the crest doesn't read as black, so the species is doubtful (1.0.0 contact sheet review)"
+
+[chaetura-vauxi]
+exclude = ["commons:M48482653"]
+note = "Vaux's Swift: a small silhouette on blank sky, with a watermark (1.0.0 contact sheet review)"
+
+[dendragapus-obscurus]
+exclude = ["inaturalist:P95627871:158775480"]
+note = "Dusky Grouse: a dark blurred shape in a conifer (1.0.0 contact sheet review)"
+
+[fringilla-montifringilla]
+exclude = ["inaturalist:P333963055:606372190"]
+note = "Brambling: a small dark silhouette in bare branches (1.0.0 contact sheet review)"
+
+[loxops-caeruleirostris]
+exclude = ["inaturalist:P375750635:686959661"]
+note = "Akekee: the bird is lost in dense foliage (1.0.0 contact sheet review)"
+
+[loxops-ochraceus]
+exclude = ["commons:M48470347"]
+note = "Maui Akepa: a museum specimen, not a living bird (1.0.0 contact sheet review)"
+
+[magumma-parva]
+exclude = ["inaturalist:P285450662:513072184"]
+note = "Anianiau: the bird is barely visible in foliage (1.0.0 contact sheet review)"
+
+[melanerpes-lewis]
+exclude = ["inaturalist:P77694692:127085977"]
+note = "Lewis's Woodpecker: a blurred dark silhouette with no field marks (1.0.0 contact sheet review)"
+
+[melozone-aberti]
+exclude = ["inaturalist:P48193836:76454640"]
+note = "Abert's Towhee: the bird is a tiny speck on a paved ledge (1.0.0 contact sheet review)"
+
+[myadestes-myadestinus]
+exclude = ["commons:M48469092"]
+note = "Kamao: a museum specimen, not a living bird (1.0.0 contact sheet review)"
+
+[oreomystis-bairdi]
+exclude = ["inaturalist:P86672586:142822742"]
+note = "Akikiki: the bird is a tiny speck among branches (1.0.0 contact sheet review)"
+
+[peucaea-cassinii]
+exclude = ["inaturalist:P203165951:358913269"]
+note = "Cassin's Sparrow: looks more like a juvenile crowned sparrow than a Cassin's Sparrow (1.0.0 contact sheet review)"
+
+[phainopepla-nitens]
+exclude = ["inaturalist:P109198721:184002083"]
+note = "Phainopepla: the bird is hidden in a nest (1.0.0 contact sheet review)"
+
+[pheucticus-ludovicianus]
+exclude = ["inaturalist:P171437083:297484083"]
+note = "Rose-breasted Grosbeak: a tiny, grainy bird deep in vegetation (1.0.0 contact sheet review)"
+
+[pterodroma-sandwichensis]
+exclude = ["inaturalist:P183438609:320030505"]
+note = "Hawaiian Petrel: a tiny bird far out over the sea (1.0.0 contact sheet review)"
+
+[puffinus-nativitatis]
+exclude = ["inaturalist:P395138205:724490606"]
+note = "Christmas Shearwater: chicks in a nest, barely visible among branches (1.0.0 contact sheet review)"
+
+[saucerottia-beryllina]
+exclude = ["inaturalist:P35050523:55245162"]
+note = "Berylline Hummingbird: the hummingbird is a speck at a feeder (1.0.0 contact sheet review)"
+
+[setophaga-pitiayumi]
+exclude = ["inaturalist:P283575253:509560943"]
+note = "Tropical Parula: the bird is a small speck in a large bush (1.0.0 contact sheet review)"
+

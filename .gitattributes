@@ -7,3 +7,6 @@ tests/fixtures/catalog/** -text
 # Vendored libraries are byte-for-byte copies of npm tarball files whose sha256 is recorded in
 # web/vendor/README.md; a CRLF checkout on Windows would change them.
 web/vendor/** -text
+
+# The identity tables are written with LF endings (taxonomy.species.save_species) for reviewable diffs.
+src/avianki/data/*.csv text eol=lf
