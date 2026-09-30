@@ -55,6 +55,34 @@ def _page(browser, base_url: str):
     return page
 
 
+@pytest.fixture(params=ENGINES)
+def engine(request) -> str:
+    """The engine name, for tests that open their own contexts."""
+    return request.param
+
+
+@pytest.fixture
+def new_context(_playwright, _browsers) -> Iterator[object]:
+    """``new_context(engine, device=None, **options)``: a browser context that accepts downloads.
+
+    ``device`` is a name from ``playwright.devices`` ("Pixel 7", "iPhone 14", ...); it supplies the
+    user agent, viewport and touch settings. Every context is closed when the test ends.
+    """
+    made: list[object] = []
+
+    def make(name: str = "chromium", device: str | None = None, **options):
+        browser = _browser(name, _playwright, _browsers)
+        merged = dict(_playwright.devices[device]) if device else {}
+        merged.update(options)
+        context = browser.new_context(accept_downloads=True, **merged)  # type: ignore[attr-defined]
+        made.append(context)
+        return context
+
+    yield make
+    for context in made:
+        context.close()  # type: ignore[attr-defined]
+
+
 @pytest.fixture
 def chromium_page(base_url, _playwright, _browsers) -> Iterator[object]:
     page = _page(_browser("chromium", _playwright, _browsers), base_url)

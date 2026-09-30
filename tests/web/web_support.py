@@ -1,8 +1,12 @@
 """Shared helpers for the browser tests: a static server for ``web/`` plus the fixture catalog,
 a driver that builds a deck in the page, and the same build through the Python writer.
 
-The server answers ``/catalog/...`` from ``tests/fixtures/catalog`` and everything else from
-``web/``, which is the layout ``scripts/assemble_site.py`` publishes.
+The server answers ``/catalog/...`` from ``tests/fixtures/catalog`` (or another directory) and
+everything else from ``web/``, which is the layout ``scripts/assemble_site.py`` publishes. The
+manifest it serves has its ``base_url`` rewritten to point back at the server, because the
+fixture's is a placeholder and the app resolves every catalog path against it (ADR 0013).
+
+Run ``uv run python tests/web/web_support.py`` to serve the app locally on the fixture catalog.
 """
 
 from __future__ import annotations
@@ -48,10 +52,15 @@ class _Handler(http.server.SimpleHTTPRequestHandler):
     def translate_path(self, path: str) -> str:
         path = path.split("?", 1)[0].split("#", 1)[0]
         if path.startswith("/catalog/"):
-            root, rel = CATALOG_DIR, path[len("/catalog/") :]
+            root, rel = self.server.catalog_dir, path[len("/catalog/") :]  # type: ignore[attr-defined]
         else:
             root, rel = WEB_DIR, path.lstrip("/")
         return str((root / rel).resolve())
+
+    def end_headers(self) -> None:
+        # The published catalog sends this too, which is what lets ?catalog=<url> work cross-origin.
+        self.send_header("Access-Control-Allow-Origin", "*")
+        super().end_headers()
 
     def do_GET(self) -> None:  # noqa: N802 - http.server's name
         if self.path.split("?", 1)[0] == "/__blank.html":
@@ -61,16 +70,41 @@ class _Handler(http.server.SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(BLANK_PAGE)
             return
+        if self.path.split("?", 1)[0] == "/catalog/manifest.json":
+            self._send_manifest()
+            return
         super().do_GET()
+
+    def _send_manifest(self) -> None:
+        catalog_dir: Path = self.server.catalog_dir  # type: ignore[attr-defined]
+        manifest = json.loads((catalog_dir / "manifest.json").read_text(encoding="utf-8"))
+        host, port = self.server.server_address[:2]
+        manifest["base_url"] = f"http://{host}:{port}/catalog/"
+        body = json.dumps(manifest).encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-cache")
+        self.end_headers()
+        self.wfile.write(body)
 
     def log_message(self, format: str, *args: Any) -> None:  # noqa: A002
         pass
 
 
+class _Server(http.server.ThreadingHTTPServer):
+    request_queue_size = 128  # a browser opens many connections at once; the default of 5 refuses some
+    daemon_threads = True
+
+
 @contextmanager
-def serve() -> Iterator[str]:
-    """Serve ``web/`` and the fixture catalog on 127.0.0.1 (a secure context, so WebCrypto works)."""
-    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), partial(_Handler))
+def serve(catalog_dir: Path = CATALOG_DIR) -> Iterator[str]:
+    """Serve ``web/`` and a catalog (the fixture's by default) on 127.0.0.1, a secure context.
+
+    Secure, so WebCrypto and Cache Storage work as they do on the deployed site.
+    """
+    server = _Server(("127.0.0.1", 0), partial(_Handler))
+    server.catalog_dir = catalog_dir  # type: ignore[attr-defined]
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
@@ -241,3 +275,15 @@ def read_package(apkg: bytes | Path, workdir: Path, label: str) -> Package:
 
 def parsed(package: Package, key: str) -> Any:
     return json.loads(package.col[key])
+
+
+if __name__ == "__main__":  # a local copy of the site, on the fixture catalog
+    import time
+
+    with serve() as url:
+        print(f"AviAnki is at {url}/  (fixture catalog; Ctrl+C to stop)")
+        try:
+            while True:
+                time.sleep(3600)
+        except KeyboardInterrupt:
+            pass
