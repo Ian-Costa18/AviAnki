@@ -13,16 +13,15 @@ def pytest_collection_modifyitems(config, items):
                 item.add_marker(skip)
 
 
-@pytest.fixture()
-def tmp_media_dir(tmp_path):
-    d = tmp_path / "media"
-    d.mkdir()
-    return d
+@pytest.fixture(autouse=True)
+def _restore_bird_deck_logger():
+    """``cli.main`` calls ``setup_logging``, which replaces the logger's handlers and turns off
+    propagation. Put the logger back after every test so caplog keeps working in the next one."""
+    import logging
 
-
-@pytest.fixture()
-def sample_sounds_dict():
-    return {
-        "calls": ["http://example.com/call.mp3"],
-        "songs": ["http://example.com/song.mp3"],
-    }
+    logger = logging.getLogger("bird_deck")
+    saved = (list(logger.handlers), logger.level, logger.propagate)
+    yield
+    logger.handlers[:] = saved[0]
+    logger.setLevel(saved[1])
+    logger.propagate = saved[2]
