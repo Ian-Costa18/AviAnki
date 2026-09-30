@@ -28,22 +28,9 @@
   gap: 12px;
   margin: 8px 0;
 }
-.audio-item {
-  flex: 1;
-}
-.audio-item audio { width: 100%; }
-.desc-box {
-  background: #f0f4f0;
-  border-left: 4px solid #2c5f2e;
-  padding: 10px 14px;
-  border-radius: 0 6px 6px 0;
-  margin: 10px 0;
-  font-size: 0.95em;
-}
 .prompt-label {
   font-size: 0.85em; font-weight: bold; color: #888;
   text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px;
 }
-.divider { border-top: 1px solid #ddd; margin: 14px 0; }
 .credits { font-size: .75em; opacity: .7; margin-top: 14px; }
 .credits a { text-decoration: underline; }
