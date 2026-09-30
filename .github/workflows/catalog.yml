@@ -169,7 +169,7 @@ jobs:
             build/build-report.md
             build/contact-sheet.html
             build/catalog.log
-            data/species.csv
+            src/avianki/data/species.csv
           retention-days: 30
           if-no-files-found: warn
 

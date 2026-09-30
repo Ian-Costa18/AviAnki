@@ -11,8 +11,8 @@ src/avianki/
     licences.py          exact versioned allowlist; AssetRecord (licence research §5.1)  (today)
     log.py               the "bird_deck" logger setup  (today)
   taxonomy/              → core
-    species.py           loads data/species.csv: minted ids, per-source keys, aliases  (today)
-    regions.py           loads data/regions.csv: slug ↔ GADM gid ↔ eBird code  (today)
+    species.py           loads data/species.csv (shipped in the wheel): minted ids, per-source keys, aliases  (today)
+    regions.py           loads data/regions.csv (shipped in the wheel): slug ↔ GADM gid ↔ eBird code  (today)
   sources/               → core, taxonomy
     __init__.py          re-exports the contract (contract.py) only, never the registry or a source
     contract.py          SpeciesSource, AssetSource, Candidate, FetchedAsset, Limits  (today)
@@ -64,7 +64,7 @@ web/                     imports no Python; depends only on catalog/format.py's 
   vendor/                sql-wasm.js, sql-wasm.wasm, fflate.js (pinned versions, checked in)
   css/app.css
 
-data/
+src/avianki/data/        package data: ships in the wheel, found through taxonomy.DATA_DIR (issue #51)
   species.csv            minted species ids (ADR 0008)
   regions.csv            region slugs ↔ GADM gids, GADM version pinned
   pins.toml              pins, exclusions, credit-removal requests (ADR 0011)

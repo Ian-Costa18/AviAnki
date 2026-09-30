@@ -1,9 +1,9 @@
-"""Species and region identity (ADR 0008): the checked-in tables under ``data/``."""
+"""Species and region identity (ADR 0008): the tables shipped in ``avianki/data/``."""
 
 from __future__ import annotations
 
 from pathlib import Path
 
-# data/ sits at the repo root, outside the package, so this only resolves in a source
-# checkout. Every loader also takes an explicit path.
-DATA_DIR = Path(__file__).resolve().parents[3] / "data"
+# The tables live inside the package, so an installed wheel has them too (issue #51):
+# src/avianki/taxonomy/__init__.py -> parents[1] is the avianki package directory.
+DATA_DIR = Path(__file__).resolve().parents[1] / "data"

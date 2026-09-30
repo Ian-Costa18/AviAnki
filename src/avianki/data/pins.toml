@@ -1,6 +1,6 @@
 # Pins, exclusions and credit-removal requests for the catalog build (ADR 0011).
 #
-# One table per species id from data/species.csv. Keys:
+# One table per species id from src/avianki/data/species.csv. Keys:
 #
 #   photo   = "<source>:<token>"    force this photo (skips ranking)
 #   audio   = "<source>:<token>"    force this recording (skips ranking and BirdNET)

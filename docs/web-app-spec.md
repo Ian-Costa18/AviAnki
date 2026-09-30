@@ -37,8 +37,8 @@ A free, static website where a bird watcher picks their state or province, taps 
 
 ## 3. Data identity
 
-- **Species:** minted ids in `data/species.csv`, with IOC as the declared authority ([ADR 0008](adr/0008-species-and-region-identity.md)).
-- **Regions:** slugs in `data/regions.csv` over GADM level-1, with the GADM version pinned (ADR 0008).
+- **Species:** minted ids in `src/avianki/data/species.csv`, with IOC as the declared authority ([ADR 0008](adr/0008-species-and-region-identity.md)).
+- **Regions:** slugs in `src/avianki/data/regions.csv` over GADM level-1, with the GADM version pinned (ADR 0008).
 - **Notes:** deck `AviAnki`; GUID `guid_for("avianki", species_id, card_type)` with `card_type ∈ {photo, audio, photo_audio}`; model seeds `AviAnki_{Photo,Audio,PhotoAudio}_v2` ([ADR 0009](adr/0009-note-identity.md)). All of these strings are frozen, and `tests/deck/test_identity.py` pins them.
 
 ## 4. The catalog pipeline

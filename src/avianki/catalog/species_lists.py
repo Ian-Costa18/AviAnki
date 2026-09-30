@@ -193,7 +193,7 @@ def render_report(result: SpeciesListsResult, regions: Iterable[Region], top_n: 
             lines.append(f"| {region.slug} | {cell(region.name)} | FAILED | - |")
     lines.append("")
     if result.minted:
-        lines += ["## Minted species (the diff to commit to data/species.csv)", "",
+        lines += ["## Minted species (the diff to commit to src/avianki/data/species.csv)", "",
                   "| Id | Scientific name | Common name | GBIF key |", "|---|---|---|---|"]
         lines += [f"| {r.id} | {cell(r.sci_name)} | {cell(r.common_name)} | {r.gbif_key or ''} |" for r in result.minted]
         lines.append("")

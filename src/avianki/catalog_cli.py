@@ -1,7 +1,7 @@
 """``avianki-catalog``: the maintainer-side catalog build (spec §4).
 
 ``build --species-only`` builds the region species lists (GBIF) and mints new species into
-``data/species.csv``. ``build`` alone is the full build: species lists, a photo and a
+``src/avianki/data/species.csv``. ``build`` alone is the full build: species lists, a photo and a
 BirdNET-verified recording per species, the validation gate, and ``site/``, ``build-report.md``
 and ``contact-sheet.html`` under ``--out``. This module only parses arguments, wires the real
 collaborators and prints; the work is in `avianki.catalog.build`.
@@ -80,7 +80,7 @@ def _parser() -> argparse.ArgumentParser:
     build.add_argument("--cache-dir", type=Path, default=Path(".cache/http"),
                        help="HTTP response cache (default: .cache/http)")
     build.add_argument("--species-csv", type=Path, default=SPECIES_CSV,
-                       help="species table to read and extend (default: the repo's data/species.csv)")
+                       help="species table to read and extend (default: the packaged src/avianki/data/species.csv)")
     build.add_argument("--top-n", type=int, default=TOP_N, help=f"species kept per region (default: {TOP_N})")
     build.add_argument("--max-species", type=int, metavar="N",
                        help="build only the N most widespread species (a dev run)")
@@ -88,7 +88,7 @@ def _parser() -> argparse.ArgumentParser:
                        help="the last published catalog: its assets are kept (sticky, ADR 0014) and "
                             "its region lists are reused while the EOD version is unchanged")
     build.add_argument("--pins", type=Path, default=PINS_TOML,
-                       help="pins, exclusions and credit-removal requests (default: data/pins.toml)")
+                       help="pins, exclusions and credit-removal requests (default: src/avianki/data/pins.toml)")
     build.add_argument("--refresh-species", action="store_true",
                        help="rebuild the region lists even when the EOD version is unchanged (after a change "
                             "to how lists are built)")
