@@ -25,11 +25,13 @@ You need [uv](https://docs.astral.sh/uv/). Without it, `pip install avianki` and
 
 Every deck is built from three kinds of card; you choose which with `--cards`.
 
-| Card type    | `--cards` value | Front                       | Back                                   |
-| ------------ | --------------- | --------------------------- | -------------------------------------- |
-| Photo        | `photo`         | a photo of the bird         | the name, and the credit for the photo |
-| Audio        | `audio`         | a recording of the bird     | the name, and the credit for the audio |
-| Photo + audio | `photo-audio` | the photo and the recording | the name, and both credits             |
+| Card type     | `--cards` value | Front                       |
+| ------------- | --------------- | --------------------------- |
+| Photo         | `photo`         | a photo of the bird         |
+| Audio         | `audio`         | a recording of the bird     |
+| Photo + audio | `photo-audio`   | the photo and the recording |
+
+Every back is the same: the name and scientific name, the photo, the recording, and the credit for each.
 
 The default is `photo,audio`. A species with no photo (or no recording) simply gets no photo (or audio) card, and the run says so. Fronts never show the bird's name. Every answer credits the author and licence of each asset on the card.
 
