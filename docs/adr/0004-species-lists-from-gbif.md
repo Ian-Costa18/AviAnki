@@ -1,6 +1,6 @@
 # 0004 — Region species lists come from GBIF's eBird Observation Dataset
 
-**Status:** Accepted, 2026-08-24 · **Ticket:** [#29](https://github.com/Ian-Costa18/AviAnki/issues/29)
+**Status:** Accepted, 2026-08-24; species naming amended by [0024](0024-species-names-from-ebird-verbatim.md) · **Ticket:** [#29](https://github.com/Ian-Costa18/AviAnki/issues/29)
 
 ## Decision
 

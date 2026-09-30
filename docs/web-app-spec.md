@@ -47,7 +47,7 @@ It runs as `avianki-catalog build` in `.github/workflows/catalog.yml`.
 
 1. **Load state.** Download the previous `catalog-*` release tarball, if there is one: its manifest, provenance and media.
 2. **Species.**
-   - Check the EOD dataset version. If it has changed, or there's no previous state, call `GbifSpeciesSource.species_for(region)` for every region in `regions.csv`, map to species ids, and write each region's ordered list with 12 monthly values.
+   - Check the EOD dataset version. If it has changed, or there's no previous state, call `GbifSpeciesSource.species_for(region)` for every region in `regions.csv`, map to species ids (each GBIF backbone key named by eBird's own name for its records, [ADR 0024](adr/0024-species-names-from-ebird-verbatim.md)), and write each region's ordered list with 12 monthly values.
    - The catalog's species set is the union of each region's top 400.
    - Species with no row in `species.csv` are minted and appear in the build report as a diff to commit.
 3. **Select, per species and role** ([ADR 0011](adr/0011-media-selection.md)):
