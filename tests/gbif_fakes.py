@@ -57,12 +57,38 @@ def make_client(session: RoutingSession) -> HttpClient:
 
 
 def recorded_routes() -> dict[str, Any]:
-    """The recorded live responses (Rhode Island + an IOC checklist slice)."""
+    """The recorded live responses (Rhode Island + an IOC checklist slice).
+
+    eBird's names for the keys (``verbatimScientificName``, ADR 0024) are recorded for a few
+    keys only. Every other key of the Rhode Island list answers with one name that is not a
+    species (``sp.``), so it resolves through the backbone path, as it did before ADR 0024.
+    """
     index = json.loads((FIXTURES / "index.json").read_text(encoding="utf-8"))
-    return {
+    routes = {
         key: json.loads((FIXTURES / name).read_text(encoding="utf-8"))
         for key, name in index.items()
     }
+    annual = routes[request_key(f"{API}/occurrence/search", occurrence_params(
+        RI.gadm_gid, facet="speciesKey", facetLimit=3000))]
+    for bucket in annual["facets"][0]["counts"]:
+        route = verbatim_route(int(bucket["name"]))
+        routes.setdefault(route, verbatim_response({"unrecorded sp.": int(bucket["count"])}))
+    return routes
+
+
+def verbatim_route(key: int, gid: str | None = None) -> str:
+    """The request for the names eBird gives one backbone key's records (worldwide, or in a region)."""
+    params: dict[str, Any] = {"datasetKey": EOD, "speciesKey": key, "limit": 0, "facet": "verbatimScientificName",
+                              "facetLimit": 100}
+    if gid is not None:
+        params["gadmGid"] = gid
+    return request_key(f"{API}/occurrence/search", params)
+
+
+def verbatim_response(counts: Mapping[str, int]) -> dict:
+    ordered = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
+    return {"facets": [{"field": "VERBATIM_SCIENTIFIC_NAME",
+                        "counts": [{"name": n, "count": c} for n, c in ordered]}]}
 
 
 # ── a tiny synthetic region with hand-computed expectations ─────────────────────
@@ -122,6 +148,8 @@ TINY_MONTHLY: dict[int, dict[int, int]] = {
     20: {5: 1, 6: 1, 12: 100},  # B: 102, ties with C
     30: {2: 2, 3: 2},  # D: 4
 }
+# What eBird calls the records under each key: the IOC names (lower-case), so nothing is re-resolved.
+TINY_VERBATIM = {10: "alpha alpha", 5: "gamma gamma", 20: "beta beta", 30: "delta delta"}
 TINY_IOC = [
     ioc_entry(10, "Alpha alpha", "Alpha Bird"),
     ioc_entry(5, "Gamma gamma", "Gamma Bird"),
@@ -140,6 +168,8 @@ def tiny_routes(facet_limit: int = 3000) -> dict[str, Any]:
             facet_response("MONTH", TINY_TOTALS),
         request_key(f"{API}/species/search", ioc_params()): ioc_page(TINY_IOC),
     }
+    for k, name in TINY_VERBATIM.items():
+        routes[verbatim_route(k)] = verbatim_response({name: annual[k]})
     for month in range(1, 13):
         counts = {k: m[month] for k, m in TINY_MONTHLY.items() if month in m}
         routes[request_key(f"{API}/occurrence/search",

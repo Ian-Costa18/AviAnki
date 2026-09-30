@@ -1,0 +1,21 @@
+{
+ "facets": [
+  {
+   "field": "VERBATIM_SCIENTIFIC_NAME",
+   "counts": [
+    {
+     "name": "porphyrio poliocephalus",
+     "count": 334344
+    },
+    {
+     "name": "porphyrio porphyrio",
+     "count": 86108
+    },
+    {
+     "name": "porphyrio madagascariensis",
+     "count": 22361
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,13 @@
+{
+ "facets": [
+  {
+   "field": "VERBATIM_SCIENTIFIC_NAME",
+   "counts": [
+    {
+     "name": "nannopterum auritum",
+     "count": 10346737
+    }
+   ]
+  }
+ ]
+}

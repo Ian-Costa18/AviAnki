@@ -1,0 +1,17 @@
+{
+ "facets": [
+  {
+   "field": "VERBATIM_SCIENTIFIC_NAME",
+   "counts": [
+    {
+     "name": "circus hudsonius",
+     "count": 3852601
+    },
+    {
+     "name": "circus cyaneus",
+     "count": 169525
+    }
+   ]
+  }
+ ]
+}

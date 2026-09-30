@@ -1,0 +1,17 @@
+{
+ "facets": [
+  {
+   "field": "VERBATIM_SCIENTIFIC_NAME",
+   "counts": [
+    {
+     "name": "buteo plagiatus",
+     "count": 349574
+    },
+    {
+     "name": "buteo nitidus",
+     "count": 49907
+    }
+   ]
+  }
+ ]
+}

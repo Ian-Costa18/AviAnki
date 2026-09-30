@@ -459,6 +459,16 @@ def test_a_new_eod_version_rebuilds_the_species_half_but_keeps_the_assets(tmp_pa
     assert result.report.reused == 3 and result.ok
 
 
+def test_refresh_species_rebuilds_the_species_half_when_the_eod_version_is_unchanged(
+    tmp_path: Path, first: BuildResult
+):
+    commons, inat = full_sources()
+    result, source, seen = go(tmp_path / "two", commons, inat, previous=first.catalog, refresh_species=True)
+    assert source.calls == ["us-ri", "us-dc"] and seen["expected"]
+    assert commons.calls == [] and inat.calls == []
+    assert result.report.reused == 3 and result.ok
+
+
 def test_an_excluded_token_invalidates_the_sticky_asset_and_only_that_role_is_rebuilt(
     tmp_path: Path, first: BuildResult
 ):
