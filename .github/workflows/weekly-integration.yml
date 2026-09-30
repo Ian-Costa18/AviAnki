@@ -1,3 +1,15 @@
+# The weekly integration check (ADR 0020): the real sources and the published site, with no skips.
+#
+#   1. Source smoke tests: Commons and iNaturalist for Northern Cardinal, Brown Pelican and
+#      Whimbrel; every candidate's licence record is complete.
+#   2. GBIF EOD: species_for("us-ma") lists at least 300 species; a changed dataset version is
+#      reported as a notice.
+#   3. The published site: manifest, a random media file with CORS, the web app; plus the live
+#      deck (imported into Anki) and the live web build (Chromium).
+#   4. eBird (CLI path): only when EBIRD_API_KEY is set. This is the one allowed skip.
+#
+# A network failure is a failure. scripts/weekly_summary.py reads the JUnit report, fails the
+# job if any test other than the eBird one was skipped, and writes the job summary.
 name: Weekly Integration Check
 
 on:
@@ -8,46 +20,72 @@ on:
 jobs:
   integration:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # The GBIF check makes about 400 uncached requests (6-8 minutes); the rest is the live deck
+    # and web builds (about 200 media files each) and the BirdNET model download.
+    timeout-minutes: 60
     env:
       EBIRD_API_KEY: ${{ secrets.EBIRD_API_KEY }}
+      # birdnet downloads its 77 MB model on first use; pinning the location lets it be cached.
+      BIRDNET_APP_DATA: ${{ github.workspace }}/.cache/birdnet
     steps:
       - uses: actions/checkout@v4
 
+      # 3.13, not 3.14: the optional birdnet dependency has no wheels for 3.14 (the `verify` extra
+      # in pyproject.toml), and the BirdNET live test must run, not skip.
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.14"
+          python-version: "3.13"
 
       - name: Set up uv
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
 
-      - name: Install dev dependencies
-        run: uv sync --group dev
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
 
+      - name: Install dependencies
+        run: uv sync --locked --python 3.13 --group dev --extra catalog --extra verify
+
+      # Same cache key as catalog.yml, so the two share the model file.
+      - name: Cache BirdNET model
+        uses: actions/cache@v4
+        with:
+          path: .cache/birdnet
+          key: birdnet-acoustic-2.4-tf-fp32-v1
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+
+      # The live web test skips itself when the browser is missing, and a skip fails the run below,
+      # but a failed install should say so here.
+      - name: Install Playwright Chromium
+        run: uv run --no-sync playwright install --with-deps chromium
+
+      # -m integration: only the live tests, so unrelated skips (WebKit and the like) can't mask
+      # or mimic an integration skip. --no-sync keeps the extras installed above.
       - name: Run integration tests
-        id: tests
-        run: uv run pytest --integration -rs
+        run: >
+          uv run --no-sync pytest --integration -m integration -rs
+          -o junit_family=xunit1 --junitxml=integration-junit.xml
 
-      - name: Write job summary
+      # Always runs, so the summary exists for a failed run too. Fails the job when any test other
+      # than the eBird one was skipped, or a check ran no tests.
+      - name: Write job summary and enforce no skips
         if: ${{ always() }}
-        run: |
-          {
-            echo "## Weekly integration check"
-            echo ""
-            echo "**Covers today:** the eBird smoke test and the live us-ma acceptance test (the published catalog built and imported into Anki), per ADR 0020 interim."
-            echo "Source smoke tests, GBIF EOD and the published-site check are added once those sources exist (M2-M3)."
-            echo "allaboutbirds.org is dormant (ADR 0002) and not monitored."
-            echo ""
-            if [ -z "$EBIRD_API_KEY" ]; then
-              echo "> [!WARNING]"
-              echo "> **eBird smoke test SKIPPED:** the \`EBIRD_API_KEY\` secret is not set, so this run tested nothing."
-            else
-              echo "eBird smoke test ran: **${{ steps.tests.outcome }}**."
-            fi
-          } >> "$GITHUB_STEP_SUMMARY"
+        run: python scripts/weekly_summary.py integration-junit.xml
+
+      - name: Keep the test report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-junit
+          path: integration-junit.xml
+          if-no-files-found: ignore
 
   notify-on-failure:
     needs: integration
