@@ -27,7 +27,7 @@ def species_codes(payload: Any, what: str) -> list[str]:
     """``product/spplist/<region>``: a JSON array of eBird species codes, in eBird's order."""
     if not isinstance(payload, list) or not all(isinstance(c, str) and c for c in payload):
         raise SourceError(f"eBird species list for {what} is not a list of species codes")
-    return list(dict.fromkeys(payload))  # a code twice would only make a duplicate note
+    return list(dict.fromkeys(str(c) for c in payload))  # a code twice would only make a duplicate note
 
 
 def taxonomy_rows(payload: Any) -> dict[str, TaxonRow]:

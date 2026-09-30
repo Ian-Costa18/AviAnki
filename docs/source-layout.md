@@ -2,7 +2,7 @@
 
 The living map of the repo's layout, from [ADR 0018](adr/0018-package-layout.md). Update it in the same change as any file that adds, removes or moves a slice.
 
-**Status:** target layout, partly built (M2 and M3 done: core, taxonomy, the source contract, the GBIF, Commons and iNaturalist sources, media processing, and the catalog build; M5 in progress: `deck/` and `catalog/client.py` are built). Items marked *(today)* already exist; everything under `core/`, `taxonomy/`, `sources/` (except the eBird and All About Birds SpeciesSources), `media/` (except the 0.9 helpers), `catalog/` and `deck/` is built. The flat 0.9 modules (`cli.py`, `ebird.py`, `allaboutbirds.py`, `anki_model.py`, `card.css`) are still in place until the 1.0.0 CLI rewrite; `deck/` replaces `anki_model.py` and `card.css`.
+**Status:** M5 is done: the 1.0 pipeline (catalog client, then deck) is built end to end, `cli.py` is rewritten, and the 0.9 flat modules are gone. Everything under `src/avianki/` is built; items marked *(today)* exist. `web/` and `tests/web/` are not built yet (M6). `sources/allaboutbirds/` is present but deliberately unregistered ([ADR 0002](adr/0002-allaboutbirds-dormant.md)).
 
 ```text
 src/avianki/
@@ -24,10 +24,12 @@ src/avianki/
     inaturalist/         AssetSource: photo fallback, audio  (today)
       source.py          INaturalistSource: taxon mapping + plausibility check (ADR 0008), candidates, fetch, pins
       parse.py           pure: /taxa, species_counts and observation parsing; the photo and sound gates (ADR 0011)
-    ebird/               SpeciesSource, republishable=False, CLI only      (today: ebird.py)
-    allaboutbirds/       present, NOT registered                            (today: allaboutbirds.py)
+    ebird/               SpeciesSource, republishable=False, used only by catalog/adhoc.py  (today)
+      source.py            EbirdSpeciesSource: species list + taxonomy over the injected HttpClient; the token goes in a header
+      parse.py             pure: species-code list and taxonomy payload parsers
+    allaboutbirds/       present, NOT registered (dormant, ADR 0002); scrape.py is the 0.9 scraper, unused  (today)
   media/                 → core
-    __init__.py          the 0.9 helpers (download_file, trim_to_mp3, find_cached*) until the 1.0.0 CLI rewrite; re-exports MediaError  (today)
+    __init__.py          docstring; re-exports MediaError  (today)
     errors.py            MediaError, ImageRejected (no third-party imports)  (today)
     images.py            inspect, resize → WebP, byte cap; needs Pillow (extra avianki[catalog])  (today)
     audio.py             window trim, high-pass, loudnorm, MP3 via ffmpeg on PATH  (today)
@@ -39,7 +41,8 @@ src/avianki/
     credit.py            renders the answer-side credit HTML (ADR 0012)  (today)
     pins.py              loads and validates data/pins.toml; a pin is "<source>:<token>"  (today)
     select.py            pure selection rules: candidate screening, stickiness, provenance and credit for a chosen asset, overall species order  (today)
-    build.py             pipeline orchestration: run_build(), and the public build_species() used by --ebird  (today)
+    build.py             pipeline orchestration: run_build(), and the public build_species() used by adhoc.py  (today)
+    adhoc.py             the one place the CLI crosses upstream: eBird species list, id mapping, live build of species the catalog lacks (`avianki --ebird`, ADR 0017)  (today)
     validate.py          the publish gate (ADR 0014): stable-coded checks, shrink limits, `format_result`  (today)
     report.py            `BuildReport` + build-report.md, contact-sheet.html, credits.html  (today)
     client.py            reads a published catalog (manifest → region → species → media) from a URL or directory into a per-user cache; imports only format and core, works without the catalog extra  (today)
@@ -48,9 +51,9 @@ src/avianki/
     card.css             carried-forward styling plus `.credits`  (today)
     credits.py           Credits field + deck description  (today)
     build.py             frozen deck id and note GUID, `select_species`, `plan_notes`, the genanki writer `write_deck`  (today)
-  cli.py                 `avianki`: deck, catalog, --ebird         (today, to be rewritten at 1.0.0)
+  cli.py                 `avianki REGION` and `avianki --ebird CODE` (ADR 0017)  (today)
   catalog_cli.py         `avianki-catalog build`  (today; `build --species-only` runs the species half alone; validation and the reports run inside `build`)
-  redact.py              CLI-only (core + itself), until Description→Name returns     (today)
+  redact.py              imports nothing from the package; unused until Description→Name returns  (today)
 
 web/                     imports no Python; depends only on catalog/format.py's documented schema
   index.html
@@ -70,7 +73,7 @@ src/avianki/data/        package data: ships in the wheel, found through taxonom
   pins.toml              pins, exclusions, credit-removal requests (ADR 0011)
 
 tests/                   mirrors src/avianki/
-  core/ taxonomy/ sources/ media/ catalog/ deck/
+  core/ taxonomy/ sources/ media/ catalog/ deck/ cli/ packaging/  (today)
   scripts/               assemble_site.py and fetch_latest_catalog.sh (fake `gh` on PATH)
   test_layout.py         enforces the dependency rule
   web/                   Playwright, incl. mobile emulation + heap cap
@@ -81,7 +84,6 @@ tests/                   mirrors src/avianki/
 scripts/
   assemble_site.py         stdlib-only: catalog dir + web/ (or a stub index) → the Pages tree, .nojekyll, 900 MB guard  (today)
   fetch_latest_catalog.sh  downloads and extracts the newest catalog-* release; shared by catalog.yml and pages.yml  (today)
-  gen_examples.py        regenerates the card screenshots in examples/                                  (today)
 
 .github/workflows/
   ci.yml                 lint, types, unit tests, layout test                (today)
@@ -96,4 +98,4 @@ scripts/
 
 > Nothing downstream of the published catalog imports anything upstream of it.
 
-`deck/`, `cli.py` and `web/` sit downstream. `sources/` and `media/` sit upstream. `catalog/format.py` is the boundary between them. The only permitted crossing is `cli.py --ebird` calling `catalog.build.build_species()`. `tests/test_layout.py` enforces the rule.
+`deck/`, `cli.py` and `web/` sit downstream. `sources/` and `media/` sit upstream. `catalog/format.py` is the boundary between them. The only permitted crossing is `cli.py` importing `catalog/adhoc.py` for `--ebird`, which calls `catalog.build.build_species()` and the eBird source (amended in M5: one module rather than one function, because the CLI also needs its exceptions). `tests/test_layout.py` enforces the rule.

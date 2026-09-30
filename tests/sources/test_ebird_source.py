@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from typing import Any
 
 import pytest
@@ -85,12 +86,24 @@ def test_non_species_taxa_are_left_out() -> None:
     assert [r.rank for r in records] == [1, 2]  # ranks stay dense
 
 
-def test_a_code_missing_from_the_taxonomy_is_skipped_with_a_warning(caplog: pytest.LogCaptureFixture) -> None:
-    session = Session({SPPLIST: ["bkcchi", "zzzzzz"], TAXONOMY: TAXA[:1]})
-    with caplog.at_level("WARNING", logger="bird_deck"):
+def test_a_code_missing_from_the_taxonomy_is_skipped_with_a_warning() -> None:
+    seen: list[str] = []
+
+    class Grab(logging.Handler):
+        def emit(self, record: logging.LogRecord) -> None:
+            seen.append(record.getMessage())
+
+    # A handler on the logger itself: other tests may leave "bird_deck" with propagate=False.
+    logger = logging.getLogger("bird_deck")
+    handler = Grab(level=logging.WARNING)
+    logger.addHandler(handler)
+    try:
+        session = Session({SPPLIST: ["bkcchi", "zzzzzz"], TAXONOMY: TAXA[:1]})
         records = source(session).species_for("US-MA")
+    finally:
+        logger.removeHandler(handler)
     assert [r.source_key for r in records] == ["bkcchi"]
-    assert "zzzzzz" in caplog.text
+    assert any("zzzzzz" in m for m in seen)
 
 
 def test_an_empty_taxonomy_answer_is_a_failure_not_an_empty_list() -> None:
