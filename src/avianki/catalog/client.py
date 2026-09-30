@@ -27,7 +27,6 @@ import os
 import re
 import sys
 import time
-import unicodedata
 import uuid
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from pathlib import Path
@@ -49,6 +48,7 @@ from avianki.catalog.format import (
     media_filename,
 )
 from avianki.core.http import default_user_agent
+from avianki.core.text import fold
 
 log = logging.getLogger("bird_deck")
 
@@ -117,13 +117,6 @@ def default_cache_dir(
     # The XDG spec says a relative value is invalid and must be ignored.
     base = Path(xdg) if xdg and Path(xdg).is_absolute() else home / ".cache"
     return base / "avianki"
-
-
-def _fold(text: str) -> str:
-    """Case-, accent- and whitespace-insensitive form: ``" Québec"`` -> ``"quebec"``."""
-    decomposed = unicodedata.normalize("NFKD", text)
-    stripped = "".join(c for c in decomposed if not unicodedata.combining(c))
-    return " ".join(stripped.casefold().split())
 
 
 def _write_atomic(path: Path, data: bytes) -> None:
@@ -258,11 +251,11 @@ class CatalogClient:
         the name).
         """
         regions = self._current_manifest().regions
-        key = _fold(query)
+        key = fold(query)
         for ref in regions:
             if ref.slug == key:
                 return ref
-        by_name = [ref for ref in regions if _fold(ref.name) == key]
+        by_name = [ref for ref in regions if fold(ref.name) == key]
         if len(by_name) == 1:
             return by_name[0]
         if by_name:
@@ -274,7 +267,7 @@ class CatalogClient:
         labels: dict[str, RegionRef] = {}
         for ref in regions:
             labels.setdefault(ref.slug, ref)
-            labels.setdefault(_fold(ref.name), ref)
+            labels.setdefault(fold(ref.name), ref)
         found: list[RegionRef] = []
         if len(key) >= 3:
             found += [ref for label, ref in labels.items() if key in label]

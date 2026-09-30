@@ -10,6 +10,7 @@ src/avianki/
     http.py              throttled, cached, budgeted client; honours Limits and Retry-After; one User-Agent  (today)
     licences.py          exact versioned allowlist; AssetRecord (licence research §5.1)  (today)
     log.py               the "bird_deck" logger setup  (today)
+    text.py              `fold`, the case-, accent- and space-insensitive key every name lookup uses  (today)
   taxonomy/              → core
     species.py           loads data/species.csv (shipped in the wheel): minted ids, per-source keys, aliases  (today)
     regions.py           loads data/regions.csv (shipped in the wheel): slug ↔ GADM gid ↔ eBird code  (today)

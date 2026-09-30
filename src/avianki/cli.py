@@ -37,6 +37,7 @@ from avianki.catalog.client import (
 from avianki.catalog.format import DEFAULT_BASE_URL, Manifest, RegionFile, SpeciesFile
 from avianki.core.http import SourceError
 from avianki.core.log import setup_logging, teardown_logging
+from avianki.core.text import fold
 from avianki.deck.build import (
     DECK_NAME,
     STANDARD_LIMIT,
@@ -204,15 +205,11 @@ def _region_rows() -> list[dict[str, str]]:
         return []
 
 
-def _fold(text: str) -> str:
-    return " ".join(text.casefold().split())
-
-
 def _known_ebird_region(query: str) -> tuple[str, str] | None:
     """``(eBird code, display name)`` when ``query`` is the code, slug or name of a regions.csv row."""
-    key = _fold(query)
+    key = fold(query)
     for row in _region_rows():
-        if key in (_fold(row["ebird_code"]), _fold(row["slug"]), _fold(row["name"])):
+        if key in (fold(row["ebird_code"]), fold(row["slug"]), fold(row["name"])):
             return row["ebird_code"], row["name"]
     return None
 

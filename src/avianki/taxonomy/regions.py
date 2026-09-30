@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import csv
-import unicodedata
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, fields
 from pathlib import Path
 
+from avianki.core.text import fold
 from avianki.taxonomy import DATA_DIR
 
 REGIONS_CSV = DATA_DIR / "regions.csv"
@@ -26,13 +26,6 @@ class RegionRow:
 HEADER = tuple(f.name for f in fields(RegionRow))
 
 
-def _fold(text: str) -> str:
-    """Case-, accent- and whitespace-insensitive key, so "quebec" finds "Québec"."""
-    decomposed = unicodedata.normalize("NFKD", text)
-    stripped = "".join(c for c in decomposed if not unicodedata.combining(c))
-    return " ".join(stripped.casefold().split())
-
-
 class RegionTable:
     def __init__(self, rows: Iterable[RegionRow]) -> None:
         self._rows = sorted(rows, key=lambda r: r.slug)
@@ -43,7 +36,7 @@ class RegionTable:
         for row in self._rows:
             for index, key, label in (
                 (self._by_slug, row.slug.lower(), "slug"),
-                (self._by_name, _fold(row.name), "name"),
+                (self._by_name, fold(row.name), "name"),
                 (self._by_ebird, row.ebird_code.upper(), "ebird_code"),
             ):
                 if key in index:
@@ -70,7 +63,7 @@ class RegionTable:
         return self._lookup(self._by_slug, slug.strip().lower(), slug, "slug")
 
     def by_name(self, name: str) -> RegionRow:
-        return self._lookup(self._by_name, _fold(name), name, "name")
+        return self._lookup(self._by_name, fold(name), name, "name")
 
     def by_ebird(self, code: str) -> RegionRow:
         return self._lookup(self._by_ebird, code.strip().upper(), code, "eBird code")
