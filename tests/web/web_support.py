@@ -99,6 +99,13 @@ class _Server(http.server.ThreadingHTTPServer):
     request_queue_size = 128  # a browser opens many connections at once; the default of 5 refuses some
     daemon_threads = True
 
+    def handle_error(self, request: Any, client_address: Any) -> None:
+        # A browser closing a kept-alive connection isn't a server error.
+        import sys
+
+        if not isinstance(sys.exc_info()[1], (ConnectionResetError, BrokenPipeError, ConnectionAbortedError)):
+            super().handle_error(request, client_address)
+
 
 @contextmanager
 def serve(catalog_dir: Path = CATALOG_DIR) -> Iterator[str]:

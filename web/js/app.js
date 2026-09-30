@@ -114,10 +114,13 @@ function renderFooter() {
   box.replaceChildren();
   for (const c of manifest.dataset_credits ?? []) {
     const p = document.createElement("p");
-    const a = document.createElement("a");
-    a.href = c.url;
-    a.textContent = c.url;
-    p.append(`${c.text}, ${c.licence_id}, `, a, c.modifications ? ` (modified: ${c.modifications})` : "");
+    let link = c.url;
+    if (/^https:\/\//i.test(c.url)) {  // never a javascript: or data: href from catalog data
+      link = document.createElement("a");
+      link.href = c.url;
+      link.textContent = c.url;
+    }
+    p.append(`${c.text}, ${c.licence_id}, `, link, c.modifications ? ` (modified: ${c.modifications})` : "");
     box.append(p);
   }
   $("credits-link").href = new URL("credits.html", manifestUrl()).href;

@@ -99,7 +99,8 @@ tests/                   mirrors src/avianki/
     test_web_app_e2e.py           the page in both engines: Massachusetts, advanced options, Québec, errors, Cache Storage, `?catalog=`, accessibility
     test_web_parts.py             `parts.js` units, and constrained-device builds in parts (three packages equal the single package, out-of-memory fallback)
     test_web_lastmile.py          platform detection, detected device's steps first (Android, iOS, iPadOS, desktop), Share only when `canShare` says so
-    test_web_shell_budget.py      html + css + js under 150 KB (vendor excluded)
+    test_web_catalog_url.py       `?catalog=` honoured on localhost only, never on the public site
+    test_web_shell_budget.py      html + css + js + vendored js under 150 KB gzipped (only the wasm excluded)
     test_web_mobile_heap.py       Pixel 7 profile, 4x CPU throttle, 256 MB heap cap: Standard and Everything-in-parts on the synthetic catalog; iPhone 14 in WebKit
     test_web_live_catalog.py      one build from the published catalog (integration)
   acceptance/            built decks through Anki's own backend (ADR 0019); the live us-ma check is marked integration  (today)

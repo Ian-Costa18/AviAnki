@@ -166,7 +166,7 @@ The code is in `web/`: plain ES modules, vendored `sql.js` and `fflate`, with no
 - *Where do you go birding?* A searchable state/province select, grouped by country and remembered in `localStorage`.
 - **Build my deck**, with the Anki line underneath ([ADR 0016](adr/0016-last-mile.md)).
 - *Advanced* (collapsed): tier, month, card types, subdeck.
-- Footer: dataset credit, licence notice, `credits.html` and a GitHub link.
+- Footer: dataset credit, licence notice, the catalog's `credits.html` (published at `catalog/credits.html`) and a GitHub link.
 
 **Screen 2: Building.** The progress text speaks a bird watcher's language: *"Finding the 100 birds most seen in Massachusetts… Downloading photos and calls (43 of 100)… Packing your deck…"*. Media is fetched with at most 6 in flight, and read from Cache Storage when it's already there. The zip streams into Blob parts ([ADR 0006](adr/0006-browser-builds-the-apkg.md)). On constrained devices, Everything builds in parts of 150, and the page says so *before* starting.
 
@@ -176,12 +176,12 @@ The code is in `web/`: plain ES modules, vendored `sql.js` and `fflate`, with no
 
 - **Network failure:** automatic retry, then *"We couldn't reach the bird catalog. Check your connection and try again."*
 - **Unknown manifest `format`:** *"AviAnki has been updated. Please reload."*
-- **Out of memory:** the next build is automatically split into parts.
+- **Out of memory:** the next build is automatically split into parts: 150 species each, or halves when the build was already 150 or fewer.
 
 **Budgets.**
 
 - A Standard build is about 16 MB and should land in under 10 s on 50 Mbps.
-- The app shell, excluding the 660 KB wasm, should stay under 150 KB.
+- The app shell, excluding the 660 KB wasm, should stay under 150 KB, measured gzipped as GitHub Pages serves it (the vendored `sql-wasm.js` and `fflate.js` count).
 - Peak JS heap for any build should stay under 200 MB ([ADR 0019](adr/0019-verification-without-a-human.md)).
 
 ## 8. The CLI

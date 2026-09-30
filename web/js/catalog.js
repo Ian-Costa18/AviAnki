@@ -28,7 +28,14 @@ export class CatalogError extends Error {
 /** The manifest URL: `?catalog=<url>` when given (for testing against a live catalog), else next to the page. */
 export function manifestUrl(pageHref = globalThis.location?.href) {
   const page = new URL(pageHref);
-  return new URL(page.searchParams.get("catalog") || DEFAULT_MANIFEST, page).href;
+  // ?catalog= is for local development only. On the public site a crafted link could otherwise
+  // build a deck named AviAnki from someone else's catalog, overwriting the user's notes on import.
+  const override = isLocalHost(page.hostname) ? page.searchParams.get("catalog") : null;
+  return new URL(override || DEFAULT_MANIFEST, page).href;
+}
+
+export function isLocalHost(hostname) {
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]";
 }
 
 /** A catalog path (`media/ab12.webp`) as a URL: relative to `manifest.base_url`, ADR 0013. */
