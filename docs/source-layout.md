@@ -2,7 +2,7 @@
 
 The living map of the repo's layout, from [ADR 0018](adr/0018-package-layout.md). Update it in the same change as any file that adds, removes or moves a slice.
 
-**Status:** target layout, partly built (M2 and M3 done: core, taxonomy, the source contract, the GBIF, Commons and iNaturalist sources, media processing, and the catalog build; M5 in progress: `deck/` is built). Items marked *(today)* already exist; everything under `core/`, `taxonomy/`, `sources/` (except the eBird and All About Birds SpeciesSources), `media/` (except the 0.9 helpers) and `catalog/` (except `client.py`, which arrives with M5) and `deck/` is built. The flat 0.9 modules (`cli.py`, `ebird.py`, `allaboutbirds.py`, `anki_model.py`, `card.css`) are still in place until the 1.0.0 CLI rewrite; `deck/` replaces `anki_model.py` and `card.css`.
+**Status:** target layout, partly built (M2 and M3 done: core, taxonomy, the source contract, the GBIF, Commons and iNaturalist sources, media processing, and the catalog build; M5 in progress: `deck/` and `catalog/client.py` are built). Items marked *(today)* already exist; everything under `core/`, `taxonomy/`, `sources/` (except the eBird and All About Birds SpeciesSources), `media/` (except the 0.9 helpers), `catalog/` and `deck/` is built. The flat 0.9 modules (`cli.py`, `ebird.py`, `allaboutbirds.py`, `anki_model.py`, `card.css`) are still in place until the 1.0.0 CLI rewrite; `deck/` replaces `anki_model.py` and `card.css`.
 
 ```text
 src/avianki/
@@ -42,7 +42,7 @@ src/avianki/
     build.py             pipeline orchestration: run_build(), and the public build_species() used by --ebird  (today)
     validate.py          the publish gate (ADR 0014): stable-coded checks, shrink limits, `format_result`  (today)
     report.py            `BuildReport` + build-report.md, contact-sheet.html, credits.html  (today)
-    client.py            reads a published catalog (manifest → species → media), with a local cache
+    client.py            reads a published catalog (manifest → region → species → media) from a URL or directory into a per-user cache; imports only format and core, works without the catalog extra  (today)
   deck/                  → catalog.format, catalog.client, core   (never sources/ or media/)
     notetypes.py         three note types, frozen card types, model seeds and field list  (today)
     card.css             carried-forward styling plus `.credits`  (today)
@@ -75,7 +75,7 @@ tests/                   mirrors src/avianki/
   test_layout.py         enforces the dependency rule
   web/                   Playwright, incl. mobile emulation + heap cap
   acceptance/            built decks through Anki's own backend (ADR 0019)
-  fixtures/catalog/      a tiny published catalog (3 regions, 12 species) for web + CLI tests
+  fixtures/catalog/      a tiny published catalog (3 regions, 12 species, ~90 KB) for web + CLI tests; make_fixture.py regenerates it with the real writers (needs the catalog extra and ffmpeg)  (today)
   fixtures/selection/    cases.json: language-neutral selection cases shared by deck/ and web/js/select.js  (today)
 
 scripts/

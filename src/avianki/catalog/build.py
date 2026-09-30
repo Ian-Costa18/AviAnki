@@ -39,6 +39,7 @@ from pathlib import Path
 from typing import Any, Protocol, cast, runtime_checkable
 
 from avianki.catalog.format import (
+    DEFAULT_BASE_URL,
     DatasetCredit,
     FormatError,
     Kind,
@@ -122,10 +123,6 @@ BREAKER = 5  # consecutive per-species failures after which a source is given up
 GONE = frozenset({404, 410})  # a candidate that has disappeared: not a source failure
 PHOTO_EXT = "webp"
 AUDIO_EXT = "mp3"
-
-# Where the published catalog will live. The manifest schema requires a non-empty base_url;
-# this is the web-app spec's example. Override with `avianki-catalog build --base-url`.
-DEFAULT_BASE_URL = "https://ian-costa18.github.io/AviAnki/catalog/"
 
 
 # ---------------------------------------------------------------------------------------

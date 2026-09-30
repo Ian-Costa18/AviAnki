@@ -1,2 +1,5 @@
 # Shell scripts run on Linux runners; a CRLF checkout on Windows would break their shebang and `set` lines.
 *.sh text eol=lf
+
+# The fixture catalog is content-addressed: line-ending conversion would break its hashes.
+tests/fixtures/catalog/** -text

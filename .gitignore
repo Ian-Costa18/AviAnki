@@ -6,6 +6,7 @@
 # Working files
 media/
 !/src/avianki/media/
+!/tests/fixtures/catalog/media/
 .ephemeral/
 *.apkg*
 *.log
