@@ -22,6 +22,7 @@ import os
 import sys
 import traceback
 from collections.abc import Sequence
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import tqdm
@@ -294,20 +295,22 @@ def _report_missing_region(exc: RegionNotFound | AmbiguousRegion, query: str) ->
         )
 
 
-def _finish(
-    notes: list[PlannedNote],
-    species: SpeciesFile,
-    manifest: Manifest,
-    *,
-    client: CatalogClient,
-    extra_media: dict[str, Path],
-    args: argparse.Namespace,
-    out: Path,
-    subdeck: str | None,
-    ebird: bool,
-    selected: int,
-) -> int:
+@dataclass(frozen=True)
+class _Deck:
+    """What either path hands to `_finish`: the planned notes and what writing them needs."""
+
+    notes: list[PlannedNote]
+    species: SpeciesFile
+    manifest: Manifest
+    out: Path
+    subdeck: str | None
+    selected: int  # species selected, including any left without cards
+    extra_media: dict[str, Path] = field(default_factory=dict)  # files built live by --ebird
+
+
+def _finish(deck: _Deck, client: CatalogClient, args: argparse.Namespace) -> int:
     """Fetch the catalog media, write the deck, print the summary."""
+    notes, out, extra_media = deck.notes, deck.out, deck.extra_media
     catalog_files = [f for f in _needed_files(notes) if f not in extra_media]
     downloaded = _fetch_media(client, catalog_files, args.quiet)
 
@@ -316,16 +319,17 @@ def _finish(
 
     summary = write_deck(
         notes,
-        species,
-        manifest,
+        deck.species,
+        deck.manifest,
         media=media,
         out=out,
         deck_name=args.deck_name,
-        subdeck=subdeck,
-        ebird=ebird,
+        subdeck=deck.subdeck,
+        ebird=args.ebird is not None,
     )
     if args.quiet:
         return EXIT_OK
+    selected = deck.selected
     species_count = len({n.species_id for n in notes})
     by_type = ", ".join(
         f"{count} {_card_label(card_type)}"
@@ -365,10 +369,8 @@ def _catalog_deck(args: argparse.Namespace, client: CatalogClient) -> int:
         )
         return EXIT_FAILED
     out = args.output or Path(f"AviAnki-{ref.slug}.apkg")
-    return _finish(
-        notes, species, manifest, client=client, extra_media={}, args=args, out=out,
-        subdeck=ref.name if args.subdeck else None, ebird=False, selected=len(ids),
-    )
+    subdeck = ref.name if args.subdeck else None
+    return _finish(_Deck(notes, species, manifest, out, subdeck, selected=len(ids)), client, args)
 
 
 def _ebird_deck(args: argparse.Namespace, client: CatalogClient) -> int:
@@ -397,10 +399,7 @@ def _ebird_deck(args: argparse.Namespace, client: CatalogClient) -> int:
             limit=STANDARD_LIMIT if args.tier == TIER_STANDARD else None,
             progress=bar,
         )
-    except InvalidRegionCode as exc:
-        _error(str(exc))
-        return EXIT_USAGE
-    except AdhocUnavailable as exc:
+    except (InvalidRegionCode, AdhocUnavailable) as exc:
         _error(str(exc))
         return EXIT_USAGE
     finally:
@@ -426,10 +425,9 @@ def _ebird_deck(args: argparse.Namespace, client: CatalogClient) -> int:
         _error(f"nothing to write: none of the species eBird lists for {code} has media for the chosen cards.")
         return EXIT_FAILED
     out = args.output or Path(f"AviAnki-{code}.apkg")
-    status = _finish(
-        notes, merged, manifest, client=client, extra_media=adhoc.media, args=args, out=out,
-        subdeck=_region_name_for_code(code) if args.subdeck else None, ebird=True, selected=len(ids),
-    )
+    subdeck = _region_name_for_code(code) if args.subdeck else None
+    deck = _Deck(notes, merged, manifest, out, subdeck, selected=len(ids), extra_media=adhoc.media)
+    status = _finish(deck, client, args)
     print(EBIRD_NOTICE)  # always shown, even with -q: it is a licence condition
     return status
 
