@@ -1,6 +1,6 @@
 # AviAnki web app — specification
 
-**Status:** Accepted, 2026-09-28 · **Map:** [#6](https://github.com/Ian-Costa18/AviAnki/issues/6) · **Product requirements:** [`PRD.md`](PRD.md) · **Decisions:** [`adr/`](adr/README.md) · **Layout:** [`source-layout.md`](source-layout.md)
+**Status:** Implemented in 1.0.0, 2026-09-30 (accepted 2026-09-28) · **Map:** [#6](https://github.com/Ian-Costa18/AviAnki/issues/6) · **Product requirements:** [`PRD.md`](PRD.md) · **Decisions:** [`adr/`](adr/README.md) · **Layout:** [`source-layout.md`](source-layout.md)
 
 This spec is the destination of map #6. Someone holding this document, the PRD and the ADRs should be able to build AviAnki 1.0 with no architectural question left open. Where this document and an ADR disagree, the ADR wins, and this document gets fixed.
 
