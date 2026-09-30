@@ -19,9 +19,11 @@ import html
 import json
 from collections import Counter
 from dataclasses import dataclass, field
+from typing import Any
 
 from avianki.catalog.credit import credit_is_safe, is_http_url, licence_label
 from avianki.catalog.format import LoadedCatalog, MediaRef, ProvenanceEntry
+from avianki.catalog.species_lists import group_re_resolved
 from avianki.catalog.validate import Problem, ValidationResult
 from avianki.core.licences import is_allowed, licence_url
 
@@ -91,6 +93,10 @@ class BuildReport:
     # species id -> {"inat_taxon_id"|"wikipedia_title"|"birdnet_label": value} found this
     # run; the diff a maintainer commits to data/species.csv.
     new_ids_discovered: dict[str, dict[str, str]] = field(default_factory=dict)
+    # GBIF backbone keys named by eBird's own names, not the IOC entry for the key (ADR 0024), and the
+    # regional records dropped from split keys over 10%. The source's `ReResolved`/`DroppedMinority` items.
+    re_resolved: list[Any] = field(default_factory=list)
+    dropped_minorities: list[Any] = field(default_factory=list)
     # Species that reuse their previous release entry vs species built fresh this run.
     reused: int = 0
     built: int = 0
@@ -244,6 +250,29 @@ def _report_markdown(r: BuildReport, validation: ValidationResult | None = None)
             [
                 f"{_md(f.species_id)} ({_md(f.source)}): {_md(f.detail)}"
                 for f in sorted(r.plausibility_flags, key=lambda f: (f.species_id, f.source, f.detail))
+            ]
+        ),
+    )
+    groups = group_re_resolved(r.re_resolved)
+    lines += _section(
+        f"Re-resolved GBIF keys ({len(groups)}); eBird's own name, not the IOC entry for the key (ADR 0024)",
+        _bullets(
+            [
+                f"key {_md(g.source_key)}: {_md(g.old_common_name)} ({_md(g.old_sci_name)}) -> "
+                f"{_md(g.common_name)} ({_md(g.sci_name)}); {g.share} of its records; "
+                f"{len(g.regions)} region(s): {_md(', '.join(g.regions[:8]))}"
+                f"{f' and {len(g.regions) - 8} more' if len(g.regions) > 8 else ''}"
+                for g in groups
+            ]
+        ),
+    )
+    lines += _section(
+        f"Split GBIF keys that dropped over 10% of a region's records ({len(r.dropped_minorities)})",
+        _bullets(
+            [
+                f"key {_md(d.source_key)} in {_md(d.region)}: kept {_md(d.common_name)} ({_md(d.sci_name)}), "
+                f"{round(100 * d.kept_share)}% of the key's records; dropped {_md(', '.join(d.dropped))}"
+                for d in sorted(r.dropped_minorities, key=lambda d: (int(d.source_key), d.region))
             ]
         ),
     )

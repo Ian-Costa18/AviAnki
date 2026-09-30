@@ -996,6 +996,9 @@ def run_build(
     report.catalog_version = options.catalog_version
     report.source_failures = [*failures, *report.source_failures]
     report.notes = [*notes, *report.notes]
+    if result.lists is not None:
+        report.re_resolved = list(result.lists.re_resolved)
+        report.dropped_minorities = list(result.lists.dropped_minorities)
     result.report = report
 
     # -- write ---------------------------------------------------------------------------

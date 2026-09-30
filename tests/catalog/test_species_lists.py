@@ -6,8 +6,8 @@ import pytest
 
 from avianki.core.http import SourceError
 from avianki.sources.contract import Region, SpeciesRecord, SpeciesSource
-from avianki.sources.gbif import NameFallback
-from avianki.catalog.species_lists import build_species_lists
+from avianki.sources.gbif import DroppedMinority, NameFallback, ReResolved
+from avianki.catalog.species_lists import build_species_lists, group_re_resolved, render_report
 from avianki.taxonomy.species import SpeciesRow, SpeciesTable
 
 MA = Region("us-ma", "Massachusetts", "US", "USA.22_1")
@@ -179,3 +179,84 @@ def test_an_unmintable_name_is_skipped_and_reported():
     result = build_species_lists(source, [RI], SpeciesTable())
     assert [s[0] for s in result.region_files["us-ri"]["species"]] == ["anas-rubripes"]
     assert [(r.source_key, r.sci_name) for r in result.unmintable] == [("1", "Anas platyrhynchos × rubripes")]
+
+
+# ── ADR 0024: keys named by eBird's own names ────────────────────────────────────
+
+
+class ReResolvingSource(FakeSource):
+    """A source that reports the keys it re-resolved and the records it dropped (ADR 0024)."""
+
+    def __init__(self, lists, re_resolved=(), dropped=(), **kwargs):
+        super().__init__(lists, **kwargs)
+        self._re_resolved = list(re_resolved)
+        self._dropped = list(dropped)
+
+    def re_resolved(self):
+        return self._re_resolved
+
+    def dropped_minorities(self):
+        return self._dropped
+
+
+CIRCUS_MOVED = ReResolved("2480487", "us-ma", "Circus cyaneus", "Hen Harrier", "Circus hudsonius",
+                          "Northern Harrier", 0.96)
+CIRCUS_MOVED_RI = ReResolved("2480487", "us-ri", "Circus cyaneus", "Hen Harrier", "Circus hudsonius",
+                             "Northern Harrier", 0.6)
+SWAMPHEN_DROPPED = DroppedMinority("2474416", "us-az", "Porphyrio porphyrio", "Western Swamphen", 0.7,
+                                   ("Porphyrio poliocephalus",))
+
+
+def test_a_re_resolved_record_mints_its_own_species_beside_the_one_that_owns_the_backbone_key():
+    hen = SpeciesRow("circus-cyaneus", "Circus cyaneus", "Hen Harrier", gbif_key=2480487)
+    # the source hands the chosen species' own backbone key, not the lumped 2480487
+    source = FakeSource({"us-ma": [rec("Circus hudsonius", "Northern Harrier", 6101217, 1)]})
+    table = SpeciesTable([hen])
+    result = build_species_lists(source, [MA], table)
+    assert [s[0] for s in result.region_files["us-ma"]["species"]] == ["circus-hudsonius"]
+    assert result.minted == [SpeciesRow("circus-hudsonius", "Circus hudsonius", "Northern Harrier",
+                                        gbif_key=6101217)]
+    assert table.by_gbif_key(2480487).id == "circus-cyaneus"
+
+
+def test_re_resolved_and_dropped_items_are_carried_into_the_result():
+    source = ReResolvingSource({"us-ma": [rec("Circus hudsonius", "Northern Harrier", 6101217, 1)]},
+                               re_resolved=[CIRCUS_MOVED], dropped=[SWAMPHEN_DROPPED])
+    result = build_species_lists(source, [MA], SpeciesTable())
+    assert result.re_resolved == [CIRCUS_MOVED]
+    assert result.dropped_minorities == [SWAMPHEN_DROPPED]
+
+
+def test_a_source_that_does_not_report_re_resolution_has_none():
+    result = build_species_lists(FakeSource({"us-ri": [rec("Turdus migratorius", "American Robin", 9510564, 1)]}),
+                                 [RI], SpeciesTable([ROBIN]))
+    assert result.re_resolved == []
+    assert result.dropped_minorities == []
+
+
+def test_group_re_resolved_folds_the_regions_of_one_key_into_a_share_range():
+    (group,) = group_re_resolved([CIRCUS_MOVED_RI, CIRCUS_MOVED])
+    assert (group.source_key, group.sci_name, group.regions) == ("2480487", "Circus hudsonius", ("us-ma", "us-ri"))
+    assert group.share == "60-96%"
+    assert group_re_resolved([CIRCUS_MOVED])[0].share == "96%"
+
+
+def test_the_report_shows_re_resolved_keys_and_dropped_records():
+    source = ReResolvingSource({"us-ma": [rec("Circus hudsonius", "Northern Harrier", 6101217, 1)]},
+                               re_resolved=[CIRCUS_MOVED_RI, CIRCUS_MOVED], dropped=[SWAMPHEN_DROPPED])
+    result = build_species_lists(source, [MA], SpeciesTable())
+    md = render_report(result, [MA], 100)
+    assert "- Backbone keys named by eBird's own names, not the IOC entry for the key: 1" in md
+    assert "## Re-resolved keys (ADR 0024)" in md
+    assert "| 2480487 | Hen Harrier (Circus cyaneus) | Northern Harrier (Circus hudsonius) | 60-96% | us-ma, us-ri |" in md
+    assert "## Records dropped from split keys (over 10%)" in md
+    assert "| 2474416 | us-az | Western Swamphen (Porphyrio porphyrio) | 70% | Porphyrio poliocephalus |" in md
+
+
+def test_the_report_has_no_re_resolved_sections_when_nothing_moved():
+    result = build_species_lists(FakeSource({"us-ri": [rec("Turdus migratorius", "American Robin", 9510564, 1)]}),
+                                 [RI], SpeciesTable([ROBIN]))
+    md = render_report(result, [RI], 100)
+    assert "Re-resolved keys" not in md
+    assert "Records dropped" not in md
+    assert "named by eBird's own names, not the IOC entry for the key: 0" in md

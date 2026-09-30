@@ -25,6 +25,7 @@ from avianki.catalog.report import (
     render_credits_page,
 )
 from avianki.catalog.validate import Problem, ValidationResult
+from avianki.sources.gbif import DroppedMinority, ReResolved
 from catalog_fakes import Sp, build_catalog, mutated_copy, write_parts
 
 EVIL = "<script>alert(1)</script>"
@@ -228,6 +229,8 @@ def test_empty_report_says_none_everywhere() -> None:
         "## Species without audio (0)\n\nnone",
         "## Plausibility flags (0)\n\nnone",
         "## Unmapped species (0)\n\nnone",
+        "(0); eBird's own name, not the IOC entry for the key (ADR 0024)\n\nnone",
+        "## Split GBIF keys that dropped over 10% of a region's records (0)\n\nnone",
     ):
         assert heading in md
     assert "SOURCE FAILURES" not in md
@@ -357,3 +360,33 @@ def test_build_report_escapes_hostile_strings() -> None:
     assert "<script" not in md
     assert "&lt;script&gt;" in md
 
+
+
+def test_the_build_report_lists_re_resolved_keys_by_key_and_new_name() -> None:
+    moved = ReResolved("2480487", "us-ma", "Circus cyaneus", "Hen Harrier", "Circus hudsonius", "Northern Harrier", 0.96)
+    moved_ri = ReResolved("2480487", "us-ri", "Circus cyaneus", "Hen Harrier", "Circus hudsonius", "Northern Harrier",
+                          0.6)
+    md = BuildReport(re_resolved=[moved_ri, moved]).to_markdown()
+    assert "## Re-resolved GBIF keys (1); eBird's own name, not the IOC entry for the key (ADR 0024)" in md
+    assert (
+        "- key 2480487: Hen Harrier (Circus cyaneus) -> Northern Harrier (Circus hudsonius); 60-96% of its "
+        "records; 2 region(s): us-ma, us-ri"
+    ) in md
+
+
+def test_the_build_report_lists_split_keys_that_dropped_over_a_tenth() -> None:
+    dropped = DroppedMinority("2474416", "us-az", "Porphyrio porphyrio", "Western Swamphen", 0.7,
+                              ("Porphyrio poliocephalus",))
+    md = BuildReport(dropped_minorities=[dropped]).to_markdown()
+    assert "## Split GBIF keys that dropped over 10% of a region's records (1)" in md
+    assert (
+        "- key 2474416 in us-az: kept Western Swamphen (Porphyrio porphyrio), 70% of the key's records; "
+        "dropped Porphyrio poliocephalus"
+    ) in md
+
+
+def test_the_build_report_escapes_hostile_re_resolved_names() -> None:
+    moved = ReResolved("1", EVIL, EVIL, EVIL, EVIL, EVIL, 1.0)
+    dropped = DroppedMinority("1", EVIL, EVIL, EVIL, 0.5, (EVIL,))
+    md = BuildReport(re_resolved=[moved], dropped_minorities=[dropped]).to_markdown()
+    assert EVIL not in md

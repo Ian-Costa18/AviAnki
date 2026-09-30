@@ -33,5 +33,8 @@
  "https://api.gbif.org/v1/species/5739277/synonyms?limit=100": "syn_5739277.json",
  "https://api.gbif.org/v1/species/9751099": "species_9751099.json",
  "https://api.gbif.org/v1/species/9770031": "species_9770031.json",
- "https://api.gbif.org/v1/species/search?datasetKey=c696e5ee-9088-4d11-bdae-ab88daffab78&limit=1000&offset=0&rank=SPECIES&status=ACCEPTED": "ioc_checklist_slice.json"
+ "https://api.gbif.org/v1/species/search?datasetKey=c696e5ee-9088-4d11-bdae-ab88daffab78&limit=1000&offset=0&rank=SPECIES&status=ACCEPTED": "ioc_checklist_slice.json",
+ "https://api.gbif.org/v1/occurrence/search?datasetKey=4fa7b334-ce0d-4e88-aaae-2e0c138d049e&facet=verbatimScientificName&facetLimit=100&limit=0&speciesKey=2481875": "verbatim_2481875.json",
+ "https://api.gbif.org/v1/occurrence/search?datasetKey=4fa7b334-ce0d-4e88-aaae-2e0c138d049e&facet=verbatimScientificName&facetLimit=100&limit=0&speciesKey=2484597": "verbatim_2484597.json",
+ "https://api.gbif.org/v1/occurrence/search?datasetKey=4fa7b334-ce0d-4e88-aaae-2e0c138d049e&facet=verbatimScientificName&facetLimit=100&limit=0&speciesKey=10542232": "verbatim_10542232.json"
 }

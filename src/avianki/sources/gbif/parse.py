@@ -6,6 +6,7 @@ turns a malformed or truncated response into a shorter list.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from fractions import Fraction
@@ -41,6 +42,48 @@ def facet_counts(payload: Any, field: str, facet_limit: int, what: str) -> dict[
     return counts
 
 
+_PLAIN_WORD = re.compile(r"[a-z]+(?:-[a-z]+)*")
+
+
+def binomial(name: str) -> str | None:
+    """A plain scientific name cut to ``"genus species"``, lower-case; None for anything else.
+
+    eBird's names include subspecies groups (``circus cyaneus hudsonius``: cut), and
+    also ``sp.`` records, slashes and hybrids, which name no single species (None).
+    """
+    words = " ".join(name.lower().split()).split(" ")
+    if len(words) < 2 or any(not _PLAIN_WORD.fullmatch(w) for w in words) or "x" in words[1:]:
+        return None
+    return f"{words[0]} {words[1]}"
+
+
+def verbatim_name_counts(payload: Any, facet_limit: int, what: str) -> dict[str, int]:
+    """``{name: records}`` from a ``verbatimScientificName`` facet, the names cut to their binomial.
+
+    A name that isn't a plain binomial is kept whole (lower-case), so the caller can tell it
+    apart from a species. Records under names that cut to the same binomial are summed.
+    An empty facet raises: the caller asks about a key that has records, so "none" is malformed.
+    """
+    field = "VERBATIM_SCIENTIFIC_NAME"
+    try:
+        (facet,) = [f for f in payload["facets"] if f["field"] == field]
+        buckets = [(str(b["name"]), int(b["count"])) for b in facet["counts"]]
+    except (KeyError, TypeError, ValueError) as e:
+        raise SourceError(f"gbif: malformed {field} facet for {what}: {e!r}") from e
+    if len(buckets) >= facet_limit:
+        raise SourceError(
+            f"gbif: {field} facet for {what} returned {len(buckets)} buckets, the facetLimit; "
+            "the list may be truncated"
+        )
+    if not buckets or any(not name.strip() or c <= 0 for name, c in buckets):
+        raise SourceError(f"gbif: {field} facet for {what} is empty or has an unnamed or non-positive bucket")
+    counts: dict[str, int] = {}
+    for name, c in buckets:
+        norm = binomial(name) or " ".join(name.lower().split())
+        counts[norm] = counts.get(norm, 0) + c
+    return counts
+
+
 def _round_half_up(x: Fraction) -> int:
     return int((x + Fraction(1, 2)).__floor__())
 
@@ -71,6 +114,7 @@ def monthly_vector(counts: Mapping[int, int], totals: Mapping[int, int], what: s
 class IocName:
     sci_name: str
     common_name: str | None
+    nub_key: int | None = None  # the species' own GBIF backbone key
 
 
 def ioc_entries(payload: Any) -> tuple[list[tuple[int, IocName]], int, bool]:
@@ -83,7 +127,8 @@ def ioc_entries(payload: Any) -> tuple[list[tuple[int, IocName]], int, bool]:
             if nub is None:
                 continue
             eng = [v["vernacularName"] for v in r.get("vernacularNames", []) if v.get("language") == "eng"]
-            out.append((int(nub), IocName(" ".join(str(r["canonicalName"]).split()), eng[0] if eng else None)))
+            name = IocName(" ".join(str(r["canonicalName"]).split()), eng[0] if eng else None, int(nub))
+            out.append((int(nub), name))
         return out, int(payload["count"]), bool(payload["endOfRecords"])
     except (KeyError, TypeError, ValueError) as e:
         raise SourceError(f"gbif: malformed IOC checklist page: {e!r}") from e

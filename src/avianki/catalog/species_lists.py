@@ -31,6 +31,50 @@ class ReportsNameFallbacks(Protocol):
     def name_fallbacks(self) -> list[Any]: ...
 
 
+@runtime_checkable
+class ReportsReResolved(Protocol):
+    def re_resolved(self) -> list[Any]: ...
+
+
+@runtime_checkable
+class ReportsDroppedMinorities(Protocol):
+    def dropped_minorities(self) -> list[Any]: ...
+
+
+@dataclass(frozen=True)
+class ReResolvedGroup:
+    """One backbone key given one other name than ADR 0004's, across the regions it happened in."""
+
+    source_key: str
+    old_sci_name: str
+    old_common_name: str
+    sci_name: str
+    common_name: str
+    regions: tuple[str, ...]
+    share_min: float
+    share_max: float
+
+    @property
+    def share(self) -> str:
+        lo, hi = round(100 * self.share_min), round(100 * self.share_max)
+        return f"{lo}%" if lo == hi else f"{lo}-{hi}%"
+
+
+def group_re_resolved(items: Iterable[Any]) -> list[ReResolvedGroup]:
+    """Re-resolved keys (one item per key and region) folded to one group per key and new name."""
+    found: dict[tuple[str, str, str], list[Any]] = {}
+    for item in items:
+        found.setdefault((item.source_key, item.old_sci_name, item.sci_name), []).append(item)
+    return [
+        ReResolvedGroup(
+            key, old, group[0].old_common_name, new, group[0].common_name,
+            tuple(sorted(i.region for i in group)),
+            min(i.share for i in group), max(i.share for i in group),
+        )
+        for (key, old, new), group in sorted(found.items(), key=lambda kv: (int(kv[0][0]), kv[0][2]))
+    ]
+
+
 @dataclass
 class SpeciesListsResult:
     region_files: dict[str, dict[str, Any]] = field(default_factory=dict)  # slug -> spec §5 region file
@@ -40,6 +84,10 @@ class SpeciesListsResult:
     species_totals: dict[str, int] = field(default_factory=dict)
     minted: list[SpeciesRow] = field(default_factory=list)  # new species.csv rows: the diff to commit
     no_ioc_match: list[Any] = field(default_factory=list)  # the source's name fallbacks
+    # backbone keys the source named by eBird's own names, differently from the IOC entry for the key
+    re_resolved: list[Any] = field(default_factory=list)
+    # regional records dropped from a split key, when they were over a tenth of the key's records
+    dropped_minorities: list[Any] = field(default_factory=list)
     unmintable: list[SpeciesRecord] = field(default_factory=list)  # names mint_id refuses (e.g. hybrids)
     failed: dict[str, str] = field(default_factory=dict)  # slug -> error; never written as an empty list
     dataset_version: str = "unknown"
@@ -108,6 +156,10 @@ def build_species_lists(
 
     if isinstance(source, ReportsNameFallbacks):
         result.no_ioc_match = list(source.name_fallbacks())
+    if isinstance(source, ReportsReResolved):
+        result.re_resolved = list(source.re_resolved())
+    if isinstance(source, ReportsDroppedMinorities):
+        result.dropped_minorities = list(source.dropped_minorities())
     return result
 
 
@@ -123,6 +175,8 @@ def render_report(result: SpeciesListsResult, regions: Iterable[Region], top_n: 
         f"- Regions: {len(result.region_files)} written, {len(result.failed)} failed",
         f"- Newly minted species: {len(result.minted)}",
         f"- Species without an IOC match: {len(result.no_ioc_match)}",
+        f"- Backbone keys named by eBird's own names, not the IOC entry for the key: "
+        f"{len({i.source_key for i in result.re_resolved})}",
         "",
     ]
     if result.failed:
@@ -151,6 +205,29 @@ def render_report(result: SpeciesListsResult, regions: Iterable[Region], top_n: 
         lines += [
             f"| {f.source_key} | {cell(f.sci_name)} | {cell(f.common_name)} | {f.common_name_from} |"
             for f in result.no_ioc_match
+        ]
+        lines.append("")
+    if result.re_resolved:
+        lines += ["## Re-resolved keys (ADR 0024)", "",
+                  "GBIF's backbone lumps taxa that IOC and eBird split. These keys took the name eBird gives "
+                  "their records, not the IOC entry for the key. Share: of the key's records (in each region "
+                  "where the key was split, else worldwide) under the name used.", "",
+                  "| GBIF key | Backbone name (ADR 0004) | Name used | Share | Regions |", "|---|---|---|---|---|"]
+        lines += [
+            f"| {g.source_key} | {cell(g.old_common_name)} ({cell(g.old_sci_name)}) "
+            f"| {cell(g.common_name)} ({cell(g.sci_name)}) | {g.share} | {', '.join(g.regions)} |"
+            for g in group_re_resolved(result.re_resolved)
+        ]
+        lines.append("")
+    if result.dropped_minorities:
+        lines += ["## Records dropped from split keys (over 10%)", "",
+                  "A key that holds several IOC species takes the one with the most records in the region; "
+                  "the records under the other names are not listed (an acceptable absence).", "",
+                  "| GBIF key | Region | Kept | Share kept | Dropped |", "|---|---|---|---|---|"]
+        lines += [
+            f"| {d.source_key} | {d.region} | {cell(d.common_name)} ({cell(d.sci_name)}) "
+            f"| {round(100 * d.kept_share)}% | {cell(', '.join(d.dropped))} |"
+            for d in sorted(result.dropped_minorities, key=lambda d: (int(d.source_key), d.region))
         ]
         lines.append("")
     if result.unmintable:
