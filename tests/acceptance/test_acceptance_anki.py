@@ -194,9 +194,10 @@ def test_every_answer_credits_every_asset_its_note_carries(region, make_deck, co
     cards = rendered_cards(col)
     assert cards
     assert_credits_on_answers(cards, species)
-    # the answer also names the bird
     for card in cards:
+        # the answer also names the bird, and shows the photo and plays the recording its note carries
         assert card.name in card.answer_html or card.name.replace("&", "&amp;") in card.answer_html
+        assert len(card.answer_files) == card.has_photo + card.has_audio, (card.species_id, card.answer_files)
 
 
 def test_the_credit_check_would_catch_a_missing_credit(make_deck, col, species):

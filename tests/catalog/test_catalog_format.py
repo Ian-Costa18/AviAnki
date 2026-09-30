@@ -207,6 +207,7 @@ def test_schemas_are_valid_draft_2020_12(schema: dict[str, Any]) -> None:
 
 
 def test_valid_documents_pass() -> None:
+    """The validators return None or raise FormatError (the tests below show they do), so no raise is the pass."""
     validate_manifest(manifest_dict())
     validate_species(species_dict())
     validate_provenance(provenance_dict())
@@ -339,6 +340,7 @@ def test_provenance_requires_51_fields_and_valid_media_names() -> None:
 
 
 def test_schemas_accept_extra_optional_keys() -> None:
+    """Forward compatibility: an unknown key anywhere is accepted (no FormatError), never rejected."""
     m = manifest_dict() | {"future_key": {"a": 1}}
     m["regions"][0]["future_key"] = "x"
     m["dataset_credits"][0]["future_key"] = 1
@@ -379,7 +381,7 @@ def test_media_filename_matches_hand_computed_sha256() -> None:
 
 def test_media_filename_rejects_other_extensions() -> None:
     for ext in ("jpg", "png", "MP3", ".mp3", ""):
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="media extension must be one of"):
             media_filename(b"abc", ext)
 
 

@@ -141,7 +141,7 @@ def test_licence_url(licence_id, url):
 
 
 def test_licence_url_rejects_unknown():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="not an allowed licence id"):
         licence_url("CC-BY-NC-4.0")
 
 
@@ -238,7 +238,7 @@ def test_json_round_trip():
 def test_from_dict_rejects_unknown_keys():
     d = make_record().to_dict()
     d["surprise"] = 1
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="unknown AssetRecord fields"):
         AssetRecord.from_dict(d)
 
 

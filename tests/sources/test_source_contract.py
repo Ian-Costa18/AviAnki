@@ -56,11 +56,11 @@ def test_abcs_cannot_be_instantiated():
 def test_species_record_validates_monthly_and_rank():
     ok = SpeciesRecord(None, "Turdus migratorius", "American Robin", "2490719", 1, tuple(range(12)), 10)
     assert ok.species_id is None
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="monthly must be 12 values"):
         SpeciesRecord(None, "x", "x", "1", 1, (0,) * 11, 1)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="monthly must be 12 values"):
         SpeciesRecord(None, "x", "x", "1", 1, (0,) * 11 + (256,), 1)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="rank starts at 1"):
         SpeciesRecord(None, "x", "x", "1", 0, (0,) * 12, 1)
 
 

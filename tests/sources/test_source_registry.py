@@ -120,5 +120,5 @@ def test_module_level_functions_use_a_default_registry(monkeypatch):
     gbif = FakeSpecies("gbif")
     registry.register(gbif)
     assert registry.species_sources() == [gbif]
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="not republishable"):
         registry.register(FakeSpecies("ebird", republishable=False))

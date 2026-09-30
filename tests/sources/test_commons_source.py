@@ -78,7 +78,7 @@ def test_declared_capabilities():
 
 def test_unsupported_kind_is_a_programming_error():
     src, _ = recorded_source()
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="does not supply description"):
         src.candidates(["alauda-arvensis"], AssetKind.DESCRIPTION, 1)
 
 
