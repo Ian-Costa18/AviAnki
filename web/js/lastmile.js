@@ -2,9 +2,9 @@
 // `detectPlatform` is pure so the tests can feed it sample user agents; `renderLastMile` shows the
 // detected platform's steps first and the others under a collapsed "On a different device?".
 
-export const ANDROID = "android";
-export const IOS = "ios";
-export const DESKTOP = "desktop";
+const ANDROID = "android";
+const IOS = "ios";
+const DESKTOP = "desktop";
 
 /**
  * "android", "ios" (iPhone, iPod, iPad) or "desktop" (Windows, macOS, Linux, anything else).
@@ -23,7 +23,7 @@ const link = (text, href) => ({ text, href });
 const bold = (text) => ({ text, bold: true });
 
 // A step is a list of pieces: plain strings, bold pieces and links.
-export const STEPS = {
+const STEPS = {
   [ANDROID]: {
     title: "On your Android phone or tablet",
     steps: [

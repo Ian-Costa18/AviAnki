@@ -12,8 +12,8 @@ import { pyJson } from "./pyjson.js";
 
 // A .apkg has no registered MIME type. The extension is what Anki and the OS go by, and
 // application/octet-stream is the one type every browser downloads and never sniffs or
-// rewrites, so it is the default; callers may pass `mimeType` (e.g. for a share sheet).
-export const DEFAULT_MIME_TYPE = "application/octet-stream";
+// rewrites, so it is the type of every package this writes.
+const MIME_TYPE = "application/octet-stream";
 
 const SQL_BASE_URL = new URL("../../vendor/", import.meta.url).href;
 const MIN_ZIP_MTIME_MS = Date.UTC(1980, 0, 2); // the zip format cannot store earlier dates
@@ -139,13 +139,12 @@ const asBytes = (data) =>
  *        yields exactly `mediaNames`, in that order; pulled one at a time, so a feed that
  *        fetches ahead by a bounded window keeps memory bounded
  * @param {number} [opts.timestamp]  seconds since the epoch; fix it for reproducible output
- * @param {string} [opts.mimeType]
  * @param {(p: {stage: string, done?: number, total?: number}) => void} [opts.onProgress]
  * @returns {Promise<Blob>}
  */
 export async function writeApkg({
   deckId, deckName, deckDescription = "", models, notes, mediaNames, media = [],
-  timestamp = Date.now() / 1000, mimeType = DEFAULT_MIME_TYPE, onProgress,
+  timestamp = Date.now() / 1000, onProgress,
 }) {
   onProgress?.({ stage: "database" });
   const dbBytes = await buildDatabase({
@@ -191,5 +190,5 @@ export async function writeApkg({
   zip.end();
   if (failure) throw failure;
   onProgress?.({ stage: "done" });
-  return new Blob(parts, { type: mimeType });
+  return new Blob(parts, { type: MIME_TYPE });
 }
