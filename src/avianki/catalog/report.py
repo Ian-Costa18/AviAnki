@@ -155,8 +155,13 @@ def _problem_line(p: Problem) -> str:
 
 def _report_markdown(r: BuildReport, validation: ValidationResult | None = None) -> str:
     title = f"# Build report {_md(r.catalog_version)}".rstrip()
-    lines: list[str] = [title, ""]
+    lines = [title, "", *_problem_lines(r, validation), *_summary_lines(r), *_species_lines(r)]
+    return "\n".join(lines).rstrip() + "\n"
 
+
+def _problem_lines(r: BuildReport, validation: ValidationResult | None) -> list[str]:
+    """The gate's verdict, then what went wrong: pins, source calls, a short run, the gate's problems."""
+    lines: list[str] = []
     if validation is not None:
         verdict = "PASSED" if validation.ok else "FAILED: nothing is published"
         lines += [
@@ -203,8 +208,12 @@ def _report_markdown(r: BuildReport, validation: ValidationResult | None = None)
     if validation is not None:
         lines += _section("Validation errors", _bullets([_problem_line(p) for p in validation.errors]))
         lines += _section("Validation warnings", _bullets([_problem_line(p) for p in validation.warnings]))
+    return lines
 
-    lines += _section(
+
+def _summary_lines(r: BuildReport) -> list[str]:
+    """The counts, then the rejected candidates: grouped by reason, then one by one."""
+    lines = _section(
         "Summary",
         [
             f"- Species: {r.species_total} ({r.built} built this run, {r.reused} reused)",
@@ -235,8 +244,12 @@ def _report_markdown(r: BuildReport, validation: ValidationResult | None = None)
             ),
             "",
         ]
+    return lines
 
-    lines += _section(
+
+def _species_lines(r: BuildReport) -> list[str]:
+    """Species-level lists: missing media, plausibility flags, GBIF key changes, new ids, notes."""
+    lines = _section(
         f"Species without a photo ({len(set(r.species_without_photo))})",
         [_ids(r.species_without_photo)] if r.species_without_photo else [],
     )
@@ -291,7 +304,7 @@ def _report_markdown(r: BuildReport, validation: ValidationResult | None = None)
     )
     if r.notes:
         lines += _section("Notes", _bullets([_md(n) for n in r.notes]))
-    return "\n".join(lines).rstrip() + "\n"
+    return lines
 
 
 def render_build_report(report: BuildReport, validation: ValidationResult | None) -> str:
