@@ -863,6 +863,7 @@ class BuildOptions:
     previous: LoadedCatalog | None = None
     pins: Pins = field(default_factory=lambda: Pins({}))
     allow_shrink: bool = False
+    refresh_species: bool = False  # rebuild region lists even when the EOD version is unchanged
     verify: bool = True
     time_budget_minutes: float | None = None
     base_url: str = DEFAULT_BASE_URL
@@ -910,6 +911,7 @@ def run_build(
     slugs = [r.slug for r in options.regions]
     reuse = (
         previous is not None
+        and not options.refresh_species
         and previous.manifest.eod_version == options.eod_version
         and all(slug in previous.regions for slug in slugs)
     )

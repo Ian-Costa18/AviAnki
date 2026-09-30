@@ -89,6 +89,9 @@ def _parser() -> argparse.ArgumentParser:
                             "its region lists are reused while the EOD version is unchanged")
     build.add_argument("--pins", type=Path, default=PINS_TOML,
                        help="pins, exclusions and credit-removal requests (default: data/pins.toml)")
+    build.add_argument("--refresh-species", action="store_true",
+                       help="rebuild the region lists even when the EOD version is unchanged (after a change "
+                            "to how lists are built)")
     build.add_argument("--allow-shrink", action="store_true",
                        help="downgrade the shrink checks to warnings (a deliberate drop)")
     build.add_argument("--no-verify", action="store_true",
@@ -255,6 +258,7 @@ def _build_catalog(args: argparse.Namespace, regions: list[Region], table: Regio
         previous=previous,
         pins=pins,
         allow_shrink=args.allow_shrink,
+        refresh_species=args.refresh_species,
         verify=verify,
         time_budget_minutes=args.time_budget_minutes,
         base_url=args.base_url,

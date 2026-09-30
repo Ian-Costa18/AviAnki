@@ -30,6 +30,11 @@ on:
         type: boolean
         required: false
         default: false
+      refresh_species:
+        description: "Rebuild the region lists even if the EOD version is unchanged"
+        type: boolean
+        required: false
+        default: false
       publish:
         description: "Release and deploy. Off = build, validate and upload the review artifacts only"
         type: boolean
@@ -114,6 +119,7 @@ jobs:
           REGIONS: ${{ inputs.regions }}
           MAX_SPECIES: ${{ inputs.max_species }}
           ALLOW_SHRINK: ${{ inputs.allow_shrink }}
+          REFRESH_SPECIES: ${{ inputs.refresh_species }}
         run: |
           args=(build --out build --cache-dir .cache/http --time-budget-minutes 300 --update-species-csv)
           if [ "$FOUND_PREVIOUS" = "true" ]; then
@@ -127,6 +133,9 @@ jobs:
           fi
           if [ "$ALLOW_SHRINK" = "true" ]; then
             args+=(--allow-shrink)
+          fi
+          if [ "$REFRESH_SPECIES" = "true" ]; then
+            args+=(--refresh-species)
           fi
           # --no-sync: keep the environment installed above (uv run would re-sync without the extras).
           uv run --no-sync --python 3.13 avianki-catalog "${args[@]}"
