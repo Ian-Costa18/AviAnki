@@ -40,7 +40,7 @@ def test_setup_configures_bird_deck_logger(tmp_path):
     assert "INFO" in text
 
 
-def test_verbose_and_quiet_set_console_level(tmp_path):
+def test_verbose_and_quiet_set_console_level():
     assert _console(setup_logging(None, verbose=True, quiet=False)).level == logging.DEBUG
     assert _console(setup_logging(None, verbose=False, quiet=True)).level == logging.WARNING
 

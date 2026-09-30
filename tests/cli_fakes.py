@@ -47,7 +47,6 @@ class Result:
     code: int
     out: str
     err: str
-    cwd: Path
 
 
 def run_cli(
@@ -78,4 +77,4 @@ def run_cli(
     args += ["--cache-dir", str(tmp_path / "cache")]
     code = cli.main(args)
     captured = capsys.readouterr()
-    return Result(code, captured.out, captured.err, tmp_path)
+    return Result(code, captured.out, captured.err)

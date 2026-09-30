@@ -143,7 +143,7 @@ def test_file_url_base_works(cache: Path) -> None:
     assert client.manifest().regions[0].slug == "us-ma"
 
 
-def test_default_base_is_the_published_catalog(cache: Path) -> None:
+def test_default_base_is_the_published_catalog() -> None:
     assert DEFAULT_BASE_URL.startswith("https://") and DEFAULT_BASE_URL.endswith("/catalog/")
     # The constructor default is the format module's constant, not a copy.
     assert inspect.signature(CatalogClient).parameters["base_url"].default is DEFAULT_BASE_URL

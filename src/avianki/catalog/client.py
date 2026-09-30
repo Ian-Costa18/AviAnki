@@ -180,11 +180,6 @@ class CatalogClient:
         self._json: dict[str, Any] = {}
         self._parsed: dict[str, RegionFile | SpeciesFile] = {}
 
-    @property
-    def location(self) -> str:
-        """Where this client reads from (a URL or a directory), for messages."""
-        return self._http_base or str(self._local_root)
-
     def _where(self, name: str) -> str:
         return self._http_base + name if self._local_root is None else str(self._local_root / name)
 

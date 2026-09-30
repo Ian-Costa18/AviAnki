@@ -333,7 +333,6 @@ class _Builder:
         self,
         role: _Role,
         sid: str,
-        source: str,
         token: str,
         data: bytes,
         ext: str,
@@ -464,7 +463,7 @@ class _Builder:
             self._pin_error(sid, kind, f"could not be processed: {exc}")
             return
         record = final_record(fetched.record, mods)
-        why = self._accept(role, sid, source.name, cand.token, data, ext, record, verified="pinned")
+        why = self._accept(role, sid, cand.token, data, ext, record, verified="pinned")
         if why:
             self._pin_error(sid, kind, why)
 
@@ -614,7 +613,7 @@ class _Builder:
                 self._reject(sid, "photo", source.name, cand.token, f"image: {exc}")
                 continue
             record = final_record(fetched.record, img.modifications)
-            why = self._accept(role, sid, source.name, cand.token, img.data, PHOTO_EXT, record, verified=None)
+            why = self._accept(role, sid, cand.token, img.data, PHOTO_EXT, record, verified=None)
             if why is None:
                 return
             self._reject(sid, "photo", source.name, cand.token, why)
@@ -699,7 +698,7 @@ class _Builder:
                 continue
             record = final_record(fetched.record, processed.modifications)
             why = self._accept(
-                role, sid, source.name, cand.token, processed.data, AUDIO_EXT, record,
+                role, sid, cand.token, processed.data, AUDIO_EXT, record,
                 verified="birdnet", confidence=round(analysis.best_confidence, 4),
             )  # fmt: skip
             if why is None:

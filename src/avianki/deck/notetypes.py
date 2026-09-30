@@ -112,6 +112,3 @@ def _model(card_type: str) -> genanki.Model:
 
 
 MODELS: Final[dict[str, genanki.Model]] = {ct: _model(ct) for ct in CARD_TYPES}
-
-# The front templates, by card type, for tests and for the browser port to compare against.
-FRONTS: Final[dict[str, str]] = dict(_FRONTS)

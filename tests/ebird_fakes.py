@@ -42,7 +42,6 @@ TAXA = [
     {"speciesCode": JAY_CODE, "comName": "Blue Jay", "sciName": "Cyanocitta cristata", "category": "species"},
 ]
 ORDER = [ROBIN_CODE, WREN_CODE, "y00001", NEW_CODE, JAY_CODE]
-EXPECTED_IDS = [ROBIN_ID, WREN_ID, NEW_ID, JAY_ID]
 
 LABELS = [
     "Turdus migratorius_American Robin",
