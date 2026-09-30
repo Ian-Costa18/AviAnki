@@ -84,7 +84,8 @@ src/avianki/data/        package data: ships in the wheel, found through taxonom
 
 tests/                   mirrors src/avianki/
   core/ taxonomy/ sources/ media/ catalog/ deck/ cli/ packaging/
-  scripts/               assemble_site.py and fetch_latest_catalog.sh (fake `gh` on PATH); gen_web_notetypes.py keeps web/js/notetypes.json equal to deck/
+  scripts/               assemble_site.py and fetch_latest_catalog.sh (fake `gh` on PATH); gen_web_notetypes.py keeps web/js/notetypes.json equal to deck/; weekly_summary.py's gate; the workflow files' shape (publish is manual, no examples step)
+  sources/, catalog/     also hold the weekly live checks (integration): test_sources_live.py, test_gbif_live.py, test_published_site_live.py
   test_layout.py         enforces the dependency rule
   web/                   pytest + Playwright (Chromium and WebKit; skipped when a browser is missing)
     web_support.py       static server for web/ + a catalog (manifest served with `base_url` rewritten to itself, CORS open), the in-page build driver, the same build through Python, a package reader; `python tests/web/web_support.py` serves the app locally
@@ -112,6 +113,7 @@ scripts/
   assemble_site.py         stdlib-only: catalog dir + web/ (or a stub index) → the Pages tree, .nojekyll, 900 MB guard
   fetch_latest_catalog.sh  downloads and extracts the newest catalog-* release; shared by catalog.yml and pages.yml
   gen_web_notetypes.py     dumps deck/'s note types and description strings to web/js/notetypes.json; `--check` for drift
+  weekly_summary.py        reads the weekly run's JUnit report: writes the job summary, fails on any skip but eBird's
 
 .github/workflows/
   ci.yml                 lint, types, unit tests, layout test, browser tests (installs Chromium and WebKit); vulture, deptry and a 1% jscpd threshold
@@ -119,7 +121,7 @@ scripts/
   pages.yml              on push to web/: pull latest catalog release → deploy Pages
   species-lists.yml      dispatch, maintainer-only: species lists + minted species.csv as an artifact
   weekly-integration.yml ADR 0020: source smoke tests, GBIF EOD, the published site and app, live acceptance; eBird only with a key
-  publish.yml            PyPI
+  publish.yml            PyPI, manual dispatch only with a tag that must match the version
 ```
 
 ## The dependency rule
