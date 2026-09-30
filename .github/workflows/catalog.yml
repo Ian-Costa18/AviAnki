@@ -115,7 +115,7 @@ jobs:
           MAX_SPECIES: ${{ inputs.max_species }}
           ALLOW_SHRINK: ${{ inputs.allow_shrink }}
         run: |
-          args=(build --out build --cache-dir .cache/http --time-budget-minutes 300)
+          args=(build --out build --cache-dir .cache/http --time-budget-minutes 300 --update-species-csv)
           if [ "$FOUND_PREVIOUS" = "true" ]; then
             args+=(--previous previous)
           fi
@@ -147,7 +147,7 @@ jobs:
           fi
           {
             echo ""
-            echo "Review artifacts: \`build-review\` (report, contact sheet, log) and \`build-review-media\`"
+            echo "Review artifacts: \`build-review\` (report, contact sheet, log, species.csv) and \`build-review-media\`"
             echo "(the contact sheet with the media it links to; extract it and open contact-sheet.html)."
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -160,6 +160,7 @@ jobs:
             build/build-report.md
             build/contact-sheet.html
             build/catalog.log
+            data/species.csv
           retention-days: 30
           if-no-files-found: warn
 
