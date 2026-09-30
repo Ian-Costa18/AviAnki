@@ -879,6 +879,136 @@ class BuildResult:
         return not self.errors and (self.validation is None or self.validation.ok) and not self.report.pin_errors
 
 
+RegionLists = dict[str, list[tuple[str, tuple[int, ...]]]]
+
+
+@dataclass
+class _SpeciesHalf:
+    """What the species half hands the rest of `run_build`."""
+
+    region_lists: RegionLists = field(default_factory=dict)
+    lists: SpeciesListsResult | None = None  # None when the previous catalog's lists were reused
+    notes: list[str] = field(default_factory=list)
+    failures: list[SourceFailure] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+
+    @property
+    def expected(self) -> dict[str, int] | None:
+        """Species totals for the plausibility check; None when the lists were reused."""
+        return dict(self.lists.species_totals) if self.lists is not None else None
+
+
+def _species_half(
+    options: BuildOptions, species_source: SpeciesSource, species_table: SpeciesTable
+) -> _SpeciesHalf:
+    """Each region's ranked species list: the previous catalog's when the EOD version is
+    unchanged, else fresh from ``species_source``, falling back region by region to the
+    previous list when a region fails."""
+    previous = options.previous
+    slugs = [r.slug for r in options.regions]
+    half = _SpeciesHalf()
+    if (
+        previous is not None
+        and not options.refresh_species
+        and previous.manifest.eod_version == options.eod_version
+        and all(slug in previous.regions for slug in slugs)
+    ):
+        half.region_lists = {slug: list(previous.regions[slug].species) for slug in slugs}
+        half.notes.append(
+            f"Species half reused from the previous catalog (EOD {options.eod_version} is unchanged); "
+            "the iNaturalist plausibility check was skipped."
+        )
+        return half
+
+    lists = build_species_lists(
+        species_source, options.regions, species_table, top_n=options.top_n, dataset_version=options.eod_version
+    )
+    half.lists = lists
+    for slug in slugs:
+        if slug in lists.region_files:
+            half.region_lists[slug] = [(sid, tuple(monthly)) for sid, monthly in lists.region_files[slug]["species"]]
+        elif previous is not None and slug in previous.regions:
+            half.region_lists[slug] = list(previous.regions[slug].species)
+            half.failures.append(
+                SourceFailure("gbif", None, f"region {slug}: {lists.failed.get(slug, 'failed')}; previous list kept")
+            )
+        else:
+            half.errors.append(f"region {slug} failed and there is no previous list: {lists.failed.get(slug)}")
+            half.failures.append(SourceFailure("gbif", None, f"region {slug}: {lists.failed.get(slug)}"))
+    if lists.minted:
+        half.notes.append(
+            f"{len(lists.minted)} species minted this run: "
+            + ", ".join(r.id for r in lists.minted[:20])
+            + (" ..." if len(lists.minted) > 20 else "")
+        )
+    return half
+
+
+def _with_previous_names(species_table: SpeciesTable, previous: LoadedCatalog, order: Sequence[str]) -> SpeciesTable:
+    """A reused species half never mints, so a species minted by an earlier run and not yet
+    committed to species.csv is missing from the table. Its names are in the previous catalog."""
+    stubs = [
+        SpeciesRow(sid, previous.species[sid].sci, previous.species[sid].name)
+        for sid in order
+        if sid not in species_table and sid in previous.species
+    ]
+    return SpeciesTable([*species_table.all_rows(), *stubs]) if stubs else species_table
+
+
+def _stage_media(stage: Path, built: SpeciesBuild, previous: LoadedCatalog | None) -> None:
+    """A fresh ``stage`` directory holding every media file the new catalog uses."""
+    if stage.exists():
+        shutil.rmtree(stage)
+    stage.mkdir(parents=True)
+    for name, data in built.media.items():
+        written = write_media(stage, data, Path(name).suffix.lstrip("."))
+        assert written == name, (written, name)
+    for name in sorted(built.reused_media):
+        assert previous is not None
+        target = stage / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(previous.media_path(name), target)
+
+
+def _manifest_template(options: BuildOptions, region_lists: RegionLists) -> Manifest:
+    """The manifest before `write_catalog` fills in the hashed file names and sizes."""
+    return Manifest(
+        catalog_version=options.catalog_version,
+        base_url=options.base_url,
+        gadm_version=options.gadm_version,
+        species_file="species.00000000.json",
+        regions=[
+            RegionRef(r.slug, r.name, r.country, "regions/x.00000000.json", 0)
+            for r in options.regions
+            if r.slug in region_lists
+        ],
+        dataset_credits=dataset_credits(),
+        total_bytes=0,
+        eod_version=options.eod_version,
+    )
+
+
+def _replace_site(
+    out: Path, stage: Path, validation: ValidationResult, previous: LoadedCatalog | None, report: BuildReport
+) -> str:
+    """Move ``stage`` to ``out/site`` and return the directory's name.
+
+    If validation failed and the previous catalog *is* out/site, keep it and leave the
+    rejected build beside it, in out/site-rejected.
+    """
+    site_name = "site"
+    if not validation.ok and previous is not None and _same_dir(previous.root, out / "site"):
+        site_name = "site-rejected"
+        report.notes.append(
+            f"Validation failed and the previous catalog is out/site, so the new build is in out/{site_name}/."
+        )
+    final = out / site_name
+    if final.exists():
+        shutil.rmtree(final)
+    stage.rename(final)
+    return site_name
+
+
 def run_build(
     options: BuildOptions,
     *,
@@ -900,57 +1030,17 @@ def run_build(
     out = options.out
     previous = options.previous
     result = BuildResult(report=BuildReport(catalog_version=options.catalog_version))
-    notes: list[str] = []
-    failures: list[SourceFailure] = []
 
     # -- species half --------------------------------------------------------------------
-    slugs = [r.slug for r in options.regions]
-    reuse = (
-        previous is not None
-        and not options.refresh_species
-        and previous.manifest.eod_version == options.eod_version
-        and all(slug in previous.regions for slug in slugs)
-    )
-    region_lists: dict[str, list[tuple[str, tuple[int, ...]]]] = {}
-    expected: dict[str, int] | None = None
-    if reuse:
-        assert previous is not None
-        region_lists = {slug: list(previous.regions[slug].species) for slug in slugs}
-        notes.append(
-            f"Species half reused from the previous catalog (EOD {options.eod_version} is unchanged); "
-            "the iNaturalist plausibility check was skipped."
-        )
-    else:
-        lists = build_species_lists(
-            species_source, options.regions, species_table, top_n=options.top_n, dataset_version=options.eod_version
-        )
-        result.lists = lists
-        expected = dict(lists.species_totals)
-        for slug in slugs:
-            if slug in lists.region_files:
-                region_lists[slug] = [
-                    (sid, tuple(monthly)) for sid, monthly in lists.region_files[slug]["species"]
-                ]
-            elif previous is not None and slug in previous.regions:
-                region_lists[slug] = list(previous.regions[slug].species)
-                failures.append(
-                    SourceFailure("gbif", None, f"region {slug}: {lists.failed.get(slug, 'failed')}; previous list kept")
-                )
-            else:
-                result.errors.append(f"region {slug} failed and there is no previous list: {lists.failed.get(slug)}")
-                failures.append(SourceFailure("gbif", None, f"region {slug}: {lists.failed.get(slug)}"))
-        if lists.minted:
-            notes.append(
-                f"{len(lists.minted)} species minted this run: "
-                + ", ".join(r.id for r in lists.minted[:20])
-                + (" ..." if len(lists.minted) > 20 else "")
-            )
-
-    built_slugs = [s for s in slugs if s in region_lists]
+    half = _species_half(options, species_source, species_table)
+    result.lists = half.lists
+    result.errors.extend(half.errors)
+    region_lists = half.region_lists
+    built_slugs = [r.slug for r in options.regions if r.slug in region_lists]
     if not built_slugs:
         result.errors.append("no region has a species list to build from")
-        result.report.source_failures = failures
-        result.report.notes = notes
+        result.report.source_failures = half.failures
+        result.report.notes = half.notes
         _write_report(out, result, None)
         return result
 
@@ -958,26 +1048,18 @@ def run_build(
     order = overall_order({slug: [sid for sid, _ in region_lists[slug]] for slug in built_slugs})
     if options.max_species is not None:
         order = order[: options.max_species]
-        notes.append(f"--max-species {options.max_species}: only the {len(order)} most widespread species were built.")
+        half.notes.append(
+            f"--max-species {options.max_species}: only the {len(order)} most widespread species were built."
+        )
     keep = set(order)
     region_files = [
         RegionFile(slug, [(sid, m) for sid, m in region_lists[slug] if sid in keep]) for slug in built_slugs
     ]
 
     # -- media ---------------------------------------------------------------------------
-    registry = registry_factory(expected)
-    build_table = species_table
-    if reuse:
-        # A reused species half never mints, so a species minted by an earlier run and not yet
-        # committed to species.csv is missing from the table. Its names are in the previous catalog.
-        assert previous is not None
-        stubs = [
-            SpeciesRow(sid, previous.species[sid].sci, previous.species[sid].name)
-            for sid in order
-            if sid not in species_table and sid in previous.species
-        ]
-        if stubs:
-            build_table = SpeciesTable([*species_table.all_rows(), *stubs])
+    registry = registry_factory(half.expected)
+    reused = half.lists is None
+    build_table = _with_previous_names(species_table, previous, order) if reused and previous else species_table
     built = build_species(
         order,
         table=build_table,
@@ -992,65 +1074,26 @@ def run_build(
     )
     report = built.report
     report.catalog_version = options.catalog_version
-    report.source_failures = [*failures, *report.source_failures]
-    report.notes = [*notes, *report.notes]
-    if result.lists is not None:
-        report.re_resolved = list(result.lists.re_resolved)
-        report.dropped_minorities = list(result.lists.dropped_minorities)
+    report.source_failures = [*half.failures, *report.source_failures]
+    report.notes = [*half.notes, *report.notes]
+    if half.lists is not None:
+        report.re_resolved = list(half.lists.re_resolved)
+        report.dropped_minorities = list(half.lists.dropped_minorities)
     result.report = report
 
     # -- write ---------------------------------------------------------------------------
     stage = out / "site.new"
-    if stage.exists():
-        shutil.rmtree(stage)
-    stage.mkdir(parents=True)
-    for name, data in built.media.items():
-        written = write_media(stage, data, Path(name).suffix.lstrip("."))
-        assert written == name, (written, name)
-    for name in sorted(built.reused_media):
-        assert previous is not None
-        target = stage / name
-        target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(previous.media_path(name), target)
-
-    region_refs = [
-        RegionRef(r.slug, r.name, r.country, "regions/x.00000000.json", 0)
-        for r in options.regions
-        if r.slug in region_lists
-    ]
-    template = Manifest(
-        catalog_version=options.catalog_version,
-        base_url=options.base_url,
-        gadm_version=options.gadm_version,
-        species_file="species.00000000.json",
-        regions=region_refs,
-        dataset_credits=dataset_credits(),
-        total_bytes=0,
-        eod_version=options.eod_version,
-    )
-    write_catalog(stage, template, region_files, built.species, built.provenance)
-    catalog = load_catalog(stage)
+    _stage_media(stage, built, previous)
+    write_catalog(stage, _manifest_template(options, region_lists), region_files, built.species, built.provenance)
+    staged = load_catalog(stage)
     validation = validate_catalog(
-        catalog, previous, allow_shrink=options.allow_shrink, pins=options.pins.for_validation()
+        staged, previous, allow_shrink=options.allow_shrink, pins=options.pins.for_validation()
     )
-    (stage / "credits.html").write_text(render_credits_page(catalog), encoding="utf-8")
+    (stage / "credits.html").write_text(render_credits_page(staged), encoding="utf-8")
 
-    # The finished catalog replaces out/site. If validation failed and the previous catalog *is*
-    # out/site, keep it and leave the rejected build beside it.
-    site = out / "site"
-    if not validation.ok and previous is not None and _same_dir(previous.root, site):
-        site_name = "site-rejected"
-        report.notes.append(
-            f"Validation failed and the previous catalog is out/site, so the new build is in out/{site_name}/."
-        )
-    else:
-        site_name = "site"
+    site_name = _replace_site(out, stage, validation, previous, report)
     final = out / site_name
-    if final.exists():
-        shutil.rmtree(final)
-    stage.rename(final)
     catalog = load_catalog(final)
-
     (out / "contact-sheet.html").write_text(render_contact_sheet(catalog, f"{site_name}/"), encoding="utf-8")
     report.elapsed_s = clock() - started
     result.catalog = catalog
