@@ -105,7 +105,8 @@ def plan_notes(
 
     ``species_ids`` must already be in rank order (a list, as `select_species` returns;
     a set would make the order arbitrary). ``photo`` needs ``photo[0]``, ``audio`` needs
-    ``audio[0]`` and ``photo_audio`` needs both. Only the first photo and first audio are
+    ``audio[0]`` and ``photo_audio`` needs both; every note then carries both assets
+    the species has, for the back. Only the first photo and first audio are
     used, because ``Photo2`` and ``Audio2`` stay empty. A species missing from the species
     file is skipped with a warning, never an error; a repeated id is planned once.
     """
@@ -127,12 +128,13 @@ def plan_notes(
         photo = entry.photo[0] if entry.photo else None
         audio = entry.audio[0] if entry.audio else None
         for card_type in wanted:
-            if card_type == "photo" and photo is not None:
-                notes.append(PlannedNote(species_id, card_type, photo=photo))
-            elif card_type == "audio" and audio is not None:
-                notes.append(PlannedNote(species_id, card_type, audio=audio))
-            elif card_type == "photo_audio" and photo is not None and audio is not None:
-                notes.append(PlannedNote(species_id, card_type, photo=photo, audio=audio))
+            needs_photo = card_type in ("photo", "photo_audio")
+            needs_audio = card_type in ("audio", "photo_audio")
+            if (needs_photo and photo is None) or (needs_audio and audio is None):
+                continue
+            # Every back shows the photo and plays the recording (spec §6), so a note carries
+            # both of the species' assets whichever one its front asks about.
+            notes.append(PlannedNote(species_id, card_type, photo=photo, audio=audio))
     return notes
 
 

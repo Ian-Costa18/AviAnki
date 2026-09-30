@@ -150,9 +150,9 @@ The `credit` values are pipeline-rendered, escaped HTML that uses only `a`, `b` 
 **Selection.**
 
 1. Take the region's ordered list.
-2. Apply the month filter if one is set: keep species with `monthly[m] ≥ 0.1 × max(monthly)`.
+2. Apply the month filter if one is set: keep species with `monthly[m] ≥ 0.1 × max(monthly)`, computed in integers as `10 × monthly[m] ≥ max(monthly)` so exactly 10% is kept. A species whose values are all zero is dropped.
 3. Take the first 100 (Standard) or all of them (Everything).
-4. For each species, make one note per selected card type whose media exists.
+4. For each species, make one note per selected card type whose media exists. Every note carries both of the species' first photo and first recording (when it has them) and both credit lines, because every back shows the photo and plays the recording.
 
 The browser (`web/js/select.js`) and the CLI (`deck/`) implement this identically, and a shared fixture test proves it.
 

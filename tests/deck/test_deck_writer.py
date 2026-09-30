@@ -123,16 +123,14 @@ def test_fields(tmp_path: Path) -> None:
     photo = by_guid["y^.Qw>j5t"]
     assert photo[:3] == ["turdus-migratorius", "American Robin", "Turdus migratorius"]
     assert photo[3] == '<img src="avianki_1a2b3c4d5e6f7a8b.webp">'
-    assert photo[4] == "" and photo[5] == "" and photo[6] == ""
-    assert sp.photo[0].credit in photo[7] and sp.audio[0].credit not in photo[7]
+    # Every back shows the photo and plays the recording, so every note carries both (spec §6).
+    assert photo[5] == "[sound:avianki_9f8e7d6c5b4a3921.mp3]" and photo[4] == "" and photo[6] == ""
+    assert sp.photo[0].credit in photo[7] and sp.audio[0].credit in photo[7]
 
     audio = by_guid["sN^~,`kZon"]
-    assert audio[3] == "" and audio[5] == "[sound:avianki_9f8e7d6c5b4a3921.mp3]"
-    assert sp.audio[0].credit in audio[7] and sp.photo[0].credit not in audio[7]
+    assert audio[3:] == photo[3:]
 
-    (both_fields,) = [f for f in by_guid.values() if f[3] and f[5]]
-    assert both_fields[3].startswith("<img src=") and both_fields[5].startswith("[sound:")
-    assert sp.photo[0].credit in both_fields[7] and sp.audio[0].credit in both_fields[7]
+    assert len(by_guid) == 3 and all(f[3:] == photo[3:] for f in by_guid.values())
 
 
 def test_names_are_escaped(tmp_path: Path) -> None:

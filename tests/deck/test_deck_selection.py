@@ -80,6 +80,12 @@ def test_species_with_only_audio_gets_only_an_audio_note() -> None:
     assert notes[0].photo is None
 
 
+def test_every_note_carries_all_the_species_media_for_the_back() -> None:
+    notes = plan_notes(["turdus-migratorius"], species_file(), {"photo", "audio"})
+    assert _kinds(notes) == [("turdus-migratorius", "photo"), ("turdus-migratorius", "audio")]
+    assert all(n.photo is not None and n.audio is not None for n in notes)
+
+
 def test_photo_audio_needs_both() -> None:
     sp = species_file()
     both = plan_notes(["turdus-migratorius"], sp, {"photo_audio"})
