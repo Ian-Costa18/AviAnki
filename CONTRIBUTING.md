@@ -2,16 +2,16 @@
 
 ## Setup
 
-1. Install [uv](https://docs.astral.sh/uv/) and [ffmpeg](https://ffmpeg.org/)
+1. Install [uv](https://docs.astral.sh/uv/) and [ffmpeg](https://ffmpeg.org/) (ffmpeg is only needed for the catalog build, `--ebird` audio and regenerating the fixture catalog)
 2. Clone and install dev dependencies:
 
    ```bash
    git clone https://github.com/Ian-Costa18/avianki.git
    cd avianki
-   uv sync --group dev
+   uv sync --group dev --extra catalog
    ```
 
-3. Copy `.env.example` to `.env` and add your eBird API key (`EBIRD_API_KEY`) if you plan to test eBird region code input
+3. Copy `.env.example` to `.env` and add your eBird API key (`EBIRD_API_KEY`) if you plan to test `avianki --ebird` or run the integration tests
 
 ## Quick verification checklist
 
@@ -28,9 +28,8 @@ uv run ty check src/
 ```bash
 uv run ruff check src/ tests/                  # lint
 uv run ty check src/                           # type check
-uv run playwright install chromium --with-deps # one-time: install browser for gen_examples
 uv run pytest --integration --cov=avianki --cov-report=html # run all tests, including the integration tests, and coverage with HTML report
-uv run python scripts/gen_examples.py # regenerate examples/ card screenshots and example-birds.json (reads tests/tmp/birds.json and tests/media/, which the integration test no longer produces)
+uv run pytest tests/acceptance                 # build decks and import them into Anki's own backend
 # Test all Python versions we have in the classifiers
 uv python install 3.10 3.11 3.12 3.13 3.14 # one-time: install
 uv run --python 3.10 pytest
@@ -40,7 +39,9 @@ uv run --python 3.13 pytest
 uv run --python 3.14 pytest
 ```
 
-The integration tests hit real network sources and are skipped by default. Pass `--integration` to opt in. For now (ADR 0020, interim) that is only the eBird smoke test, which needs `EBIRD_API_KEY` and is skipped without it. A network failure fails the test; nothing else skips.
+The integration tests hit real network sources and are skipped by default. Pass `--integration` to opt in. They are the eBird smoke test (needs `EBIRD_API_KEY`, skipped without it) and the live acceptance test, which builds the Standard us-ma deck from the published catalog (about 200 media files) and imports it into Anki. A network failure fails the test; nothing else skips.
+
+The acceptance tests (ADR 0019) use the `anki` package, a dev dependency, so they run wherever the dev group is installed. They cover imports, re-imports, tier upgrades, front-of-card name leaks and credits.
 
 ## Publishing a release
 
@@ -65,61 +66,49 @@ Pushing the tag triggers the [publish workflow](../.github/workflows/publish.yml
 
 ## Project structure
 
-- `src/avianki/cli.py` — CLI entry point and full pipeline orchestration
-- `src/avianki/allaboutbirds.py` — scraping allaboutbirds.org (species list, overview, sounds)
-- `src/avianki/ebird.py` — eBird API calls (species list for a region)
-- `src/avianki/media/` — legacy download and audio-trim helpers, plus the catalog's image/audio processing and BirdNET verification
-- `src/avianki/anki_model.py` — genanki models, card templates, and shared fields
-- `src/avianki/card.css` — shared CSS for all card types
-- `src/avianki/core/`, `taxonomy/`, `sources/`, `catalog/` — the 1.0 catalog pipeline (HTTP client, licences, species and regions, source contract, GBIF source, species lists); see [docs/source-layout.md](docs/source-layout.md) for the layout and dependency rule
+- `src/avianki/cli.py` — `avianki`, the user CLI: reads the published catalog (`catalog/client.py`) and writes the deck (`deck/`); `--ebird` goes through `catalog/adhoc.py`
+- `src/avianki/deck/` — note types and card templates (`notetypes.py`, `card.css`), credits, species selection and the genanki writer (`build.py`)
+- `src/avianki/core/`, `taxonomy/`, `sources/`, `media/`, `catalog/` — the catalog pipeline (HTTP client, licences, species and regions, source contract, GBIF, Commons, iNaturalist and eBird sources, image and audio processing, BirdNET verification, species lists, the published-format contract and the client that reads it); see [docs/source-layout.md](docs/source-layout.md) for the layout and dependency rule
+- `src/avianki/data/` — `species.csv`, `regions.csv` and `pins.toml`, shipped in the wheel and found through `taxonomy.DATA_DIR`
+- `src/avianki/sources/allaboutbirds/` — the 0.9 scraper, dormant and deliberately not registered (ADR 0002)
 - `src/avianki/catalog_cli.py` — `avianki-catalog`, the maintainer-only catalog build (`build`, or `build --species-only`); a dev run is `uv run avianki-catalog build --regions us-ri,us-dc --max-species 30 --out build --cache-dir .cache/http`, and the audio check needs the `verify` extra (or pass `--no-verify`). `src/avianki/data/pins.toml` holds reviewer pins and exclusions
 - `.github/workflows/catalog.yml` — the monthly (and on-demand) catalog build: it restores the previous release as state, runs `avianki-catalog build --update-species-csv`, uploads a `build-review` artifact (report, contact sheet, log, species.csv), then releases `catalog-YYYY-MM-DD` and deploys Pages. Run it from the Actions tab with `publish` off to build and validate without releasing. `.github/workflows/pages.yml` redeploys Pages from the newest release when only `web/` changes
 - `scripts/assemble_site.py` (the Pages tree from a catalog and `web/`, with the 900 MB guard) and `scripts/fetch_latest_catalog.sh` (download the newest `catalog-*` release) — used by those workflows, and both have tests under `tests/scripts/`
 
 See [CLAUDE.md](CLAUDE.md) for a deeper walkthrough of the data flow and key constraints.
 
-## Extending cards and scraped data
+## Extending cards and catalog data
 
 Most feature work falls into one of these two paths.
 
 ### 1) Edit Anki cards (layout, templates, fields)
 
-Each card type is its own `genanki.Model` in `src/avianki/anki_model.py` with a single template. All models share the same `FIELDS` list and CSS from `src/avianki/card.css`.
+Each card type is its own `genanki.Model` in `src/avianki/deck/notetypes.py` with a single template. All models share the same `FIELDS` tuple and the CSS in `src/avianki/deck/card.css`. Model seeds, note GUIDs and the deck id are frozen (ADR 0009); `tests/deck/test_identity.py` pins them, and you must not edit those expected strings.
 
 **To add a new card type:**
 
-- Define a new `genanki.Model` in `anki_model.py` with a unique seed string (e.g. `_stable_id("BirdDeck_SongModel_v1")`).
-- In `cli.py`, add a `deck.add_note(...)` call for the new model alongside the existing photo/desc notes.
-- Add tests in `tests/test_anki_model.py` for the new model's template name.
+- Add it to `CARD_TYPES`, `MODEL_SEEDS`, the model and template name tables and the fronts in `notetypes.py`, with a new, unique seed string.
+- Teach `plan_notes` in `deck/build.py` when a species gets that note, and the `--cards` parser in `cli.py` its name.
+- Add tests under `tests/deck/`, and an acceptance test if the front or back changes what a learner sees.
 
 **Fields:**
 
-- Keep field order stable — Anki maps fields by position, not name. Always append new fields; never reorder or remove existing ones.
-- If you add a field, update both `FIELDS` in `anki_model.py` and the `note_fields` list in `cli.py` in the same PR.
+- Keep field order stable: Anki maps fields by position, not name. Always append new fields; never reorder or remove existing ones.
+- If you add a field, update `FIELDS` in `notetypes.py` and the note builder in `deck/build.py` in the same PR.
 
 **Styles:**
 
-- Edit `src/avianki/card.css` for layout changes. All models share it at build time.
+- Edit `src/avianki/deck/card.css` for layout changes. All models share it at build time.
 
-**Model IDs:**
+**Model IDs and GUIDs:**
 
-- Each model's ID is derived from its seed string via `_stable_id()`. Never change a seed string for a published model — it would orphan all existing cards in users' Anki collections.
+- Each model's ID is derived from its seed string via `stable_id()`, and each note's GUID from the species id and card type. Never change either for a published note type: it would orphan existing cards in users' Anki collections.
 
-### 2) Scrape additional fields from allaboutbirds.org
+### 2) Add or change catalog data
 
-- Add extraction logic in `src/avianki/allaboutbirds.py` using BeautifulSoup selectors.
-- Prefer selectors against structured HTML; avoid whole-page regex parsing.
-- Thread the new data through `src/avianki/cli.py` so it reaches:
-  - note fields (if shown on cards)
-  - `birds.json` output
-- Add or update fixture-based parser tests in `tests/test_allaboutbirds.py` and related fixtures in `tests/fixtures/`.
-- If output JSON shape changes, update `examples/example-birds.json` and any tests that assert JSON structure.
+The catalog is built by `avianki-catalog build` (see [docs/source-layout.md](docs/source-layout.md)) and read by `avianki`. Sources live under `src/avianki/sources/`, selection rules in `catalog/select.py`, and the published format (the contract with the CLI and the web page) in `catalog/format.py`. Changing the format is a breaking change: bump `FORMAT_VERSION` and update `web/` and `catalog/client.py` together. The dependency rule in `tests/test_layout.py` decides what may import what.
 
 For either path, run the quick verification checklist before opening a PR.
-
-## Scraping fragility
-
-HTML parsing uses BeautifulSoup 4 with CSS selectors against allaboutbirds.org page structure; small regex expressions are used only on individual attribute values. If scraping breaks, check whether the site's HTML has changed by comparing against the selectors in `allaboutbirds.py`.
 
 ## Versioning
 
@@ -128,8 +117,8 @@ This project follows [Semantic Versioning](https://semver.org/): `MAJOR.MINOR.PA
 | Bump | When |
 | ---- | ---- |
 | `MAJOR` | Breaking changes — anything that orphans existing Anki cards or requires a fresh import: changing a model seed string, reordering or removing fields, renaming a deck seed, changing note GUIDs |
-| `MINOR` | New features that are backward-compatible: new card types, new scraped fields (appended), new CLI flags |
-| `PATCH` | Bug fixes, CSS tweaks, scraping fixes, documentation |
+| `MINOR` | New features that are backward-compatible: new card types, new fields (appended), new CLI flags |
+| `PATCH` | Bug fixes, CSS tweaks, source fixes, documentation |
 
 ## Submitting changes
 
