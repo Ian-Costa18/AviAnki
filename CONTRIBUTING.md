@@ -87,8 +87,8 @@ Each card type is its own `genanki.Model` in `src/avianki/deck/notetypes.py` wit
 
 **To add a new card type:**
 
-- Add it to `CARD_TYPES`, `MODEL_SEEDS`, the model and template name tables and the fronts in `notetypes.py`, with a new, unique seed string.
-- Teach `plan_notes` in `deck/build.py` when a species gets that note, and the `--cards` parser in `cli.py` its name.
+- Add it to `CARD_TYPES`, `MODEL_SEEDS` and `_NOTE_TYPES` (model name, template name, front) in `notetypes.py`, with a new, unique seed string. The `--cards` parser in `cli.py` takes its names from `CARD_TYPES` (`photo_audio` is spelled `photo-audio`).
+- Teach `plan_notes` in `deck/build.py` (and its mirror `planNotes` in `web/js/select.js`) when a species gets that note, then regenerate `web/js/notetypes.json` with `scripts/gen_web_notetypes.py`.
 - Add tests under `tests/deck/`, and an acceptance test if the front or back changes what a learner sees.
 
 **Fields:**

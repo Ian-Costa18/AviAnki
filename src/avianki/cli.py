@@ -49,6 +49,7 @@ from avianki.deck.build import (
     write_deck,
 )
 from avianki.deck.credits import EBIRD_NOTICE
+from avianki.deck.notetypes import CARD_TYPES
 
 log = logging.getLogger("bird_deck")
 
@@ -56,9 +57,13 @@ EBIRD_KEY_VAR = "EBIRD_API_KEY"
 EBIRD_KEY_URL = "https://ebird.org/api/keygen"
 DEFAULT_CARDS = "photo,audio"
 
-# The CLI spells the combined card type with a hyphen; note types use an underscore.
-_CARD_SPELLINGS = {"photo": "photo", "audio": "audio", "photo-audio": "photo_audio"}
-_CARD_LABELS = {"photo": "photo", "audio": "audio", "photo_audio": "photo-audio"}
+
+def _card_label(card_type: str) -> str:
+    """The CLI spells the combined card type with a hyphen; note types use an underscore."""
+    return card_type.replace("_", "-")
+
+
+_CARD_SPELLINGS = {_card_label(ct): ct for ct in CARD_TYPES}
 
 EXIT_OK, EXIT_FAILED, EXIT_USAGE = 0, 1, 2
 
@@ -323,7 +328,7 @@ def _finish(
         return EXIT_OK
     species_count = len({n.species_id for n in notes})
     by_type = ", ".join(
-        f"{count} {_CARD_LABELS[card_type]}"
+        f"{count} {_card_label(card_type)}"
         for card_type, count in summary.notes_by_type.items()
         if count
     )

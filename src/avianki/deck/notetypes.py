@@ -41,39 +41,25 @@ FIELDS: Final[tuple[str, ...]] = (
 
 CSS: Final[str] = (Path(__file__).with_name("card.css")).read_text(encoding="utf-8")
 
-_MODEL_NAMES: Final[dict[str, str]] = {
-    "photo": "AviAnki · Photo",
-    "audio": "AviAnki · Audio",
-    "photo_audio": "AviAnki · Photo + Audio",
-}
-_TEMPLATE_NAMES: Final[dict[str, str]] = {
-    "photo": "Photo → Name",
-    "audio": "Audio → Name",
-    "photo_audio": "Photo + Audio → Name",
-}
-
 _PHOTO_BLOCK = '<div class="image-row">{{Photo}}</div>'
 _AUDIO_BLOCK = '<div class="audio-row">{{Audio}}</div>'
 
-_FRONTS: Final[dict[str, str]] = {
-    "photo": (
-        '<div class="card">\n'
-        '  <div class="prompt-label">What bird is this?</div>\n'
-        f"  {_PHOTO_BLOCK}\n"
-        "</div>"
-    ),
-    "audio": (
-        '<div class="card">\n'
-        '  <div class="prompt-label">Who\'s calling?</div>\n'
-        f"  {_AUDIO_BLOCK}\n"
-        "</div>"
-    ),
+
+def _front(prompt: str, *blocks: str) -> str:
+    """A front: the prompt, then the media it asks about, one block per line."""
+    return "\n".join(
+        ['<div class="card">', f'  <div class="prompt-label">{prompt}</div>', *(f"  {b}" for b in blocks), "</div>"]
+    )
+
+
+# Per card type: the note type's name, the name of its one template, and that template's front.
+_NOTE_TYPES: Final[dict[str, tuple[str, str, str]]] = {
+    "photo": ("AviAnki · Photo", "Photo → Name", _front("What bird is this?", _PHOTO_BLOCK)),
+    "audio": ("AviAnki · Audio", "Audio → Name", _front("Who's calling?", _AUDIO_BLOCK)),
     "photo_audio": (
-        '<div class="card">\n'
-        '  <div class="prompt-label">What bird is this?</div>\n'
-        f"  {_PHOTO_BLOCK}\n"
-        f"  {_AUDIO_BLOCK}\n"
-        "</div>"
+        "AviAnki · Photo + Audio",
+        "Photo + Audio → Name",
+        _front("What bird is this?", _PHOTO_BLOCK, _AUDIO_BLOCK),
     ),
 }
 
@@ -94,17 +80,12 @@ def stable_id(seed: str) -> int:
 
 
 def _model(card_type: str) -> genanki.Model:
+    model_name, template_name, front = _NOTE_TYPES[card_type]
     return genanki.Model(
         stable_id(MODEL_SEEDS[card_type]),
-        _MODEL_NAMES[card_type],
+        model_name,
         fields=[{"name": f} for f in FIELDS],
-        templates=[
-            {
-                "name": _TEMPLATE_NAMES[card_type],
-                "qfmt": _FRONTS[card_type],
-                "afmt": BACK,
-            }
-        ],
+        templates=[{"name": template_name, "qfmt": front, "afmt": BACK}],
         css=CSS,
         # Sort by Name in Anki's browser (SpeciesId is index 0 and is the duplicate key).
         sort_field_index=1,
