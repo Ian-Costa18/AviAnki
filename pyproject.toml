@@ -53,6 +53,7 @@ filterwarnings = ["ignore::DeprecationWarning:cached_property"]
 
 [dependency-groups]
 dev = [
+    "anki>=26.9",
     "playwright>=1.40.0",
     "pytest>=9.0.3",
     "pytest-cov>=7.1.0",

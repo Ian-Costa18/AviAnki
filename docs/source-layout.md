@@ -77,7 +77,7 @@ tests/                   mirrors src/avianki/
   scripts/               assemble_site.py and fetch_latest_catalog.sh (fake `gh` on PATH)
   test_layout.py         enforces the dependency rule
   web/                   Playwright, incl. mobile emulation + heap cap
-  acceptance/            built decks through Anki's own backend (ADR 0019)
+  acceptance/            built decks through Anki's own backend (ADR 0019); the live us-ma check is marked integration  (today)
   fixtures/catalog/      a tiny published catalog (3 regions, 12 species, ~90 KB) for web + CLI tests; make_fixture.py regenerates it with the real writers (needs the catalog extra and ffmpeg)  (today)
   fixtures/selection/    cases.json: language-neutral selection cases shared by deck/ and web/js/select.js  (today)
 
