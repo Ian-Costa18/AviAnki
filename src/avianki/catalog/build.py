@@ -79,6 +79,7 @@ from avianki.catalog.select import (
     previous_asset,
     provenance_entry,
     reused_media_ref,
+    reused_provenance,
     screen_candidates,
     slots_left,
     sticky_problem,
@@ -401,8 +402,8 @@ class _Builder:
                     media = str(exc)
                 problem = sticky_problem(sid, kind, asset, pin, media)
                 if problem is None:
-                    role.ref = reused_media_ref(kind, asset)
-                    role.prov = asset.provenance
+                    role.ref = reused_media_ref(kind, asset, self.rows[sid])
+                    role.prov = reused_provenance(asset, self.rows[sid])
                     role.reused = True
                     self.owners[asset.ref.file] = (sid, kind)
                     continue
@@ -736,8 +737,8 @@ class _Builder:
             # A pin that failed leaves the previous entry standing.
             for kind, role in roles.items():
                 if not role.done and role.fallback is not None:
-                    role.ref = reused_media_ref(kind, role.fallback)
-                    role.prov = role.fallback.provenance
+                    role.ref = reused_media_ref(kind, role.fallback, self.rows[sid])
+                    role.prov = reused_provenance(role.fallback, self.rows[sid])
                     role.reused = True
                     self.owners[role.fallback.ref.file] = (sid, kind)
             row = self.rows[sid]

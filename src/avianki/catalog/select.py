@@ -6,7 +6,7 @@ asks this module the questions that have a rule for an answer:
 * is a previous catalog's asset still good, or must it be rebuilt (`sticky_problem`)?
 * which candidates may be tried, in what order, how many (`screen_candidates`, `slots_left`)?
 * what do the provenance entry and the stored credit for a chosen asset look like
-  (`provenance_entry`, `media_ref`, `reused_media_ref`)?
+  (`provenance_entry`, `media_ref`, `reused_media_ref`, `reused_provenance`)?
 * in what order do species rank overall (`overall_order`)?
 
 Every function takes plain values and returns plain values, so the rules are tested
@@ -16,7 +16,7 @@ exhaustively without any fake source.
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from avianki.catalog.credit import render_credit
 from avianki.catalog.format import Kind, MediaRef, ProvenanceEntry, ProvenanceFile, SpeciesFile, Verified
@@ -25,6 +25,8 @@ from avianki.catalog.report import Rejection
 from avianki.catalog.validate import BIRDNET_MIN_CONFIDENCE
 from avianki.core.licences import AssetRecord, is_allowed
 from avianki.sources.contract import AssetKind, Candidate
+from avianki.sources.inaturalist import parse as inat
+from avianki.taxonomy.species import SpeciesRow
 
 __all__ = [
     "MAX_AUDIO_CANDIDATES",
@@ -38,7 +40,9 @@ __all__ = [
     "overall_order",
     "previous_asset",
     "provenance_entry",
+    "retitle_for",
     "reused_media_ref",
+    "reused_provenance",
     "screen_candidates",
     "slots_left",
     "sticky_problem",
@@ -228,11 +232,37 @@ def media_ref(kind: Kind, file: str, size: int, record: AssetRecord) -> MediaRef
     return MediaRef(file=file, bytes=size, credit=render_credit(kind, record))
 
 
-def reused_media_ref(kind: Kind, asset: PreviousAsset) -> MediaRef:
-    """A kept asset's reference. The credit is re-rendered from its provenance, so a change
-    to the credit format reaches reused assets too (the media bytes are never touched)."""
+def retitle_for(record: AssetRecord, row: SpeciesRow) -> AssetRecord:
+    """A kept asset's record with its title brought up to date for the species' current name.
+
+    An iNaturalist asset's title is not the creator's: AviAnki composes "Common name
+    (Scientific name)" when it fetches the asset. If the species has since been renamed
+    (ADR 0026), the stored title still carries the old common name, so it is composed again
+    from ``row``. Only a title that is that composed form for this species' scientific name
+    is touched; every other source's title (Commons uses the file's real title) and any
+    other iNaturalist title is returned as it was.
+    """
+    if record.source != inat.SOURCE or not inat.is_composed_title(record.title, row.sci_name):
+        return record
+    title = inat.composed_title(row.common_name, row.sci_name)
+    return record if title == record.title else replace(record, title=title)
+
+
+def reused_media_ref(kind: Kind, asset: PreviousAsset, row: SpeciesRow) -> MediaRef:
+    """A kept asset's reference. The credit is re-rendered from its provenance (with the title
+    brought up to date by `retitle_for`), so a change to the credit format or a species
+    rename reaches reused assets too (the media bytes are never touched)."""
     assert asset.provenance is not None
-    return MediaRef(asset.ref.file, asset.ref.bytes, render_credit(kind, asset.provenance.record))
+    record = retitle_for(asset.provenance.record, row)
+    return MediaRef(asset.ref.file, asset.ref.bytes, render_credit(kind, record))
+
+
+def reused_provenance(asset: PreviousAsset, row: SpeciesRow) -> ProvenanceEntry:
+    """A kept asset's audit record for the new catalog: the previous one with `retitle_for`
+    applied, so it agrees with the credit `reused_media_ref` renders."""
+    assert asset.provenance is not None
+    record = retitle_for(asset.provenance.record, row)
+    return asset.provenance if record is asset.provenance.record else replace(asset.provenance, record=record)
 
 
 def provenance_entry(

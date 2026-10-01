@@ -19,16 +19,20 @@ from avianki.catalog.select import (
     overall_order,
     previous_asset,
     provenance_entry,
+    retitle_for,
     reused_media_ref,
+    reused_provenance,
     screen_candidates,
     slots_left,
     sticky_problem,
 )
 from avianki.core.licences import licence_url
 from avianki.sources.contract import AssetKind, Candidate
+from avianki.taxonomy.species import SpeciesRow
 from catalog_fakes import make_record
 
 SID = "turdus-migratorius"
+ROW = SpeciesRow(SID, "Turdus migratorius", "American Robin")
 FILE = "media/0123456789abcdef.webp"
 AUDIO_FILE = "media/fedcba9876543210.mp3"
 
@@ -277,9 +281,58 @@ def test_provenance_entry_rejects_inconsistent_verification():
 
 def test_reused_media_ref_rerenders_the_credit_from_provenance_and_keeps_the_file():
     a = asset(licence_id="CC-BY-4.0", licence_url=licence_url("CC-BY-4.0"), modifications=("resized",))
-    ref = reused_media_ref("photo", a)
+    ref = reused_media_ref("photo", a, ROW)
     assert (ref.file, ref.bytes) == (FILE, 1234)
     assert ref.credit != "old credit" and "CC BY 4.0" in ref.credit and "resized" in ref.credit
+
+
+# -- renamed species (ADR 0026) --------------------------------------------------------------------
+
+PLOVER = SpeciesRow("pluvialis-squatarola", "Pluvialis squatarola", "Black-bellied Plover")
+
+
+def inat_plover(title: str = "Grey Plover (Pluvialis squatarola)") -> PreviousAsset:
+    entry = ProvenanceEntry(
+        make_record(source="inaturalist", licence_id="CC-BY-4.0", licence_url=licence_url("CC-BY-4.0"), title=title),
+        PLOVER.id,
+        "photo",
+        "P1:2",
+    )
+    return PreviousAsset(MediaRef(FILE, 1234, "old credit"), entry)
+
+
+def test_a_kept_inaturalist_asset_is_retitled_in_credit_and_provenance_for_a_renamed_species():
+    a = inat_plover()
+    ref = reused_media_ref("photo", a, PLOVER)
+    entry = reused_provenance(a, PLOVER)
+    assert "Black-bellied Plover (Pluvialis squatarola)" in ref.credit
+    assert "Grey Plover" not in ref.credit
+    assert entry.record.title == "Black-bellied Plover (Pluvialis squatarola)"
+    assert replace(entry, record=replace(entry.record, title=a.provenance.record.title)) == a.provenance  # only the title
+    assert (ref.file, ref.bytes) == (FILE, 1234)
+
+
+def test_a_kept_inaturalist_asset_for_an_unrenamed_species_is_returned_unchanged():
+    a = inat_plover("Black-bellied Plover (Pluvialis squatarola)")
+    assert reused_provenance(a, PLOVER) is a.provenance
+
+
+def test_a_kept_commons_asset_keeps_its_title():
+    a = asset(title="Grey Plover (Pluvialis squatarola) in flight")
+    assert retitle_for(a.provenance.record, PLOVER) is a.provenance.record
+    commons_like = asset(title="Grey Plover (Pluvialis squatarola)")  # even if it looks composed
+    assert reused_provenance(commons_like, PLOVER).record.title == "Grey Plover (Pluvialis squatarola)"
+    assert "Grey Plover (Pluvialis squatarola)" in reused_media_ref("photo", commons_like, PLOVER).credit
+
+
+@pytest.mark.parametrize(
+    "title",
+    ["Grey Plover", "Grey Plover (Pluvialis apricaria)", "Grey Plover (Pluvialis squatarola) at dusk", "(Pluvialis squatarola)"],
+)
+def test_an_inaturalist_title_not_in_the_composed_form_is_left_alone(title):
+    a = inat_plover(title)
+    assert reused_provenance(a, PLOVER).record.title == title
+    assert title in reused_media_ref("photo", a, PLOVER).credit
 
 
 # -- species order ------------------------------------------------------------------------------------

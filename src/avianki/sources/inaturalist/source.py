@@ -320,7 +320,7 @@ class INaturalistSource(AssetSource):
             creator=f.creator,
             creator_url=f.creator_url,
             attribution_text=f.attribution_text,
-            title=f"{row.common_name} ({row.sci_name})",
+            title=parse.composed_title(row.common_name, row.sci_name),
             retrieved_at=self._today(),
             source_terms_version=TERMS_VERSION,
             licence_version_assumed=f.licence_version_assumed,

@@ -48,6 +48,21 @@ _ATTRIBUTION_NAME = re.compile(r"^\(c\)\s+(?P<name>.+?),\s+(?:some|no)\s+rights\
 _LOGIN = re.compile(r"^[A-Za-z0-9_-]+$")
 
 
+def composed_title(common_name: str, sci_name: str) -> str:
+    """The Work's title for an iNaturalist asset: "Common name (Scientific name)".
+
+    iNaturalist photos and sounds have no title of their own, so AviAnki composes one the way
+    iNaturalist names its observation page. The catalog build re-composes it when a kept
+    asset's species is renamed (`catalog.select.retitle_for`), so both use this one format.
+    """
+    return f"{common_name} ({sci_name})"
+
+
+def is_composed_title(title: str | None, sci_name: str) -> bool:
+    """Whether ``title`` is `composed_title` for the species with ``sci_name`` (any common name)."""
+    return title is not None and title.endswith(f" ({sci_name})")
+
+
 def norm_name(name: str) -> str:
     """Case- and whitespace-normalised scientific name, the comparison form."""
     return " ".join(name.split()).casefold()

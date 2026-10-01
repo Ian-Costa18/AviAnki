@@ -20,6 +20,8 @@ An asset chosen for a species keeps its place in later builds unless one of thes
 
 Existing users' cards don't churn from month to month.
 
+A kept asset's credit is re-rendered from its stored provenance record at every build. One field is refreshed first: an iNaturalist asset's title is AviAnki's own "Common name (Scientific name)", so when the species has been renamed ([0026](0026-north-american-common-names.md)) the title is composed again from the current species row, in the credit and in the provenance record alike (`catalog.select.retitle_for`). Other sources' titles are the files' real titles and are never touched.
+
 ### Builds are incremental
 
 - **State** is the previous release's manifest and provenance. Media is reused from the previous release's tarball rather than being re-downloaded from the sources.
