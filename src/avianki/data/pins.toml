@@ -117,3 +117,7 @@ note = "Berylline Hummingbird: the hummingbird is a speck at a feeder (1.0.0 con
 exclude = ["inaturalist:P283575253:509560943"]
 note = "Tropical Parula: the bird is a small speck in a large bush (1.0.0 contact sheet review)"
 
+[bubulcus-ibis]
+exclude = ["inaturalist:P38998088:61907549"]
+note = "Western Cattle Egret: a blurred white egret through a window; doesn't show the species (1.0.1 review)"
+
