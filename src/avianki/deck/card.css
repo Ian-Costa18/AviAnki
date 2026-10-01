@@ -16,9 +16,10 @@
 .names { margin:14px 0 10px; }
 .name { font-size:1.6em; font-weight:700; letter-spacing:-.01em; line-height:1.15; }
 .sci { font-style:italic; color:var(--sub); font-size:.92em; margin-top:1px; }
-/* Unused until the names change (ADR 0025): the outlined "IOC <name>" tag above .name. */
+/* The outlined "IOC <name>" tag above .name, where the IOC name differs from eBird's (ADR 0027). */
+.ioc { margin:0 0 4px; line-height:1; }
 .ioc-tag { display:inline-block; font-size:10.5px; line-height:1; color:var(--sub);
-  border:1px solid color-mix(in srgb, var(--sub) 55%, transparent); border-radius:999px; padding:2px 7px; margin:0 0 3px; }
+  border:1px solid color-mix(in srgb, var(--sub) 55%, transparent); border-radius:999px; padding:2px 7px; }
 .ioc-tag b { font-weight:700; letter-spacing:.08em; margin-right:3px; }
 .credits { font-size:11.5px; line-height:1.4; color:var(--sub); margin-top:16px; padding-top:8px;
   border-top:1px solid color-mix(in srgb, var(--sub) 35%, transparent); }

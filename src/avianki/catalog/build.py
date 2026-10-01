@@ -760,7 +760,7 @@ class _Builder:
                     report.audio_by_source[source] = report.audio_by_source.get(source, 0) + 1
                 if role.pin is not None and (source, role.prov.token) == (role.pin.source, role.pin.token):
                     report.pinned_used += 1
-            entries[sid] = SpeciesEntry(row.common_name, row.sci_name, refs["photo"], refs["audio"])
+            entries[sid] = SpeciesEntry(row.common_name, row.sci_name, refs["photo"], refs["audio"], row.ioc_name)
 
             if any((r.incomplete and not r.done) or r.pin_failed for r in roles.values()):
                 unfinished.append(sid)
@@ -948,7 +948,7 @@ def _with_previous_names(species_table: SpeciesTable, previous: LoadedCatalog, o
     """A reused species half never mints, so a species minted by an earlier run and not yet
     committed to species.csv is missing from the table. Its names are in the previous catalog."""
     stubs = [
-        SpeciesRow(sid, previous.species[sid].sci, previous.species[sid].name)
+        SpeciesRow(sid, previous.species[sid].sci, previous.species[sid].name, ioc_name=previous.species[sid].ioc_name)
         for sid in order
         if sid not in species_table and sid in previous.species
     ]

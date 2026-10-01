@@ -129,6 +129,7 @@ def test_fields(tmp_path: Path) -> None:
 
     audio = by_guid["sN^~,`kZon"]
     assert audio[3:] == photo[3:]
+    assert len(photo) == 9 and photo[8] == ""  # IocName: the catalog entry has none (ADR 0027)
 
     assert len(by_guid) == 3 and all(f[3:] == photo[3:] for f in by_guid.values())
 
@@ -140,6 +141,7 @@ def test_names_are_escaped(tmp_path: Path) -> None:
     fields = row[2].split(SEP)
     assert fields[1] == "Tom &amp; &lt;Jerry&gt;"
     assert fields[2] == "Muris &lt;x&gt; &amp; y"
+    assert fields[8] == "Ioc &lt;Tom&gt; &amp; Jerry"  # IocName, escaped like the others
 
 
 def test_media_names_and_contents(tmp_path: Path) -> None:

@@ -10,6 +10,7 @@ from avianki.deck.notetypes import CSS, FIELDS, MODELS
 
 NAME = "American Robin"
 SCI = "Turdus migratorius"
+IOC = "Eurasian Thrush"  # stands in for an IOC name that differs from eBird's (ADR 0027)
 CREDIT = "Photo: <i>Robin File</i> by <b>Someone</b> · CC BY-SA 3.0"
 
 FILLED = {
@@ -21,6 +22,7 @@ FILLED = {
     "Audio": "[sound:avianki_9f8e.mp3]",
     "Audio2": "",
     "Credits": f'<div class="credits">{CREDIT}</div>',
+    "IocName": IOC,
 }
 
 
@@ -49,8 +51,8 @@ def test_every_model_has_one_template() -> None:
 @pytest.mark.parametrize("card_type", ["photo", "audio", "photo_audio"])
 def test_front_leaks_nothing_from_the_answer(card_type: str) -> None:
     text = render(_front(card_type), FILLED)
-    assert NAME not in text and SCI not in text
-    words = {w.lower() for w in re.findall(r"[A-Za-z]+", f"{NAME} {SCI}")}
+    assert NAME not in text and SCI not in text and IOC not in text
+    words = {w.lower() for w in re.findall(r"[A-Za-z]+", f"{NAME} {SCI} {IOC}")}
     visible = re.sub(r"<[^>]+>", " ", text)  # markup and attribute values aren't shown
     visible_words = {w.lower() for w in re.findall(r"[A-Za-z]+", visible)}
     assert not words & visible_words, words & visible_words
@@ -120,16 +122,25 @@ def test_front_layouts() -> None:
 @pytest.mark.parametrize("card_type", CARD_TYPES)
 def test_front_never_has_the_answer(card_type: str) -> None:
     front = _front(card_type)
-    for token in ("{{Name}}", "{{SciName}}", "{{Credits}}"):
+    for token in ("{{Name}}", "{{SciName}}", "{{Credits}}", "{{IocName}}", "IocName", "ioc"):
         assert token not in front
 
 
 @pytest.mark.parametrize("card_type", CARD_TYPES)
 def test_back_fills_in(card_type: str) -> None:
     back = render(_back(card_type), FILLED)
-    for needle in (NAME, SCI, CREDIT):
+    for needle in (NAME, SCI, CREDIT, IOC):
         assert needle in back
     assert FILLED["Photo"] in back and FILLED["Audio"] in back
+
+
+@pytest.mark.parametrize("card_type", CARD_TYPES)
+def test_back_shows_the_ioc_tag_above_the_name_only_when_there_is_one(card_type: str) -> None:
+    back = _back(card_type)
+    tag = '{{#IocName}}<div class="ioc"><span class="ioc-tag"><b>IOC</b> {{IocName}}</span></div>{{/IocName}}'
+    assert tag in back
+    assert back.index(tag) < back.index('<div class="name">')
+    assert back.index('class="names"') < back.index(tag)  # inside .names
 
 
 def test_no_template_wraps_in_class_card() -> None:

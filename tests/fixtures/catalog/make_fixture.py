@@ -16,6 +16,8 @@ second sine tones, the creators and URLs are invented and live under example.org
 * ``ca-qc`` "Québec": 7 species; the accent is there to test name matching.
 * ``us-az`` "Arizona": 6 species.
 * Snowy Owl has no audio; Common Loon has no photo.
+* Mallard carries an invented ``ioc_name`` so the IOC tag has a species to show on (ADR 0027);
+  every other species omits the key, as the real catalog does.
 * ``base_url`` is a placeholder that tests override (clients resolve paths against
   where they read the manifest from, not against this).
 """
@@ -124,6 +126,9 @@ REGIONS: dict[str, tuple[str, str, list[tuple[str, tuple[int, ...]]]]] = {
     ),
 }
 
+# species id -> invented IOC English name, for the optional ``ioc_name`` key (ADR 0027).
+IOC_NAMES: dict[str, str] = {"anas-platyrhynchos": "Wild Duck"}
+
 _LICENCES = ("CC-BY-SA-3.0", "CC-BY-4.0", "CC0-1.0", "CC-BY-2.0")
 
 
@@ -188,7 +193,7 @@ def build(out_dir: Path) -> None:
                     record=record, species_id=sid, kind=kind,  # type: ignore[arg-type]
                     token=f"fixture:{sid}-{kind}-{n}",
                 )  # fmt: skip
-        entries[sid] = SpeciesEntry(name, sci, refs["photo"], refs["audio"])
+        entries[sid] = SpeciesEntry(name, sci, refs["photo"], refs["audio"], IOC_NAMES.get(sid, ""))
 
     region_files = [RegionFile(slug, list(rows)) for slug, (_, _, rows) in REGIONS.items()]
     manifest = Manifest(

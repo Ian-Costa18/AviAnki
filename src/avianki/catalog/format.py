@@ -237,20 +237,28 @@ class MediaRef:
 
 @dataclass(frozen=True)
 class SpeciesEntry:
-    """A species' names and chosen media. An empty ``photo`` or ``audio`` list is absence."""
+    """A species' names and chosen media. An empty ``photo`` or ``audio`` list is absence.
+
+    ``ioc_name`` is the IOC English name, set only where it differs from ``name`` (ADR 0027).
+    It is optional: the key is omitted when empty, and a catalog without it reads as "".
+    """
 
     name: str
     sci: str
     photo: list[MediaRef]
     audio: list[MediaRef]
+    ioc_name: str = ""
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        d: dict[str, Any] = {
             "name": self.name,
             "sci": self.sci,
             "photo": [m.to_dict() for m in self.photo],
             "audio": [m.to_dict() for m in self.audio],
         }
+        if self.ioc_name:
+            d["ioc_name"] = self.ioc_name
+        return d
 
     @classmethod
     def from_dict(cls, d: Mapping[str, Any]) -> SpeciesEntry:
@@ -259,6 +267,7 @@ class SpeciesEntry:
             d["sci"],
             [MediaRef.from_dict(m) for m in d["photo"]],
             [MediaRef.from_dict(m) for m in d["audio"]],
+            d.get("ioc_name", ""),
         )
 
 
@@ -485,6 +494,7 @@ SPECIES_SCHEMA: dict[str, Any] = {
         "properties": {
             "name": _NONEMPTY,
             "sci": _NONEMPTY,
+            "ioc_name": _NONEMPTY,  # optional (ADR 0027)
             "photo": {"type": "array", "items": _media_ref("webp")},
             "audio": {"type": "array", "items": _media_ref("mp3")},
         },

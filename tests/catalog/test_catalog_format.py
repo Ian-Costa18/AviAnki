@@ -166,6 +166,24 @@ def test_species_file_round_trip_and_mapping_access() -> None:
     assert dict(species.items()) == {"turdus-migratorius": entry}
 
 
+def test_ioc_name_is_optional_and_omitted_when_empty() -> None:
+    """ADR 0027: an old species file (no key) still loads, and an empty name writes no key."""
+    d = species_dict()
+    old = SpeciesFile.from_dict(d)["turdus-migratorius"]
+    assert old.ioc_name == ""
+    assert "ioc_name" not in old.to_dict()
+
+    d["turdus-migratorius"]["ioc_name"] = "American Robin (IOC)"
+    validate_species(d)
+    entry = SpeciesFile.from_dict(d)["turdus-migratorius"]
+    assert entry.ioc_name == "American Robin (IOC)"
+    assert entry.to_dict()["ioc_name"] == "American Robin (IOC)"
+
+    d["turdus-migratorius"]["ioc_name"] = ""
+    with pytest.raises(FormatError):
+        validate_species(d)
+
+
 def test_provenance_round_trip_flat_json() -> None:
     entry = ProvenanceEntry(
         make_record(licence_version_assumed=True),

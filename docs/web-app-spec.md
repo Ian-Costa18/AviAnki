@@ -116,7 +116,7 @@ It's defined in code by `src/avianki/catalog/format.py` (JSON Schema). This sect
 }
 ```
 
-The `credit` values are pipeline-rendered, escaped HTML that uses only `a`, `b` and `i`. Empty `photo` or `audio` lists mean absence.
+The `credit` values are pipeline-rendered, escaped HTML that uses only `a`, `b` and `i`. Empty `photo` or `audio` lists mean absence. `ioc_name` is optional ([ADR 0027](adr/0027-ioc-name-field.md)): the IOC English name, present only for the birds where it is a different name from `name`, and omitted otherwise. For example, `"pluvialis-squatarola": {"name": "Black-bellied Plover", "sci": "Pluvialis squatarola", "ioc_name": "Grey Plover", ...}`.
 
 **`catalog/provenance.<hash>.json`** maps each media filename to its full licence research §5.1 record. It's for audit only.
 
@@ -126,15 +126,15 @@ The `credit` values are pipeline-rendered, escaped HTML that uses only `a`, `b` 
 
 **Note types.** There are three, with one template each. They all share these fields:
 
-`SpeciesId, Name, SciName, Photo, Photo2, Audio, Audio2, Credits`
+`SpeciesId, Name, SciName, Photo, Photo2, Audio, Audio2, Credits, IocName`
 
-`Photo2` and `Audio2` are reserved and empty at 1.0.
+`Photo2` and `Audio2` are reserved and empty at 1.0. `IocName` was appended before the 1.0 announcement ([ADR 0027](adr/0027-ioc-name-field.md)); it's empty except for the birds whose IOC name differs from eBird's.
 
-All three share one back, so the order is always the same, and only the photo stays still when the card flips ([ADR 0025](adr/0025-card-design.md)): `{{Photo}}` (if the note has it), `{{Name}}`, `{{SciName}}`, `{{Audio}}` labelled "Hear the call" (if the note has it), then `{{Credits}}`. Fronts put the photo first with the prompt under it; the audio front is a compact play button with the question beside it. No back repeats the question.
+All three share one back, so the order is always the same, and only the photo stays still when the card flips ([ADR 0025](adr/0025-card-design.md)): `{{Photo}}` (if the note has it), the small "IOC" tag with `{{IocName}}` (if the note has one), `{{Name}}`, `{{SciName}}`, `{{Audio}}` labelled "Hear the call" (if the note has it), then `{{Credits}}`. Fronts put the photo first with the prompt under it; the audio front is a compact play button with the question beside it. No back repeats the question.
 
 | Note type | Front | Back |
 |---|---|---|
-| AviAnki · Photo | `{{Photo}}`, then *What bird is this?* | `{{Photo}}`, `{{Name}}`, `{{SciName}}`, `{{Audio}}`, `{{Credits}}` |
+| AviAnki · Photo | `{{Photo}}`, then *What bird is this?* | `{{Photo}}`, the IOC tag, `{{Name}}`, `{{SciName}}`, `{{Audio}}`, `{{Credits}}` |
 | AviAnki · Audio | `{{Audio}}` with *Who's calling?* beside it | the same back |
 | AviAnki · Photo + Audio | `{{Photo}}`, then `{{Audio}}` with *What bird is this?* beside it | the same back |
 

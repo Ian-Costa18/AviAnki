@@ -70,7 +70,7 @@ def env(tmp_path, monkeypatch) -> Env:
     monkeypatch.setattr(catalog_cli, "new_registry", registry)
     monkeypatch.setattr(catalog_cli, "new_analyzer", lambda: analyzer)
     csv = tmp_path / "species.csv"
-    row = SpeciesRow("alpha-alpha", "Alpha alpha", "Alpha Bird", gbif_key=10, birdnet_label=BIRDNET[0])
+    row = SpeciesRow("alpha-alpha", "Alpha alpha", "Alpha Bird", gbif_key=10, birdnet_label=BIRDNET[0], ioc_name="Alpha Fowl")
     save_species(SpeciesTable([row]), csv)
     pins = tmp_path / "pins.toml"
     pins.write_text("", encoding="utf-8")
@@ -103,6 +103,18 @@ def test_the_catalog_names_new_species_by_ebird_and_never_renames_an_existing_on
     assert cat.species["alpha-alpha"].name == "Alpha Bird"
     assert cat.species["gamma-gamma"].name == "Gamma Birdie"
     assert {r.id: r.common_name for r in load_species(env.csv)}["alpha-alpha"] == "Alpha Bird"
+
+
+def test_the_ioc_name_reaches_the_catalog_and_survives_update_species_csv(env: Env):
+    """ADR 0027: species.csv's ioc_name is published (key omitted when empty) and never lost on a rewrite."""
+    assert catalog_cli.main([*env.args, "--update-species-csv"]) == 0
+    cat = load_catalog(env.out / "site")
+    assert cat.species["alpha-alpha"].ioc_name == "Alpha Fowl"
+    assert all(cat.species[s].ioc_name == "" for s in IDS if s != "alpha-alpha")
+    published = json.loads(next((env.out / "site").glob("species.*.json")).read_text(encoding="utf-8"))
+    assert published["alpha-alpha"]["ioc_name"] == "Alpha Fowl"
+    assert all("ioc_name" not in v for k, v in published.items() if k != "alpha-alpha")
+    assert {r.id: r.ioc_name for r in load_species(env.csv)}["alpha-alpha"] == "Alpha Fowl"
 
 
 def test_a_build_leaves_species_csv_alone_without_the_flag(env: Env):

@@ -3,7 +3,8 @@
 Every string that decides how Anki recognises a note is FROZEN (ADR 0009): the card-type
 names, the model seeds and the field list. ``tests/deck/test_identity.py`` pins them as
 literals; changing one needs a new ADR and a major version, because existing users' notes
-would stop matching on import.
+would stop matching on import. The one change so far is ``IocName``, appended as the last
+field before the 1.0 announcement (ADR 0027); the freeze resumes at that announcement.
 
 Each card type is its own note type with one template. The front shows only the prompt
 media, never Name, SciName or Credits: a credit line such as a file title can give the
@@ -34,6 +35,7 @@ MODEL_SEEDS: Final[dict[str, str]] = {
 }
 
 # Frozen and ordered (spec section 6). Photo2 and Audio2 are reserved and stay empty at 1.0.
+# IocName is last so every earlier field keeps its position (ADR 0027). Fronts never show it.
 FIELDS: Final[tuple[str, ...]] = (
     "SpeciesId",
     "Name",
@@ -43,6 +45,7 @@ FIELDS: Final[tuple[str, ...]] = (
     "Audio",
     "Audio2",
     "Credits",
+    "IocName",
 )
 
 CSS: Final[str] = (Path(__file__).with_name("card.css")).read_text(encoding="utf-8")
@@ -71,6 +74,7 @@ _BACK = _NL.join(
         '<div class="av">',
         "  {{#Photo}}" + _PHOTO_BLOCK + "{{/Photo}}",
         '  <div class="names">',
+        '    {{#IocName}}<div class="ioc"><span class="ioc-tag"><b>IOC</b> {{IocName}}</span></div>{{/IocName}}',
         '    <div class="name">{{Name}}</div>',
         '    <div class="sci">{{SciName}}</div>',
         "  </div>",

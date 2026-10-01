@@ -1,6 +1,6 @@
 # 0009 — One `AviAnki` deck; GUID = f(species id, card type); the old CLI identity is broken on purpose
 
-**Status:** Accepted, 2026-09-28 · **Ticket:** [#35](https://github.com/Ian-Costa18/AviAnki/issues/35) · **Implements:** PRD §6
+**Status:** Accepted, 2026-09-28 · **Ticket:** [#35](https://github.com/Ian-Costa18/AviAnki/issues/35) · **Implements:** PRD §6; field list amended by [0027](0027-ioc-name-field.md)
 
 ## Decision
 

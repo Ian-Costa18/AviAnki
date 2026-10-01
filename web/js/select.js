@@ -91,7 +91,7 @@ export function selectSpecies(regionFile, speciesFile, cards, { tier, month = nu
  * with a warning; a repeated id is planned once.
  *
  * @param {Iterable<string>} speciesIds already in rank order (an array, as selectSpecies returns)
- * @param {Object<string, {name: string, sci: string, photo: object[], audio: object[]}>} speciesFile
+ * @param {Object<string, {name: string, sci: string, photo: object[], audio: object[], ioc_name?: string}>} speciesFile
  * @param {Iterable<string>} cards a subset of CARD_TYPES, in any order
  * @param {{warn?: (message: string) => void}} [options]
  * @returns {Array<{speciesId: string, cardType: string, photo: object|null, audio: object|null}>}
