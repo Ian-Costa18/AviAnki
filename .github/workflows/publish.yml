@@ -1,14 +1,18 @@
-# Publishing to PyPI needs the maintainer's explicit approval, so pushing a tag never publishes
-# (issue #47). A maintainer starts this workflow from the Actions tab and names the tag, after the
-# version is bumped, merged, tagged and the GitHub release exists (CONTRIBUTING.md, "Publishing a
-# release"). The `pypi` environment's protection rules are a second gate before the upload.
+# Pushing a `v*` tag publishes to PyPI after the tests pass, then creates the GitHub release if it
+# doesn't exist yet (maintainer's decision, 2026-10-01; this reverses issue #47's "pushing a tag
+# never publishes"). Bump the version, merge, then tag the merge commit (CONTRIBUTING.md,
+# "Publishing a release"). The tag must equal v<project.version> or nothing is built. The `pypi`
+# environment's protection rules are an optional extra gate before the upload. Run manually from
+# the Actions tab with a tag name to retry a failed publish.
 name: Publish to PyPI
 
 on:
+  push:
+    tags: ["v*"]
   workflow_dispatch:
     inputs:
       tag:
-        description: "The release tag to publish, e.g. v1.0.0 (must equal v<project.version>)"
+        description: "The existing release tag to publish, e.g. v0.10.0 (must equal v<project.version>)"
         required: true
         type: string
 
@@ -16,14 +20,14 @@ jobs:
   sanity-test:
     runs-on: ubuntu-latest
     env:
-      TAG: ${{ inputs.tag }}
+      TAG: ${{ inputs.tag || github.ref_name }}
     # The exact commit the tests ran on, so the publish job builds that commit even if the tag moves.
     outputs:
       sha: ${{ steps.sha.outputs.sha }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.tag }}
+          ref: ${{ inputs.tag || github.ref_name }}
 
       - name: Record the commit
         id: sha
@@ -84,3 +88,32 @@ jobs:
 
       - name: Publish to PyPI
         run: uv publish --trusted-publishing always
+
+  # Creates the GitHub release from the tag once PyPI has the files, unless one already exists.
+  # The notes are the version's CHANGELOG section, or GitHub's generated notes if there is none.
+  release:
+    needs: [sanity-test, publish]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.sanity-test.outputs.sha }}
+
+      - name: Create the GitHub release
+        run: |
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            echo "Release $TAG already exists; leaving it alone."
+            exit 0
+          fi
+          version="${TAG#v}"
+          awk -v v="$version" '/^## /{found = ($2 == v); next} found' CHANGELOG.md > notes.md
+          if [ -s notes.md ]; then
+            gh release create "$TAG" --verify-tag --title "$TAG" --notes-file notes.md
+          else
+            gh release create "$TAG" --verify-tag --title "$TAG" --generate-notes
+          fi

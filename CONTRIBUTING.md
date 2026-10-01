@@ -60,32 +60,26 @@ The acceptance tests (ADR 0019) use the `anki` package, a dev dependency, so the
 
 ## Publishing a release
 
-Pushing a tag does **not** publish anything: PyPI needs the maintainer's explicit approval. A release is five steps:
+Pushing a `v*` tag publishes to PyPI once the tests pass. Versions stay 0.x until the 1.0 announcement. A release is three steps:
 
-1. Bump the version in `pyproject.toml` (see the [Versioning](#versioning) section for which bump to use):
-
-   ```bash
-   uv version --bump patch   # or minor / major
-   ```
-
-2. Commit it with the lockfile and merge it to `main` through a pull request:
+1. In a pull request, bump the version in `pyproject.toml` (see [Versioning](#versioning) for which bump to use) and rename the top `CHANGELOG.md` section to the new version:
 
    ```bash
-   git add pyproject.toml uv.lock
-   git commit -m "Bump version to $(uv version --short)"
+   uv version --bump minor   # or patch / major, or `uv version 0.10.0`
    ```
 
-3. Tag the merge commit on `main` and push the tag (the tag is `v` plus the version, e.g. `v1.0.0`):
+   Commit `pyproject.toml`, `uv.lock` and `CHANGELOG.md`, and merge to `main`.
+
+2. Tag the merge commit and push the tag (the tag is `v` plus the version, e.g. `v0.10.0`):
 
    ```bash
-   git tag v$(uv version --short)
-   git push origin v$(uv version --short)
+   git tag v0.10.0 <merge commit>
+   git push origin v0.10.0
    ```
 
-4. Create the GitHub release from that tag (for example `gh release create v1.0.0 --generate-notes`).
-5. A maintainer runs the **Publish to PyPI** workflow from the Actions tab (Run workflow) with the tag, e.g. `v1.0.0`.
+3. Watch the **Publish to PyPI** run. It does the rest.
 
-The [publish workflow](.github/workflows/publish.yml) checks out that tag and fails if it is not `v` plus `project.version` in `pyproject.toml`. It then runs the test suite (the same setup as CI: the `catalog` extra and the Playwright browsers), builds the package, and uploads it to PyPI using OIDC trusted publishing under the `pypi` environment, so no token is needed. The upload job builds the exact commit the tests ran on. Configure required reviewers on the `pypi` environment if you want a second approval before the upload.
+The [publish workflow](.github/workflows/publish.yml) checks out the tag and fails if it is not `v` plus `project.version` in `pyproject.toml`. It then runs the test suite (the same setup as CI: the `catalog` extra and the Playwright browsers), builds the exact commit the tests ran on, and uploads it to PyPI using OIDC trusted publishing under the `pypi` environment, so no token is needed. Last, it creates the GitHub release for the tag with that version's `CHANGELOG.md` section as the notes, unless a release already exists. If the upload fails, fix the cause and run the workflow again from the Actions tab (Run workflow) with the same tag. Configure required reviewers on the `pypi` environment if you want a second approval before the upload.
 
 ## Project structure
 
@@ -135,7 +129,7 @@ For either path, run the quick verification checklist before opening a PR.
 
 ## Versioning
 
-This project follows [Semantic Versioning](https://semver.org/): `MAJOR.MINOR.PATCH`.
+This project follows [Semantic Versioning](https://semver.org/): `MAJOR.MINOR.PATCH`. Until the 1.0 announcement, every release is `0.MINOR.PATCH`: breaking changes and new features bump `MINOR`, fixes bump `PATCH`.
 
 | Bump | When |
 | ---- | ---- |

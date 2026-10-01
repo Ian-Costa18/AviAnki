@@ -38,11 +38,20 @@ def publishing_jobs(workflow: dict[str, Any]) -> list[str]:
 # -- publish.yml ---------------------------------------------------------------------------
 
 
-def test_publishing_is_a_manual_dispatch_with_a_required_tag() -> None:
+def test_pushing_a_v_tag_publishes_and_a_manual_run_names_the_tag() -> None:
     on = triggers(load("publish.yml"))
-    assert set(on) == {"workflow_dispatch"}  # in particular: no `push` (a tag must not publish)
-    tag = on["workflow_dispatch"]["inputs"]["tag"]
-    assert tag["required"] is True
+    assert set(on) == {"push", "workflow_dispatch"}
+    assert on["push"] == {"tags": ["v*"]}  # tags only: a branch push must never publish
+    assert on["workflow_dispatch"]["inputs"]["tag"]["required"] is True
+
+
+def test_the_github_release_is_created_after_the_upload() -> None:
+    workflow = load("publish.yml")
+    job = workflow["jobs"]["release"]
+    assert set(job["needs"]) == {"sanity-test", "publish"}
+    assert job["permissions"] == {"contents": "write"}
+    assert publishing_jobs(workflow) == ["publish"]  # the release job never uploads to PyPI
+    assert any("gh release create" in s.get("run", "") for s in job["steps"])
 
 
 def test_only_the_environment_protected_job_publishes() -> None:
@@ -63,7 +72,7 @@ def test_the_tag_is_checked_against_the_project_version_before_anything_is_built
     assert '"v$version"' in steps[checks[0]]["run"]
     tests = [i for i, s in enumerate(steps) if s.get("run", "").startswith("uv run pytest")]
     assert tests and checks[0] < tests[0]
-    assert steps[0]["with"]["ref"] == "${{ inputs.tag }}"
+    assert steps[0]["with"]["ref"] == "${{ inputs.tag || github.ref_name }}"
 
 
 def test_the_sanity_tests_install_what_ci_installs() -> None:

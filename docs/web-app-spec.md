@@ -1,6 +1,6 @@
 # AviAnki web app — specification
 
-**Status:** Implemented in 1.0.0, 2026-09-30 (accepted 2026-09-28) · **Map:** [#6](https://github.com/Ian-Costa18/AviAnki/issues/6) · **Product requirements:** [`PRD.md`](PRD.md) · **Decisions:** [`adr/`](adr/README.md) · **Layout:** [`source-layout.md`](source-layout.md)
+**Status:** Implemented in 0.10.0 (the release candidate for 1.0), 2026-09-30 (accepted 2026-09-28) · **Map:** [#6](https://github.com/Ian-Costa18/AviAnki/issues/6) · **Product requirements:** [`PRD.md`](PRD.md) · **Decisions:** [`adr/`](adr/README.md) · **Layout:** [`source-layout.md`](source-layout.md)
 
 This spec is the destination of map #6. Someone holding this document, the PRD and the ADRs should be able to build AviAnki 1.0 with no architectural question left open. Where this document and an ADR disagree, the ADR wins, and this document gets fixed.
 
@@ -200,7 +200,7 @@ This is [ADR 0017](adr/0017-cli-reads-the-catalog.md) in full.
 - `avianki REGION` reads the catalog and builds with genanki.
 - `avianki --ebird CODE` builds anywhere, using the live sources and the not-for-redistribution notice.
 - `avianki-catalog` is for maintainers.
-- The **version is 1.0.0**, because the identity change breaks existing decks ([ADR 0009](adr/0009-note-identity.md)).
+- The identity change breaks existing decks ([ADR 0009](adr/0009-note-identity.md)). It ships as 0.10.0; versions stay 0.x until the 1.0 announcement.
 - README's options table and examples are rewritten in the same change.
 
 ## 9. Verification
@@ -231,7 +231,7 @@ Each milestone ships on its own branch with passing `pytest`, `ruff` and `ty`.
 | M4 | **Real catalog.** Full build in Actions; release and deploy. | Catalog live on Pages |
 | M5 | **Deck and CLI 1.0.** `deck/`, `catalog/client.py`, the `cli.py` rewrite, `--ebird`, README, acceptance tests. | `avianki us-ma` produces a deck that passes every acceptance check |
 | M6 | **Web app.** `web/` per §7, with the writer ported from the prototype and switched to fflate streaming. | Playwright end-to-end tests, including mobile, pass; the browser build is equivalent to genanki |
-| M7 | **Release.** PyPI 1.0.0; weekly check switched to the real sources; this spec's status updated to *Implemented*. | — |
+| M7 | **Release.** PyPI 0.10.0 (1.0.0 at the announcement); weekly check switched to the real sources; this spec's status updated to *Implemented*. | — |
 
 ## 11. Known risks
 
