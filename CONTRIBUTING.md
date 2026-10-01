@@ -104,11 +104,11 @@ Most feature work falls into one of these two paths.
 
 ### 1) Edit Anki cards (layout, templates, fields)
 
-Each card type is its own `genanki.Model` in `src/avianki/deck/notetypes.py` with a single template. All models share the same `FIELDS` tuple and the CSS in `src/avianki/deck/card.css`. Model seeds, note GUIDs and the deck id are frozen (ADR 0009); `tests/deck/test_identity.py` pins them, and you must not edit those expected strings.
+Each card type is its own `genanki.Model` in `src/avianki/deck/notetypes.py` with a single template: the front, and a back built from it (ADR 0025) that repeats the front, then adds the answer. All models share the same `FIELDS` tuple and the CSS in `src/avianki/deck/card.css`. Model seeds, note GUIDs and the deck id are frozen (ADR 0009); `tests/deck/test_identity.py` pins them, and you must not edit those expected strings.
 
 **To add a new card type:**
 
-- Add it to `CARD_TYPES`, `MODEL_SEEDS` and `_NOTE_TYPES` (model name, template name, front) in `notetypes.py`, with a new, unique seed string. The `--cards` parser in `cli.py` takes its names from `CARD_TYPES` (`photo_audio` is spelled `photo-audio`).
+- Add it to `CARD_TYPES`, `MODEL_SEEDS` and `_NOTE_TYPES` (model name, template name, front, back) in `notetypes.py`, with a new, unique seed string. The `--cards` parser in `cli.py` takes its names from `CARD_TYPES` (`photo_audio` is spelled `photo-audio`).
 - Teach `plan_notes` in `deck/build.py` (and its mirror `planNotes` in `web/js/select.js`) when a species gets that note, then regenerate `web/js/notetypes.json` with `scripts/gen_web_notetypes.py`.
 - Add tests under `tests/deck/`, and an acceptance test if the front or back changes what a learner sees.
 

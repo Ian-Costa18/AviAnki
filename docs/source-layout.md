@@ -48,8 +48,8 @@ src/avianki/
     report.py            `BuildReport` + build-report.md, contact-sheet.html, credits.html
     client.py            reads a published catalog (manifest → region → species → media) from a URL or directory into a per-user cache; imports only format and core, works without the catalog extra
   deck/                  → catalog.format, catalog.client, core   (never sources/ or media/)
-    notetypes.py         three note types, frozen card types, model seeds and field list
-    card.css             carried-forward styling plus `.credits`
+    notetypes.py         three note types (each front and its back built from it), frozen card types, model seeds and field list
+    card.css             card styling: the `.av` layout, night mode, `.credits` (ADR 0025)
     credits.py           Credits field + deck description
     build.py             frozen deck id and note GUID, `select_species` (month filter, media check, tier), `plan_notes`, the genanki writer `write_deck`
   cli.py                 `avianki REGION` and `avianki --ebird CODE` (ADR 0017)
