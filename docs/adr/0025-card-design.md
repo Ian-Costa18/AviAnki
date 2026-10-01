@@ -48,7 +48,7 @@ The maintainer reviewed 18 variants and chose this design. The alternatives are 
 
 ### The IOC tag
 
-- When the name on the card differs from the IOC English name, a small tab sits directly above the name: `IOC Grey Plover`. "IOC" is bold, the tab is shaded, and its bottom-left corner is square, so it looks attached to the name. The text is 10.5px.
+- When the name on the card differs from the IOC English name, a small tag sits directly above the name: `IOC Grey Plover`, with "IOC" in bold, inside a thin rounded outline in the secondary colour. The text is 10.5px.
 - No tag for differences in spelling or punctuation only (Grey/Gray, hyphens, capitals, apostrophes).
 - No tag where the two lists split the bird differently and the IOC name refers to another population, for example Yellow Warbler vs Mangrove Warbler. A tag there would name the wrong bird.
 - The tag needs the North American names to land first: it arrives with the names change (a separate ADR). Until then no card has a tag, and the CSS for it ships unused.
