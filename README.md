@@ -44,6 +44,9 @@ The default is `photo,audio`. A species with no photo (or no recording) simply g
 | `--cards TYPES`            |       | Comma-separated card types: `photo`, `audio`, `photo-audio` (default: `photo,audio`)                  |
 | `--month 1-12`             |       | Only species likely to be seen in this month (default: all year)                                     |
 | `--subdeck`                |       | Put new notes in a subdeck named after the region (`AviAnki::<Region>`); see the note below           |
+| `--theme NAME`             |       | How the cards look: `default`, `serif`, `field-guide`, `nord`, `slate`, `forest`, `plate`, `minimal`, `midnight` or `high-contrast`; see [Themes](#themes) |
+| `--theme-file FILE`        |       | A custom theme in TOML, such as the website's **Copy theme** button gives; cannot be combined with `--theme` |
+| `--name-on-photo`          |       | On the answer, put the name over the bottom of the photo instead of below it; works with every theme |
 | `--ebird CODE`             |       | Build from any eBird region code instead of the catalog; see [Any eBird region](#any-ebird-region)   |
 | `--output FILE`            | `-o`  | Where to write the deck (default: `AviAnki-<region>.apkg`, or `AviAnki-<CODE>.apkg` with `--ebird`); `~` works, a missing folder is created, and an existing file is replaced |
 | `--catalog-url URL_OR_DIR` |       | Where to read the catalog: a URL or a local directory (default: the published catalog)               |
@@ -74,9 +77,57 @@ uvx avianki us-az --month 5 --subdeck
 # Photo cards only, in a chosen file
 uvx avianki ca-qc --cards photo -o ~/Desktop/quebec.apkg
 
+# Nord colours, with the name over the photo
+uvx avianki us-ma --theme nord --name-on-photo
+
+# Your own colours, from a theme file
+uvx avianki us-ma --theme-file my-theme.toml
+
 # A deck for a county, straight from eBird (needs EBIRD_API_KEY; for personal use only)
 uvx --with "avianki[catalog]" avianki --ebird US-MA-017
 ```
+
+## Themes
+
+Ten looks are built in: `default`, `serif`, `field-guide`, `nord`, `slate`, `forest`, `plate`, `minimal`, `midnight` and `high-contrast`. All of them use your phone's own fonts, follow Anki's night mode, keep the photo in the same place on both sides and always show the credits. `--name-on-photo` changes the layout instead: the name sits on a dark gradient over the bottom of the photo, and the recording and credits stay below. The website shows a live preview of both under **Customize your cards**, before you build.
+
+**Anki keeps one look for the whole collection.** Styling belongs to the note type, so importing a deck with another `--theme` restyles every AviAnki card you already have, and replaces any styling you edited in Anki yourself. Your review history is kept.
+
+### A theme of your own
+
+On the website, pick **Custom…** under **Customize your cards**, set the colours (each for day and night) and the type, and press **Copy theme**. Save the text in a file and build with it:
+
+```bash
+uvx avianki us-ma --theme-file my-theme.toml
+```
+
+A theme file is TOML. Every key is optional; a missing one keeps the default's value:
+
+```toml
+font = "rounded"        # sans, serif, rounded, mono or humanist
+name_style = "caps"     # normal or caps
+name_weight = "regular" # regular or bold
+corners = "round"       # square, slight or round
+rule = "side"           # none, or side for an accent rule beside the names
+
+[light]
+background = "#fff7e0"
+text = "#3b2f00"
+secondary = "#6a5a1a"
+name = "#c2410c"
+accent = "#e11d48"
+credits = "#6a5a1a"
+
+[night]
+background = "#2a2208"
+text = "#fff3c4"
+secondary = "#e0cf8a"
+name = "#fdba74"
+accent = "#fb7185"
+credits = "#e0cf8a"
+```
+
+Colours are six-digit hex (`#rrggbb`), and the other values come from the lists shown. A bad value stops the run with exit status 2 before anything is downloaded. A custom theme sets colours and type only, so it doesn't include the extra touches some built-ins have, such as `nord`'s credit box. Nothing checks the contrast of your colours: use the website's preview.
 
 ## Updating a deck
 

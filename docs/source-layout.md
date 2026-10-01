@@ -48,10 +48,13 @@ src/avianki/
     report.py            `BuildReport` + build-report.md, contact-sheet.html, credits.html
     client.py            reads a published catalog (manifest → region → species → media) from a URL or directory into a per-user cache; imports only format and core, works without the catalog extra
   deck/                  → catalog.format, catalog.client, core   (never sources/ or media/)
-    notetypes.py         three note types (each its own front, one shared back), frozen card types, model seeds and field list (IocName appended, ADR 0027)
+    notetypes.py         three note types (each its own front, one shared back), frozen card types, model seeds and field list (IocName appended, ADR 0027), `models_for(theme, name_on_photo)` (ADR 0028)
     card.css             card styling: the `.av` layout, night mode, `.credits`, the `.ioc-tag` (ADR 0025, 0027)
+    name-on-photo.css    the layout CSS for `--name-on-photo`: names on a gradient over the photo (ADR 0028)
+    themes.py            theme tokens, the built-in registry, token validation, TOML in and out, `compose_css` (ADR 0028)
+    themes/              `_template.css` (tokens to CSS) and the extra rules of the built-ins that have some (`nord.css`, `serif.css`, ...)
     credits.py           Credits field + deck description
-    build.py             frozen deck id and note GUID, `select_species` (month filter, media check, tier), `plan_notes`, the genanki writer `write_deck`
+    build.py             frozen deck id and note GUID, `select_species` (month filter, media check, tier), `plan_notes`, the genanki writer `write_deck` (takes the theme and layout)
   cli.py                 `avianki REGION` and `avianki --ebird CODE` (ADR 0017)
   catalog_cli.py         `avianki-catalog build`  (`build --species-only` runs the species half alone; validation and the reports run inside `build`)
   redact.py              imports nothing from the package; unused until Description→Name returns
@@ -64,7 +67,10 @@ web/                     imports no Python; depends only on catalog/format.py's 
     catalog.js           manifest (no-cache, format check), region and species files, media through Cache Storage, 2 retries with backoff, `?catalog=` override
     select.js            `selectSpecies` (month filter, media check, tier) and `planNotes` (card types, first assets); mirrors deck/build.py, proven on tests/fixtures/selection/cases.json
     deck.js              `buildDeck`: notes, fields, credits, description, ids; documents the media-feed contract
-    notetypes.json       the three note types (with `req`) and the fixed description strings, generated from deck/ by scripts/gen_web_notetypes.py
+    notetypes.json       the three note types (with `req`), the fixed description strings and the look data (theme tokens, template, value tables), generated from deck/ by scripts/gen_web_notetypes.py
+    themes.js            ADR 0028: token validation, the CSS template filled by the same rule as deck/themes.py, TOML, the page-address form of a look
+    preview.js           the live card preview: a small mustache renderer, sandboxed iframes, the replay-button lookalike, the placeholder card
+    customize.js         the "Customize your cards" section: theme picker, name-on-photo, custom editor, Copy theme, address and localStorage
     lastmile.js          `detectPlatform` (pure, unit-tested with sample user agents) and the per-platform steps, detected device first
     parts.js             ADR 0006: `planParts` (150 species per package on a constrained device), file names, the `?partSize=` test hook, out-of-memory detection, the bird counter for progress  (a module of its own so the rule is testable without the page)
     apkg/                the .apkg writer, reproducing genanki 0.13.1's output
@@ -84,6 +90,7 @@ src/avianki/data/        package data: ships in the wheel, found through taxonom
 
 tests/                   mirrors src/avianki/
   core/ taxonomy/ sources/ media/ catalog/ deck/ cli/ packaging/
+  deck/, cli/            also hold test_themes.py (registry, contrast, safety) and test_cli_theme.py; test_identity.py pins every theme and layout
   scripts/               assemble_site.py and fetch_latest_catalog.sh (fake `gh` on PATH); gen_web_notetypes.py keeps web/js/notetypes.json equal to deck/; weekly_summary.py's gate; the workflow files' shape (publish is manual, no examples step)
   sources/, catalog/     also hold the weekly live checks (integration): test_sources_live.py, test_gbif_live.py, test_published_site_live.py
   test_layout.py         enforces the dependency rule
@@ -95,6 +102,8 @@ tests/                   mirrors src/avianki/
     test_web_select.py            select.js against the shared selection cases and plan_notes
     test_web_apkg_equivalence.py  browser .apkg vs genanki's: col JSON text, every row and column, media map and bytes
     test_web_units.py             md5, GUID, JSON, escaping, description, prefetch, media-feed misuse
+    test_web_themes.py            themes.js vs deck/themes.py for every theme, layout and a custom token set; validation parity; the photo, credits and names in the browser (several aspect ratios)
+    test_web_customize_e2e.py     the Customize section: picker, checkbox, custom editor, Copy theme, address and localStorage; the built deck's CSS equals Python's
     test_web_anki_import.py       browser decks imported by Anki's backend (clean media, no name leak, credits)
     test_web_heap.py              JS heap before/after a build (records, never asserts)
     test_web_vendor.py            web/vendor hashes match its README
