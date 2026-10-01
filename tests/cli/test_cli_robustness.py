@@ -283,11 +283,6 @@ def test_no_line_for_a_kind_no_chosen_card_needs(tmp_path, monkeypatch, capsys):
     assert "no photo," not in r.out
 
 
-def test_one_bird_without_media_for_the_cards_says_has_and_it(tmp_path, monkeypatch, capsys):
-    r = run_cli(["us-ma", "--cards", "photo"], tmp_path, monkeypatch, capsys)
-    assert "1 of the 12 selected species has no media for the chosen card types, so it has no cards." in r.out
-
-
 def _note(species: str, with_photo: bool, with_audio: bool, card_type: str) -> PlannedNote:
     # The summary only asks whether a media reference is there, so a stand-in will do.
     photo = object() if with_photo else None

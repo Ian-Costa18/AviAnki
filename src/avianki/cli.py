@@ -389,7 +389,6 @@ class _Deck:
     manifest: Manifest
     out: Path
     subdeck: str | None
-    selected: int  # species selected, including any left without cards
     extra_media: dict[str, Path] = field(default_factory=dict)  # files built live by --ebird
 
 
@@ -415,7 +414,6 @@ def _finish(deck: _Deck, client: CatalogClient, args: argparse.Namespace) -> int
     )
     if args.quiet:
         return EXIT_OK
-    selected = deck.selected
     species_count = len({n.species_id for n in notes})
     by_type = ", ".join(
         f"{count} {_card_label(card_type)}"
@@ -429,13 +427,6 @@ def _finish(deck: _Deck, client: CatalogClient, args: argparse.Namespace) -> int
     )
     if replaced:
         print(f"The file already existed, so it was replaced: {out}")
-    if species_count < selected:
-        missing = selected - species_count
-        print(
-            f"{missing} of the {selected} selected species "
-            f"{_plural(missing, 'has', 'have')} no media for the chosen card types, "
-            f"so {_plural(missing, 'it has', 'they have')} no cards."
-        )
     for line in _missing_kind_lines(notes, species_count, args.cards):
         print(line)
     print(f"Next: open {out.name} in Anki (double-click it, or File > Import).")
@@ -492,7 +483,7 @@ def _catalog_deck(args: argparse.Namespace, client: CatalogClient) -> int:
         return EXIT_FAILED
     out = args.output or Path(f"AviAnki-{ref.slug}.apkg")
     subdeck = ref.name if args.subdeck else None
-    return _finish(_Deck(notes, species, manifest, out, subdeck, selected=len(ids)), client, args)
+    return _finish(_Deck(notes, species, manifest, out, subdeck), client, args)
 
 
 def _ebird_deck(args: argparse.Namespace, client: CatalogClient) -> int:
@@ -549,7 +540,7 @@ def _ebird_deck(args: argparse.Namespace, client: CatalogClient) -> int:
         return EXIT_FAILED
     out = args.output or Path(f"AviAnki-{code}.apkg")
     subdeck = _region_name_for_code(code) if args.subdeck else None
-    deck = _Deck(notes, merged, manifest, out, subdeck, selected=len(ids), extra_media=adhoc.media)
+    deck = _Deck(notes, merged, manifest, out, subdeck, extra_media=adhoc.media)
     status = _finish(deck, client, args)
     print(EBIRD_NOTICE)  # always shown, even with -q: it is a licence condition
     return status
