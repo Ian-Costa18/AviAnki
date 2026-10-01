@@ -54,8 +54,11 @@ log = logging.getLogger("bird_deck")
 
 __all__ = [
     "AmbiguousRegion",
+    "CacheWriteError",
     "CatalogClient",
     "CatalogError",
+    "CatalogFetchError",
+    "MediaNotFound",
     "RegionNotFound",
     "default_cache_dir",
 ]
@@ -65,12 +68,38 @@ _JSON_NAME = re.compile(r"^(?:regions/)?[a-z0-9]+(?:-[a-z0-9]+)*\.([0-9a-f]{8})\
 _MEDIA_NAME = re.compile(r"^media/[0-9a-f]{16}\.(webp|mp3)$")
 
 _MAX_SUGGESTIONS = 5
+
+# What people type for a region whose catalog name differs (keys are `_plain` forms). The
+# District of Columbia is the one place where the common name is not the official one.
+_ALIASES = {
+    "dc": "us-dc",
+    "washington dc": "us-dc",
+    "washington district of columbia": "us-dc",
+}
 # Malformed JSON shapes surface as these from the format dataclasses' ``from_dict``.
 _SHAPE_ERRORS = (KeyError, TypeError, ValueError, AttributeError, IndexError)
 
 
 class CatalogError(Exception):
     """Anything that stops the catalog being read: network, bad or unsupported content."""
+
+
+class CatalogFetchError(CatalogError):
+    """The catalog (or one of its files) could not be fetched: no network, a timeout, a server
+    error, or a local catalog directory that can't be read. ``status`` is the HTTP status,
+    when there was one."""
+
+    def __init__(self, message: str, status: int | None = None) -> None:
+        self.status = status
+        super().__init__(message)
+
+
+class MediaNotFound(CatalogFetchError):
+    """A media file the manifest's species file names isn't there (HTTP 404)."""
+
+
+class CacheWriteError(CatalogError):
+    """A downloaded file could not be written to the cache directory."""
 
 
 class RegionNotFound(CatalogError):
@@ -94,7 +123,7 @@ class AmbiguousRegion(CatalogError):
         self.query = query
         self.matches = list(matches)
         slugs = ", ".join(r.slug for r in self.matches)
-        super().__init__(f"{query!r} matches several regions ({slugs}); use a slug instead")
+        super().__init__(f"{query!r} matches several regions ({slugs}); use one of those slugs")
 
 
 def default_cache_dir(
@@ -129,6 +158,11 @@ def _write_atomic(path: Path, data: bytes) -> None:
         tmp.replace(path)
     finally:
         tmp.unlink(missing_ok=True)
+
+
+def _plain(key: str) -> str:
+    """A folded query without punctuation: ``"washington, d.c."`` -> ``"washington dc"``."""
+    return " ".join(re.sub(r"[^a-z0-9 ]", "", key.replace(",", " ")).split())
 
 
 def _hash_matches(name: str, obj: Any) -> bool:
@@ -185,7 +219,8 @@ class CatalogClient:
             try:
                 return path.read_bytes()
             except OSError as exc:
-                raise CatalogError(f"cannot read {path}: {exc}") from exc
+                status = 404 if isinstance(exc, FileNotFoundError) else None
+                raise CatalogFetchError(f"cannot read {path}: {exc}", status) from exc
         return self._http_get(self._http_base + name)
 
     def _http_get(self, url: str) -> bytes:
@@ -199,17 +234,17 @@ class CatalogClient:
             except (requests.ConnectionError, requests.Timeout) as exc:
                 last = f"{type(exc).__name__}: {exc}"
             except requests.RequestException as exc:
-                raise CatalogError(f"GET {url} failed: {exc}") from exc
+                raise CatalogFetchError(f"GET {url} failed: {exc}") from exc
             else:
                 if 200 <= resp.status_code < 300:
                     return resp.content
                 last = f"HTTP {resp.status_code}"
                 if resp.status_code < 500 and resp.status_code != 429:
-                    raise CatalogError(f"GET {url} failed: {last}")
+                    raise CatalogFetchError(f"GET {url} failed: {last}", resp.status_code)
             if attempt < self._retries:
                 log.debug("GET %s: %s, retrying", url, last)
                 time.sleep(self._backoff * 2**attempt)
-        raise CatalogError(f"GET {url} failed after {self._retries + 1} attempts: {last}")
+        raise CatalogFetchError(f"GET {url} failed after {self._retries + 1} attempts: {last}")
 
     # -- manifest and regions -------------------------------------------------------
 
@@ -247,8 +282,12 @@ class CatalogClient:
         """The region whose slug (``us-ma``, any case) or display name (``Massachusetts``,
         case- and accent-insensitive) is ``query``.
 
+        Two shorthands are also accepted, after the exact matches: a well-known alias
+        (``DC``, ``Washington DC``) and a bare state or province code (``ma``, ``qc``) when
+        exactly one region ends in it.
+
         Raises `RegionNotFound` (with close matches) or `AmbiguousRegion` (two regions share
-        the name).
+        the name or the code).
         """
         regions = self._current_manifest().regions
         key = fold(query)
@@ -260,6 +299,17 @@ class CatalogClient:
             return by_name[0]
         if by_name:
             raise AmbiguousRegion(query, by_name)
+        alias = _ALIASES.get(_plain(key))
+        if alias is not None:
+            for ref in regions:
+                if ref.slug == alias:
+                    return ref
+        if len(key) == 2 and key.isalpha():
+            by_code = [ref for ref in regions if ref.slug.partition("-")[2] == key]
+            if len(by_code) == 1:
+                return by_code[0]
+            if by_code:
+                raise AmbiguousRegion(query, by_code)
         raise RegionNotFound(query, self._suggest(key, regions))
 
     @staticmethod
@@ -352,16 +402,33 @@ class CatalogClient:
         """The local path of ``media/<hash>.<ext>``, downloading it into the cache if needed.
 
         The bytes must hash to the name (`format.media_filename`); otherwise nothing is
-        written and `CatalogError` is raised. A file already in the cache is trusted: it got
-        there by an atomic rename after passing this check.
+        written and `CatalogError` is raised. A file already in the cache is hashed again
+        before it is used (about 16 MB for a full deck, which is cheap): a copy that no longer
+        matches its name, from a disk fault or a half-finished edit, is deleted and fetched
+        again, so damaged media never goes into a deck.
         """
         m = _MEDIA_NAME.match(file)
         if m is None:
             raise CatalogError(f"not a catalog media file name: {file!r}")
         dest = self.cache_dir / file
         if dest.is_file():
-            return dest
-        data = self._read(file)
+            if self._cached_media_ok(dest, file, m.group(1)):
+                return dest
+            log.warning("cached %s is damaged; downloading it again", dest)
+            try:
+                dest.unlink()
+            except OSError:
+                pass  # the download below replaces it atomically
+        try:
+            data = self._read(file)
+        except CatalogFetchError as exc:
+            if exc.status == 404:
+                raise MediaNotFound(
+                    f"{self._where(file)} was not found (HTTP 404). The catalog was probably "
+                    "updated while your deck was being built; try again",
+                    404,
+                ) from exc
+            raise
         actual = media_filename(data, m.group(1))
         if actual != file:
             raise CatalogError(
@@ -371,8 +438,15 @@ class CatalogClient:
         try:
             _write_atomic(dest, data)
         except OSError as exc:
-            raise CatalogError(f"cannot write {dest}: {exc}") from exc
+            raise CacheWriteError(f"cannot write {dest}: {exc}") from exc
         return dest
+
+    @staticmethod
+    def _cached_media_ok(path: Path, file: str, ext: str) -> bool:
+        try:
+            return media_filename(path.read_bytes(), ext) == file
+        except OSError:
+            return False
 
     def media_many(
         self,

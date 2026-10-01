@@ -2,7 +2,7 @@
 
 [![PyPI](https://img.shields.io/pypi/v/avianki)](https://pypi.org/project/avianki/)
 [![Python](https://img.shields.io/pypi/pyversions/avianki)](https://pypi.org/project/avianki/)
-[![License](https://img.shields.io/github/license/Ian-Costa18/avianki)](LICENSE)
+[![License](https://img.shields.io/github/license/Ian-Costa18/avianki)](https://github.com/Ian-Costa18/AviAnki/blob/main/LICENSE)
 [![Ruff](https://img.shields.io/badge/linter-ruff-orange)](https://github.com/astral-sh/ruff)
 
 *Build Flashcards with Birds Near You*
@@ -33,28 +33,31 @@ Every deck is built from three kinds of card; you choose which with `--cards`.
 
 Every back is the same: the name and scientific name, the photo, the recording, and the credit for each.
 
-The default is `photo,audio`. A species with no photo (or no recording) simply gets no photo (or audio) card, and the run says so. Fronts never show the bird's name. Every answer credits the author and licence of each asset on the card.
+The default is `photo,audio`. A species with no photo (or no recording) simply gets no photo (or audio) card, and the run says so: the summary adds a line such as "3 of the 100 birds have no recording, so they have photo cards only." for each kind that some species lack. Fronts never show the bird's name. Every answer credits the author and licence of each asset on the card.
 
 ## Options
 
 | Flag                       | Short | Description                                                                                         |
 | -------------------------- | ----- | --------------------------------------------------------------------------------------------------- |
 | `REGION`                   |       | Catalog region: slug (`us-ma`) or display name (`Massachusetts`). Required unless `--ebird` is given |
-| `--tier TIER`              |       | `standard`: the 100 most common species (default). `everything`: all of them                         |
+| `--tier TIER`              |       | `standard`: the 100 most common species (default). `everything`: the region's 400 most common (upper or lower case both work) |
 | `--cards TYPES`            |       | Comma-separated card types: `photo`, `audio`, `photo-audio` (default: `photo,audio`)                  |
 | `--month 1-12`             |       | Only species likely to be seen in this month (default: all year)                                     |
-| `--subdeck`                |       | Put the notes in a subdeck named after the region (`AviAnki::<Region>`)                              |
+| `--subdeck`                |       | Put new notes in a subdeck named after the region (`AviAnki::<Region>`); see the note below           |
 | `--ebird CODE`             |       | Build from any eBird region code instead of the catalog; see [Any eBird region](#any-ebird-region)   |
-| `--output FILE`            | `-o`  | Where to write the deck (default: `AviAnki-<region>.apkg`, or `AviAnki-<CODE>.apkg` with `--ebird`)  |
+| `--output FILE`            | `-o`  | Where to write the deck (default: `AviAnki-<region>.apkg`, or `AviAnki-<CODE>.apkg` with `--ebird`); `~` works, a missing folder is created, and an existing file is replaced |
 | `--catalog-url URL_OR_DIR` |       | Where to read the catalog: a URL or a local directory (default: the published catalog)               |
-| `--cache-dir DIR`          |       | Where downloaded catalog files are kept (default: your per-user cache directory)                     |
-| `--deck-name NAME`         |       | The deck's name (default: `AviAnki`); see the warning below                                          |
+| `--cache-dir DIR`          |       | Where downloaded catalog files are kept (default: your per-user cache directory); `~` works          |
+| `--deck-name NAME`         |       | The deck's name (default: `AviAnki`); it cannot be empty, and `::` makes a subdeck; see the warning below |
 | `--verbose`                | `-v`  | Show debug output and tracebacks                                                                     |
 | `--quiet`                  | `-q`  | Show only warnings and errors; also hides the progress bar                                           |
+| `--version`                |       | Print the version and exit                                                                           |
 
-`-v` and `-q` cannot be combined. The exit status is 0 when a deck was written, 1 for a network or catalog problem or when there was nothing to write, and 2 for a usage error.
+`-v` and `-q` cannot be combined. The exit status is 0 when a deck was written, 1 for a network or catalog problem or when there was nothing to write, 2 for a usage error (including an output path that cannot be written, which is checked before anything is downloaded), and 130 when you cancel with Ctrl-C. The progress bar is only drawn in a terminal, so redirected output stays clean.
 
 Changing `--deck-name` puts the notes into a different deck in Anki, so a later import will not update the notes you already have. Leave it alone unless you want a separate deck.
+
+`--subdeck` only affects birds that are not in your collection yet. Anki leaves a bird you already have in the deck it is in, so importing with `--subdeck` into a collection that already holds those birds moves nothing. To reorganise existing cards, move them in Anki's card browser (select them, then Change Deck).
 
 ### Examples
 
@@ -87,9 +90,9 @@ The catalog covers the regions listed in it. For anything else, give `--ebird` a
 EBIRD_API_KEY=your_key uvx --with "avianki[catalog]" avianki --ebird US-MA-017
 ```
 
-- Get a free key at [ebird.org/api/keygen](https://ebird.org/api/keygen) and put it in the environment or in a `.env` file (see `.env.example`). Only `--ebird` needs it.
+- Get a free key at [ebird.org/api/keygen](https://ebird.org/api/keygen) and put it in the environment or in a `.env` file (see [`.env.example`](https://github.com/Ian-Costa18/AviAnki/blob/main/.env.example)). Only `--ebird` needs it.
 - Species that are in the catalog reuse its photos and recordings. Species that are not are built on the spot, which needs the `avianki[catalog]` extra. Audio for those also needs [ffmpeg](https://ffmpeg.org/) on your `PATH` and the `avianki[verify]` extra (BirdNET, Python 3.11 to 3.13). Without them the run degrades to photos and says so.
-- The species come in eBird's order, so `standard` is the first 100 that eBird returns.
+- The species come in eBird's order, so `standard` is the first 100 that eBird returns, and `everything` is every species eBird lists for the region.
 - **The deck is for personal use only.** Every `--ebird` run prints: "Built from eBird data for personal use. eBird's terms don't allow redistributing this deck." The catalog decks, by contrast, contain only openly licensed media and species lists.
 
 ## Credits and licences
@@ -108,4 +111,4 @@ If you find AviAnki useful, consider supporting its development at [buymeacoffee
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+See [CONTRIBUTING.md](https://github.com/Ian-Costa18/AviAnki/blob/main/CONTRIBUTING.md).

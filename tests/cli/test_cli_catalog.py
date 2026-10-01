@@ -187,7 +187,7 @@ def test_a_region_with_no_usable_media_is_an_error_not_an_empty_deck(tmp_path, m
 
 def test_species_without_media_for_the_chosen_cards_are_mentioned(tmp_path, monkeypatch, capsys):
     r = run_cli(["us-ma", "--cards", "photo"], tmp_path, monkeypatch, capsys)
-    assert "1 of the 12 selected species have no media" in r.out
+    assert "1 of the 12 selected species has no media" in r.out
 
 
 def test_help_lists_every_flag(capsys):

@@ -232,5 +232,6 @@ def write_deck(
         genanki.Package(deck, media_files=paths).write_to_file(str(out), timestamp=timestamp)
 
     summary = DeckSummary(out, name, by_type, len(staged))
-    log.info("wrote %s: %d notes, %d media files", out, summary.note_count, summary.media_count)
+    # DEBUG: the CLI's own summary says this, and at INFO it printed twice.
+    log.debug("wrote %s: %d notes, %d media files", out, summary.note_count, summary.media_count)
     return summary

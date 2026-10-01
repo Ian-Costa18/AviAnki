@@ -10,7 +10,7 @@ src/avianki/
     http.py              throttled, cached, budgeted client; honours Limits and Retry-After; one User-Agent
     licences.py          exact versioned allowlist; AssetRecord (licence research §5.1)
     log.py               the "bird_deck" logger setup
-    text.py              `fold`, the case-, accent- and space-insensitive key every name lookup uses
+    text.py              `fold`, the case-, accent- and space-insensitive key every name lookup uses; `use_utf8_output`, which keeps a redirected stream on Windows from crashing on a non-ASCII name
   taxonomy/              → core
     species.py           loads data/species.csv (shipped in the wheel): minted ids, per-source keys, aliases
     regions.py           loads data/regions.csv (shipped in the wheel): slug ↔ GADM gid ↔ eBird code
