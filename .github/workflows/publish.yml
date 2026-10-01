@@ -113,7 +113,7 @@ jobs:
           version="${TAG#v}"
           awk -v v="$version" '/^## /{found = ($2 == v); next} found' CHANGELOG.md > notes.md
           if [ -s notes.md ]; then
-            gh release create "$TAG" --verify-tag --title "$TAG" --notes-file notes.md
+            gh release create "$TAG" --verify-tag --title "AviAnki $version" --notes-file notes.md
           else
-            gh release create "$TAG" --verify-tag --title "$TAG" --generate-notes
+            gh release create "$TAG" --verify-tag --title "AviAnki $version" --generate-notes
           fi
