@@ -1,4 +1,4 @@
-"""Templates: fronts show only the prompt media; backs repeat the front, then answer (ADR 0025)."""
+"""Templates: fronts show only the prompt; one standard back answers (ADR 0025)."""
 
 from __future__ import annotations
 
@@ -76,17 +76,45 @@ def test_front_prompts() -> None:
     assert "{{Photo}}" in front and "{{Audio}}" in front
 
 
+def test_every_model_shares_one_identical_back() -> None:
+    backs = {_back(ct) for ct in CARD_TYPES}
+    assert len(backs) == 1
+
+
 @pytest.mark.parametrize("card_type", CARD_TYPES)
-def test_back_repeats_the_front_then_answers(card_type: str) -> None:
-    front, back = _front(card_type), _back(card_type)
-    assert front.endswith("</div>")
-    assert back.startswith(front.removesuffix("</div>"))
+def test_back_is_photo_then_names_then_recording_then_credits(card_type: str) -> None:
+    back = _back(card_type)
+    photo = '{{#Photo}}<div class="photo">{{Photo}}</div>{{/Photo}}'
+    audio = '{{#Audio}}<div class="sound">{{Audio}}<span class="sound-label">Hear the call</span></div>{{/Audio}}'
+    assert back.startswith("\n  ".join(['<div class="av">', photo]))
     assert back.endswith("</div>") and back.count("<div") == back.count("</div>")
-    answer = back.removeprefix(front.removesuffix("</div>"))
-    assert answer.index('class="names"') < answer.index("{{Credits}}")
-    assert '<div class="name">{{Name}}</div>' in answer
-    assert '<div class="sci">{{SciName}}</div>' in answer
+    assert '<div class="name">{{Name}}</div>' in back
+    assert '<div class="sci">{{SciName}}</div>' in back
+    positions = [back.index(x) for x in (photo, 'class="names"', audio, "{{Credits}}")]
+    assert positions == sorted(positions)
     assert "{{FrontSide}}" not in back
+
+
+@pytest.mark.parametrize("card_type", CARD_TYPES)
+def test_back_asks_no_question(card_type: str) -> None:
+    back = _back(card_type)
+    assert "?" not in back
+    assert "prompt" not in back
+
+
+@pytest.mark.parametrize("card_type", ["photo", "photo_audio"])
+def test_photo_is_first_on_the_front_so_it_matches_the_back(card_type: str) -> None:
+    front = _front(card_type)
+    assert front.startswith("\n  ".join(['<div class="av">', '<div class="photo">{{Photo}}</div>']))
+
+
+def test_front_layouts() -> None:
+    def sound(label: str) -> str:
+        return f'<div class="sound">{{{{Audio}}}}<span class="sound-label">{label}</span></div>'
+
+    assert _front("photo").endswith("\n".join(['  <div class="prompt">What bird is this?</div>', "</div>"]))
+    assert _front("audio") == "\n".join(['<div class="av">', "  " + sound("Who's calling?"), "</div>"])
+    assert _front("photo_audio").endswith("\n".join(["  " + sound("What bird is this?"), "</div>"]))
 
 
 @pytest.mark.parametrize("card_type", CARD_TYPES)
@@ -94,16 +122,6 @@ def test_front_never_has_the_answer(card_type: str) -> None:
     front = _front(card_type)
     for token in ("{{Name}}", "{{SciName}}", "{{Credits}}"):
         assert token not in front
-
-
-def test_back_adds_only_the_medium_the_front_lacked() -> None:
-    audio = '{{#Audio}}<div class="sound">{{Audio}}</div>{{/Audio}}'
-    photo = '{{#Photo}}<div class="photo">{{Photo}}</div>{{/Photo}}'
-    assert audio in _back("photo") and photo not in _back("photo")
-    assert photo in _back("audio") and audio not in _back("audio")
-    both = _back("photo_audio")
-    assert audio not in both and photo not in both
-    assert both.count("{{Photo}}") == 1 and both.count("{{Audio}}") == 1
 
 
 @pytest.mark.parametrize("card_type", CARD_TYPES)

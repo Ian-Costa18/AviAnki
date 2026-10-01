@@ -4,7 +4,7 @@
 
 ### Cards
 
-- **A new look.** The photo stays where it is when you flip a card, so your eye doesn't have to find it again. Cards use your phone's own font, follow night mode, and the credits are smaller.
+- **A new look.** The photo stays put when you flip a card, so your eye doesn't have to find it again. Every back has the same order: photo, name, recording. Recording cards have a compact play button with the question beside it. Cards use your phone's own font, follow night mode, and the credits are smaller.
 - **Importing the new deck restyles your existing AviAnki cards** and keeps your review history. If you edited the AviAnki note types' styling by hand, those edits are replaced.
 
 ## 1.0.1
