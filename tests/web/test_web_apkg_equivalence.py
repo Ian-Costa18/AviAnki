@@ -110,7 +110,7 @@ def test_ids_and_identity_match_the_frozen_strings(chromium_page, tmp_path) -> N
     assert set(parsed(pkg, "models")) == {str(m.model_id) for m in MODELS.values()}
 
     catalog = load_catalog(CATALOG_DIR)
-    ids = select_species(catalog.regions["ca-qc"], tier="standard", month=None)
+    ids = select_species(catalog.regions["ca-qc"], catalog.species, spec.cards, tier="standard", month=None)
     expected = {note_guid(n.species_id, n.card_type) for n in plan_notes(ids, catalog.species, spec.cards)}
     assert {row[3] for row in pkg.tables["notes"]} == expected  # rows are (typeof, value) pairs: id, guid, ...
 

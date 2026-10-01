@@ -45,6 +45,7 @@ from avianki.deck.build import (
     TIER_EVERYTHING,
     TIER_STANDARD,
     PlannedNote,
+    has_notes,
     plan_notes,
     select_species,
     write_deck,
@@ -358,12 +359,11 @@ def _catalog_deck(args: argparse.Namespace, client: CatalogClient) -> int:
         return EXIT_USAGE
     region = client.region(ref)
     species = client.species()
-    ids = select_species(region, tier=args.tier, month=args.month)
+    ids = select_species(region, species, args.cards, tier=args.tier, month=args.month)
     notes = plan_notes(ids, species, args.cards)
     if not notes:
         _error(
-            f"nothing to write: none of the {len(ids)} selected species in {ref.name} has media "
-            "for the chosen cards"
+            f"nothing to write: no species in {ref.name} has media for the chosen cards"
             + (f" in month {args.month}" if args.month else "")
             + "."
         )
@@ -397,6 +397,7 @@ def _ebird_deck(args: argparse.Namespace, client: CatalogClient) -> int:
             catalog_species=species,
             cache_dir=client.cache_dir,
             limit=STANDARD_LIMIT if args.tier == TIER_STANDARD else None,
+            keep=lambda entry: has_notes(entry, args.cards),
             progress=bar,
         )
     except (InvalidRegionCode, AdhocUnavailable) as exc:
@@ -419,7 +420,7 @@ def _ebird_deck(args: argparse.Namespace, client: CatalogClient) -> int:
 
     merged = SpeciesFile({**species.entries, **adhoc.entries})
     region = RegionFile(code.lower(), [(sid, (0,) * 12) for sid in adhoc.species_ids])
-    ids = select_species(region, tier=args.tier, month=None)
+    ids = select_species(region, merged, args.cards, tier=args.tier, month=None)
     notes = plan_notes(ids, merged, args.cards)
     if not notes:
         _error(f"nothing to write: none of the species eBird lists for {code} has media for the chosen cards.")

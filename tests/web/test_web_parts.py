@@ -33,7 +33,7 @@ async ({ size, split, cards }) => {
   const manifest = await json('manifest.json');
   const region = await json(manifest.regions.find((r) => r.slug === 'us-ma').file);
   const speciesFile = await json(manifest.species_file);
-  const ids = selectSpecies(region, { tier: 'everything', month: null });
+  const ids = selectSpecies(region, speciesFile, cards, { tier: 'everything', month: null });
   const parts = planParts(ids, speciesFile, cards, { size, split });
   const whole = planNotes(ids, speciesFile, cards);
   const key = (n) => n.speciesId + '/' + n.cardType;
@@ -68,7 +68,7 @@ def test_plan_parts_splits_consecutive_species_and_loses_nothing(page, size, spl
     assert got["indexes"] == list(range(1, len(sizes) + 1))
     assert got["joined"] == got["whole"]  # the same notes in the same order, none twice
     if len(sizes) > 1:
-        assert got["names"] == [f"AviAnki-part-{i}-of-{len(sizes)}.apkg" for i in range(1, len(sizes) + 1)]
+        assert got["names"] == [f"AviAnki-us-ma-part-{i}-of-{len(sizes)}.apkg" for i in range(1, len(sizes) + 1)]
     else:
         assert got["names"] == ["AviAnki-us-ma.apkg"]
 
@@ -84,14 +84,14 @@ def test_plan_parts_drops_species_without_media_and_renumbers(page) -> None:
     assert got == 0  # no media, no notes, no empty packages
 
 
-def test_file_name_uses_the_slug_only_for_a_single_package(page) -> None:
+def test_file_name_carries_the_slug_and_the_part(page) -> None:
     got = page.evaluate(
         """async () => {
           const { fileName } = await import('/js/parts.js');
           return [fileName('ca-qc', { index: 1, count: 1 }), fileName('ca-qc', { index: 2, count: 3 })];
         }"""
     )
-    assert got == ["AviAnki-ca-qc.apkg", "AviAnki-part-2-of-3.apkg"]
+    assert got == ["AviAnki-ca-qc.apkg", "AviAnki-ca-qc-part-2-of-3.apkg"]
 
 
 def test_bird_counter_counts_birds_whose_media_has_arrived(page) -> None:
@@ -104,8 +104,8 @@ def test_bird_counter_counts_birds_whose_media_has_arrived(page) -> None:
           const manifest = await json('manifest.json');
           const region = await json(manifest.regions.find((r) => r.slug === 'us-ma').file);
           const speciesFile = await json(manifest.species_file);
-          const notes = planNotes(selectSpecies(region, { tier: 'standard', month: null }), speciesFile,
-            ['photo', 'audio']);
+          const notes = planNotes(selectSpecies(region, speciesFile, ['photo', 'audio'], { tier: 'standard', month: null }),
+            speciesFile, ['photo', 'audio']);
           const files = mediaFiles(notes);
           const counter = birdCounter(notes, files);
           const steps = Array.from({ length: files.length + 1 }, (_, i) => counter.done(i));
@@ -186,7 +186,7 @@ def test_constrained_device_gets_the_everything_deck_in_three_parts(new_context,
 
     files = build(page, tmp_path, tier="everything", cards=ALL_CARDS)
 
-    assert [f.name for f in files] == [f"AviAnki-part-{i}-of-3.apkg" for i in (1, 2, 3)]
+    assert [f.name for f in files] == [f"AviAnki-us-ma-part-{i}-of-3.apkg" for i in (1, 2, 3)]
     assert "in 3 files" in visible_text(page, "#done-summary")
 
     # Each part is its own package; together they are exactly the single-package deck.
@@ -240,7 +240,7 @@ def test_iphone_gets_parts_without_being_told_about_memory(new_context, base_url
     context = new_context("webkit", device="iPhone 14")
     page = open_app(context, base_url, "?partSize=5")
     files = build(page, tmp_path, region="Massachusetts", tier="everything")
-    assert [f.name for f in files] == [f"AviAnki-part-{i}-of-3.apkg" for i in (1, 2, 3)]
+    assert [f.name for f in files] == [f"AviAnki-us-ma-part-{i}-of-3.apkg" for i in (1, 2, 3)]
     assert import_and_check(tmp_path, files)["guids"] == expected_guids("us-ma", tier="everything")
 
 
@@ -265,7 +265,7 @@ def test_out_of_memory_switches_the_next_attempt_to_parts(new_context, engine, b
     page = open_app(context, base_url)
     files = build(page, tmp_path, region="Massachusetts")
 
-    assert [f.name for f in files] == ["AviAnki-part-1-of-2.apkg", "AviAnki-part-2-of-2.apkg"]
+    assert [f.name for f in files] == ["AviAnki-us-ma-part-1-of-2.apkg", "AviAnki-us-ma-part-2-of-2.apkg"]
     assert "ran out of memory" in (page.text_content("#parts-announce") or "")
     got = import_and_check(tmp_path, files)
     assert got["guids"] == expected_guids("us-ma")

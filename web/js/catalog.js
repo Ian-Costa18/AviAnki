@@ -14,9 +14,12 @@ const RETRIES = 2;
 const BACKOFF_MS = [400, 1200];
 
 const MESSAGE_NETWORK = "We couldn't reach the bird catalog. Check your connection and try again.";
+// A 4xx for a file the manifest named is not a connection problem. Media is content-addressed, so the
+// likely cause is a catalog rebuilt (and its files renamed) while the page was open.
+export const MESSAGE_CHANGED = "The bird catalog was updated while you were building. Please try again.";
 export const MESSAGE_UPDATED = "AviAnki has been updated. Please reload.";
 
-/** `kind` is "network" (after retries) or "format" (the catalog is newer than this page). */
+/** `kind` is "network" (after retries), "changed" (a 4xx for a named file) or "format" (the catalog is newer than this page). */
 export class CatalogError extends Error {
   constructor(kind, message, cause) {
     super(message, { cause });
@@ -50,12 +53,30 @@ const sleep = (ms, signal) =>
     signal?.addEventListener("abort", () => { clearTimeout(timer); reject(signal.reason); }, { once: true });
   });
 
-/** Run `task`, retrying failures RETRIES times; give up as a network CatalogError. */
-async function withRetries(task, { signal } = {}) {
+/** A response that was not OK: `status` says whether to try again. */
+class HttpStatusError extends Error {
+  constructor(url, status) {
+    super(`${url}: HTTP ${status}`);
+    this.name = "HttpStatusError";
+    this.status = status;
+  }
+}
+
+// A 4xx will not change by asking again, except these two, which mean "not just now".
+const isClientError = (err) =>
+  err instanceof HttpStatusError && err.status >= 400 && err.status < 500 && err.status !== 408 && err.status !== 429;
+
+/**
+ * Run `task`, retrying failures RETRIES times; give up as a network CatalogError. A 4xx is not
+ * retried and becomes MESSAGE_CHANGED (the manifest passes `changed: false`: there a 4xx just
+ * means the catalog is not where it should be, which is the network message's job).
+ */
+async function withRetries(task, { signal, changed = true } = {}) {
   for (let attempt = 0; ; attempt++) {
     try {
       return await task();
     } catch (err) {
+      if (changed && isClientError(err)) throw new CatalogError("changed", MESSAGE_CHANGED, err);
       // A RangeError is an allocation failure, not the network: the app reacts to it (parts).
       if (signal?.aborted || err?.name === "AbortError" || err instanceof CatalogError || err instanceof RangeError) throw err;
       if (attempt >= RETRIES) throw new CatalogError("network", MESSAGE_NETWORK, err);
@@ -66,7 +87,7 @@ async function withRetries(task, { signal } = {}) {
 
 async function fetchOk(url, init) {
   const response = await fetch(url, init);
-  if (!response.ok) throw new Error(`${url}: HTTP ${response.status}`);
+  if (!response.ok) throw new HttpStatusError(url, response.status);
   return response;
 }
 
@@ -83,7 +104,7 @@ export async function loadManifest(url = manifestUrl()) {
       throw new Error(`${url} is not a catalog manifest`);
     }
     return parsed;
-  });
+  }, { changed: false });
   return manifest;
 }
 

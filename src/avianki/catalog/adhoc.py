@@ -128,13 +128,19 @@ def build_ebird_species(
     catalog_species: SpeciesFile,
     cache_dir: Path,
     limit: int | None = None,
+    keep: Callable[[SpeciesEntry], bool] | None = None,
     verify: bool | None = None,
     progress: Callable[[int, int], None] | None = None,
 ) -> AdhocSpecies:
     """The species for an eBird region, with media for each (see the module docstring).
 
-    ``limit`` keeps only the first N species of eBird's list before anything is built (the
-    Standard tier). ``verify`` is True to require BirdNET audio checks (raises
+    ``limit`` is the Standard tier: build only as far down eBird's list as it takes to find
+    N species that ``keep`` accepts, rather than every species in the region. ``keep(entry)``
+    says whether a species would get a note for the chosen cards (``deck.build.has_notes``);
+    left out, every species counts. Species are processed in eBird's order, so the first N
+    that qualify are the same ones `select_species` will take. A window of species is built at
+    a time, and never more than the number still needed, so nothing past the cut is built.
+    ``verify`` is True to require BirdNET audio checks (raises
     `AdhocUnavailable` without them), False to skip live audio, and None (default) to use
     them when installed and otherwise build photos only, saying so in ``notes``.
     ``progress(done, total)`` counts species built live. Errors from eBird are
@@ -150,52 +156,68 @@ def build_ebird_species(
     table = load_species()
     identified, skipped = _identify(records, table)
     result = AdhocSpecies(skipped=skipped)
-    if limit is not None:
-        identified = identified[:limit]
-    result.species_ids = [sid for sid, _ in identified]
-
-    live = [(sid, row) for sid, row in identified if sid not in catalog_species]
-    result.from_catalog = len(identified) - len(live)
+    in_catalog = [sid in catalog_species for sid, _ in identified]
     log.info(
         "%s: %d species from eBird, %d with catalog media, %d to build live",
-        code, len(identified), result.from_catalog, len(live),
+        code, len(identified), sum(in_catalog), len(identified) - sum(in_catalog),
     )
-    if not live:
-        return result
 
-    try:
-        from avianki.catalog.build import build_species
-    except ImportError as exc:
-        raise AdhocUnavailable(
-            f"{len(live)} of the species in {code} are not in the catalog and building them needs "
-            "the catalog extra. Install it with: pip install 'avianki[catalog]'"
-        ) from exc
+    def qualifies(species_id: str) -> bool:
+        entry = result.entries.get(species_id) or catalog_species.entries.get(species_id)
+        return entry is not None and (keep is None or keep(entry))
 
-    analyzer, verify_audio = _audio_tools(verify, result)
-
-    build_table = SpeciesTable(table.all_rows())
-    for _sid, row in live:
-        if row.id not in build_table:  # a transient row: in memory for this build only
-            build_table.add(row)
-    registry = new_registry(client, build_table)
-
-    total = len(live)
-    if progress is not None:
-        progress(0, total)
-    for start in range(0, total, BATCH):
-        batch = [sid for sid, _ in live[start : start + BATCH]]
-        built = build_species(
-            batch, table=build_table, registry=registry, analyzer=analyzer, verify=verify_audio
-        )
-        result.entries.update(built.species.entries)
-        for name, data in built.media.items():
-            written = write_media(cache_dir, data, Path(name).suffix.lstrip("."))
-            result.media[written] = cache_dir / written
-        result.unfinished.extend(built.report.unfinished_species)
-        for failure in built.report.source_failures:
-            log.warning("%s failed%s: %s", failure.source, f" for {failure.species_id}" if failure.species_id else "", failure.error)
-        if progress is not None:
-            progress(min(start + BATCH, total), total)
+    live_total = len(identified) - sum(in_catalog)
+    if limit is not None:
+        live_total = min(live_total, limit)
+    build_table: SpeciesTable | None = None
+    registry: Registry | None = None
+    analyzer: Any = None
+    verify_audio = False
+    built_live = 0
+    qualified = 0
+    position = 0
+    while position < len(identified) and (limit is None or qualified < limit):
+        width = BATCH if limit is None else max(1, min(BATCH, limit - qualified))
+        window = identified[position : position + width]
+        position += len(window)
+        live = [(sid, row) for sid, row in window if sid not in catalog_species]
+        result.from_catalog += len(window) - len(live)
+        if live:
+            try:
+                from avianki.catalog.build import build_species
+            except ImportError as exc:
+                raise AdhocUnavailable(
+                    f"some of the species in {code} are not in the catalog and building them needs "
+                    "the catalog extra. Install it with: pip install 'avianki[catalog]'"
+                ) from exc
+            if registry is None or build_table is None:
+                analyzer, verify_audio = _audio_tools(verify, result)
+                build_table = SpeciesTable(table.all_rows())
+                for sid, row in identified:
+                    if sid not in catalog_species and row.id not in build_table:
+                        build_table.add(row)  # a transient row: in memory for this build only
+                registry = new_registry(client, build_table)
+                if progress is not None:
+                    progress(0, live_total)
+            built = build_species(
+                [sid for sid, _ in live], table=build_table, registry=registry, analyzer=analyzer,
+                verify=verify_audio,
+            )
+            result.entries.update(built.species.entries)
+            for name, data in built.media.items():
+                written = write_media(cache_dir, data, Path(name).suffix.lstrip("."))
+                result.media[written] = cache_dir / written
+            result.unfinished.extend(built.report.unfinished_species)
+            for failure in built.report.source_failures:
+                log.warning(
+                    "%s failed%s: %s", failure.source,
+                    f" for {failure.species_id}" if failure.species_id else "", failure.error,
+                )
+            built_live += len(live)
+            if progress is not None:
+                progress(min(built_live, live_total), live_total)
+        qualified += sum(1 for sid, _ in window if qualifies(sid))
+    result.species_ids = [sid for sid, _ in identified[:position]]
     return result
 
 

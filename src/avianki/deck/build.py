@@ -18,7 +18,7 @@ from typing import Final
 
 import genanki
 
-from avianki.catalog.format import Manifest, MediaRef, RegionFile, SpeciesFile
+from avianki.catalog.format import Manifest, MediaRef, RegionFile, SpeciesEntry, SpeciesFile
 from avianki.deck.credits import credits_field, deck_description
 from avianki.deck.notetypes import CARD_TYPES, FIELDS, MODELS, stable_id
 
@@ -58,20 +58,63 @@ def note_guid(species_id: str, card_type: str) -> str:
 # ---------------------------------------------------------------------------------------
 
 
-def select_species(region: RegionFile, *, tier: str, month: int | None) -> list[str]:
-    """Species ids for a region, in the region's rank order.
+def _wanted_card_types(cards: Collection[str]) -> list[str]:
+    """``cards`` in the fixed card-type order; unknown names are an error."""
+    unknown = set(cards) - set(CARD_TYPES)
+    if unknown:
+        raise ValueError(f"unknown card types {sorted(unknown)}; expected some of {CARD_TYPES}")
+    return [ct for ct in CARD_TYPES if ct in cards]
+
+
+def _card_media(entry: SpeciesEntry, card_type: str) -> tuple[MediaRef | None, MediaRef | None] | None:
+    """``(photo, audio)`` when ``entry`` has the media ``card_type`` needs, else None.
+
+    ``photo`` needs a photo, ``audio`` a recording and ``photo_audio`` both. Both first
+    assets are returned either way, because every back shows the photo and plays the
+    recording (spec section 6). Only the first photo and first recording are ever used.
+    """
+    photo = entry.photo[0] if entry.photo else None
+    audio = entry.audio[0] if entry.audio else None
+    needs_photo = card_type in ("photo", "photo_audio")
+    needs_audio = card_type in ("audio", "photo_audio")
+    if (needs_photo and photo is None) or (needs_audio and audio is None):
+        return None
+    return photo, audio
+
+
+def has_notes(entry: SpeciesEntry, cards: Collection[str]) -> bool:
+    """Whether a species would get at least one note for these card types."""
+    return any(_card_media(entry, ct) is not None for ct in _wanted_card_types(cards))
+
+
+def select_species(
+    region: RegionFile,
+    species: SpeciesFile,
+    cards: Collection[str],
+    *,
+    tier: str,
+    month: int | None,
+) -> list[str]:
+    """Species ids for a region that will each get at least one note, in rank order.
 
     1. Take the region's ordered list.
     2. With a ``month`` (1-12), keep a species when ``monthly[month-1] >= 0.1 * max(monthly)``.
        A species whose monthly vector is all zeros is never kept. The comparison is done
        in integers (``10 * value >= max``) so a value at exactly 10% of the peak is kept;
        ``0.1 * 30`` in floating point is 3.0000000000000004 and would wrongly drop it.
-    3. Take the first 100 for ``standard`` or all for ``everything``.
+    3. Keep only species that would get a note for the selected ``cards``: a photo card
+       needs a photo, an audio card a recording, ``photo_audio`` both. A species missing
+       from the species file has no media and is dropped with a warning.
+    4. Take the first 100 for ``standard`` or all for ``everything``.
+
+    The media check comes before the limit so that a Standard deck has 100 birds whenever
+    the region has that many with media (amended 2026-09-30; it used to cut at 100 first).
     """
     if tier not in TIERS:
         raise ValueError(f"tier must be one of {TIERS}, got {tier!r}")
     if month is not None and not 1 <= month <= 12:
         raise ValueError(f"month must be 1-12 or None, got {month!r}")
+    _wanted_card_types(cards)  # validates
 
     ids: list[str] = []
     for species_id, monthly in region.species:
@@ -79,8 +122,15 @@ def select_species(region: RegionFile, *, tier: str, month: int | None) -> list[
             peak = max(monthly)
             if peak == 0 or monthly[month - 1] * 10 < peak:
                 continue
+        if species_id not in species:
+            log.warning("species %r is not in the species file; skipped", species_id)
+            continue
+        if not has_notes(species[species_id], cards):
+            continue
         ids.append(species_id)
-    return ids[:STANDARD_LIMIT] if tier == TIER_STANDARD else ids
+        if tier == TIER_STANDARD and len(ids) == STANDARD_LIMIT:
+            break
+    return ids
 
 
 # ---------------------------------------------------------------------------------------
@@ -110,10 +160,7 @@ def plan_notes(
     used, because ``Photo2`` and ``Audio2`` stay empty. A species missing from the species
     file is skipped with a warning, never an error; a repeated id is planned once.
     """
-    unknown = set(cards) - set(CARD_TYPES)
-    if unknown:
-        raise ValueError(f"unknown card types {sorted(unknown)}; expected some of {CARD_TYPES}")
-    wanted = [ct for ct in CARD_TYPES if ct in cards]  # fixed order, whatever ``cards`` is
+    wanted = _wanted_card_types(cards)  # fixed order, whatever ``cards`` is
 
     notes: list[PlannedNote] = []
     seen: set[str] = set()
@@ -125,16 +172,12 @@ def plan_notes(
             log.warning("species %r is not in the species file; skipped", species_id)
             continue
         entry = species[species_id]
-        photo = entry.photo[0] if entry.photo else None
-        audio = entry.audio[0] if entry.audio else None
         for card_type in wanted:
-            needs_photo = card_type in ("photo", "photo_audio")
-            needs_audio = card_type in ("audio", "photo_audio")
-            if (needs_photo and photo is None) or (needs_audio and audio is None):
-                continue
-            # Every back shows the photo and plays the recording (spec §6), so a note carries
-            # both of the species' assets whichever one its front asks about.
-            notes.append(PlannedNote(species_id, card_type, photo=photo, audio=audio))
+            media = _card_media(entry, card_type)
+            if media is not None:
+                # Every back shows the photo and plays the recording (spec section 6), so a note
+                # carries both of the species' assets whichever one its front asks about.
+                notes.append(PlannedNote(species_id, card_type, photo=media[0], audio=media[1]))
     return notes
 
 

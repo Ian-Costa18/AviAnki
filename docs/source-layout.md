@@ -51,7 +51,7 @@ src/avianki/
     notetypes.py         three note types, frozen card types, model seeds and field list
     card.css             carried-forward styling plus `.credits`
     credits.py           Credits field + deck description
-    build.py             frozen deck id and note GUID, `select_species`, `plan_notes`, the genanki writer `write_deck`
+    build.py             frozen deck id and note GUID, `select_species` (month filter, media check, tier), `plan_notes`, the genanki writer `write_deck`
   cli.py                 `avianki REGION` and `avianki --ebird CODE` (ADR 0017)
   catalog_cli.py         `avianki-catalog build`  (`build --species-only` runs the species half alone; validation and the reports run inside `build`)
   redact.py              imports nothing from the package; unused until Description→Name returns
@@ -62,7 +62,7 @@ web/                     imports no Python; depends only on catalog/format.py's 
   js/
     app.js               the page: pick, `selectSpecies`, `planParts`, `buildDeck` fed from Cache Storage, download, Done screen, focus and error handling
     catalog.js           manifest (no-cache, format check), region and species files, media through Cache Storage, 2 retries with backoff, `?catalog=` override
-    select.js            `selectSpecies` (tier, month filter) and `planNotes` (card types, first assets); mirrors deck/build.py, proven on tests/fixtures/selection/cases.json
+    select.js            `selectSpecies` (month filter, media check, tier) and `planNotes` (card types, first assets); mirrors deck/build.py, proven on tests/fixtures/selection/cases.json
     deck.js              `buildDeck`: notes, fields, credits, description, ids; documents the media-feed contract
     notetypes.json       the three note types (with `req`) and the fixed description strings, generated from deck/ by scripts/gen_web_notetypes.py
     lastmile.js          `detectPlatform` (pure, unit-tested with sample user agents) and the per-platform steps, detected device first

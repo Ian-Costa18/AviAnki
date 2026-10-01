@@ -12,10 +12,21 @@ from avianki.deck.build import plan_notes, select_species
 
 CASES = json.loads((REPO / "tests" / "fixtures" / "selection" / "cases.json").read_text(encoding="utf-8"))
 
+# The species file a case describes: one photo and/or recording per species from `media`
+# (every species has both when `media` is omitted). Schema: tests/deck/test_deck_selection.py.
 SELECT = """
 async (cases) => {
   const { selectSpecies } = await import('/js/select.js');
-  return cases.map((c) => selectSpecies(c.region, { tier: c.tier, month: c.month }));
+  return cases.map((c) => {
+    const speciesFile = {};
+    for (const [id] of c.region.species) {
+      const kinds = c.media ? (c.media[id] ?? []) : ['photo', 'audio'];
+      speciesFile[id] = { name: id, sci: id,
+        photo: kinds.includes('photo') ? [{ file: 'media/' + id }] : [],
+        audio: kinds.includes('audio') ? [{ file: 'media/' + id }] : [] };
+    }
+    return selectSpecies(c.region, speciesFile, c.cards, { tier: c.tier, month: c.month });
+  });
 }
 """
 
@@ -37,19 +48,27 @@ def test_bad_tier_and_month_are_rejected(chromium_page) -> None:
         async () => {
           const { selectSpecies } = await import('/js/select.js');
           const region = { species: [['a', Array(12).fill(1)]] };
-          const attempt = (options) => { try { selectSpecies(region, options); return null; } catch (e) { return e.name; } };
+          const file = { a: { photo: [{ file: 'p' }], audio: [] } };
+          const attempt = (options, cards = ['photo']) => {
+            try { selectSpecies(region, file, cards, options); return null; } catch (e) { return e.name; }
+          };
           return [attempt({ tier: 'huge' }), attempt({ tier: 'standard', month: 0 }),
-                  attempt({ tier: 'standard', month: 13 }), attempt({ tier: 'standard', month: 1.5 })];
+                  attempt({ tier: 'standard', month: 13 }), attempt({ tier: 'standard', month: 1.5 }),
+                  attempt({ tier: 'standard' }, ['video'])];
         }
         """
     )
-    assert bad == ["RangeError"] * 4
+    assert bad == ["RangeError"] * 5
 
 
 def test_plan_notes_matches_python(chromium_page) -> None:
     """Card order, first assets on every note, skipped species and dedup, for every card subset."""
     catalog = load_catalog(CATALOG_DIR)
-    ids = [*select_species(catalog.regions["us-ma"], tier="everything", month=None), "nope", "gavia-immer"]
+    ids = [
+        *select_species(catalog.regions["us-ma"], catalog.species, ["photo", "audio"], tier="everything", month=None),
+        "nope",
+        "gavia-immer",
+    ]
     subsets = [
         ["photo"], ["audio"], ["photo_audio"], ["photo", "audio"],
         ["photo_audio", "photo"], ["audio", "photo_audio", "photo"],
@@ -105,3 +124,20 @@ def test_repeated_ids_are_planned_once(chromium_page, cards) -> None:
         cards,
     )
     assert n == 2 * len(cards)
+
+
+def test_a_species_missing_from_the_species_file_is_dropped_with_a_warning(chromium_page) -> None:
+    got = chromium_page.evaluate(
+        """
+        async () => {
+          const { selectSpecies } = await import('/js/select.js');
+          const warnings = [];
+          const region = { species: [['ghost', Array(12).fill(1)], ['real', Array(12).fill(1)]] };
+          const file = { real: { photo: [{ file: 'p' }], audio: [] } };
+          const ids = selectSpecies(region, file, ['photo'], { tier: 'everything', warn: (m) => warnings.push(m) });
+          return { ids, warnings };
+        }
+        """
+    )
+    assert got["ids"] == ["real"]
+    assert len(got["warnings"]) == 1 and "ghost" in got["warnings"][0]

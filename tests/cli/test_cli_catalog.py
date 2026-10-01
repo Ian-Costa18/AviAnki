@@ -77,8 +77,9 @@ def test_month_selects_what_select_species_selects(tmp_path, monkeypatch, capsys
 
     client = CatalogClient(str(FIXTURE_CATALOG), cache_dir=tmp_path / "cache")
     region = client.region(client.find_region("us-az"))
-    every = deck_build.select_species(region, tier="everything", month=None)
-    june = deck_build.select_species(region, tier="everything", month=6)
+    cards = ("photo",)
+    every = deck_build.select_species(region, client.species(), cards, tier="everything", month=None)
+    june = deck_build.select_species(region, client.species(), cards, tier="everything", month=6)
     assert 0 < len(june) <= len(every)
 
     r = run_cli(["us-az", "--month", "6", "--cards", "photo", "-o", "june.apkg"], tmp_path, monkeypatch, capsys)
@@ -185,9 +186,15 @@ def test_a_region_with_no_usable_media_is_an_error_not_an_empty_deck(tmp_path, m
     assert not list(tmp_path.glob("*.apkg"))
 
 
-def test_species_without_media_for_the_chosen_cards_are_mentioned(tmp_path, monkeypatch, capsys):
-    r = run_cli(["us-ma", "--cards", "photo"], tmp_path, monkeypatch, capsys)
-    assert "1 of the 12 selected species have no media" in r.out
+def test_species_without_media_for_the_chosen_cards_are_left_out_before_the_limit(
+    tmp_path, monkeypatch, capsys
+):
+    # Common Loon has no photo. It is chosen out up front, so the deck has the other 11 and the
+    # old "N selected species have no media" afterthought has nothing to say.
+    r = run_cli(["us-ma", "--cards", "photo", "-o", "p.apkg"], tmp_path, monkeypatch, capsys)
+    assert r.code == 0, r.err
+    assert "for 11 species" in r.out
+    assert "have no media" not in r.out
 
 
 def test_help_lists_every_flag(capsys):
