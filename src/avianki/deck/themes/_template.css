@@ -1,0 +1,11 @@
+/* A theme as CSS: the words between two at-signs are placeholders filled from the fixed tables in themes.py (ADR 0028). */
+.card { background:@light.background@; }
+.card.nightMode, .card.night_mode { background:@night.background@; }
+.av { --ink:@light.text@; --sub:@light.secondary@; --bg:@light.background@; --name:@light.name@; --accent:@light.accent@; --credits:@light.credits@; --radius:@corners@;
+  font-family:@font@; }
+.nightMode .av, .night_mode .av { --ink:@night.text@; --sub:@night.secondary@; --bg:@night.background@; --name:@night.name@; --accent:@night.accent@; --credits:@night.credits@; }
+.photo img { border-radius:var(--radius); }
+.name { color:var(--name); font-weight:@name_weight@; @name_style@ }
+.ioc-tag { border-color:color-mix(in srgb, var(--accent) 70%, transparent); background:color-mix(in srgb, var(--accent) 10%, transparent); }
+.credits { color:var(--credits); border-top-color:color-mix(in srgb, var(--credits) 35%, transparent); }
+@rule@

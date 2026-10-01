@@ -1,0 +1,4 @@
+.av { font-size:19px; }
+.sci, .sound-label, .prompt { color:var(--ink); }
+.ioc-tag { font-size:12px; border-width:2px; color:var(--ink); }
+.credits { font-size:13px; border-top:2px solid var(--ink); color:var(--ink); }

@@ -264,7 +264,7 @@ def test_a_nine_field_deck_imports_over_the_old_eight_field_note_types_and_keeps
     old_models = _eight_field_models()
     old_fields = [f for f in notetypes.FIELDS if f != "IocName"]
     with monkeypatch.context() as m:
-        m.setattr(deck_build, "MODELS", old_models)
+        m.setattr(deck_build, "models_for", lambda theme="default", name_on_photo=False: old_models)
         m.setattr(deck_build, "FIELDS", tuple(f for f in notetypes.FIELDS if f != "IocName"))
         _write_us_ma(tmp_path / "old.apkg", tmp_path, timestamp=1_700_000_000.0)
     import_apkg(col, tmp_path / "old.apkg")
@@ -307,3 +307,55 @@ def test_the_ioc_tag_shows_on_the_answer_above_the_name_and_never_on_the_front(m
     for card in mallards:
         assert plain(card.answer_html).index("IOC Wild Duck") < plain(card.answer_html).index("Mallard")
         assert "IOC" not in plain(card.question_html) and "Wild Duck" not in card.question_html
+
+
+# 8 (ADR 0028) --------------------------------------------------------------------------
+
+
+def _model_css(col, model_id: int) -> str:
+    return col.models.get(model_id)["css"]
+
+
+@pytest.mark.parametrize(
+    "look",
+    [["--theme", "nord"], ["--theme", "field-guide", "--name-on-photo"], ["--name-on-photo"]],
+    ids=["nord", "field-guide-overlay", "default-overlay"],
+)
+def test_a_themed_deck_imports_cleanly_with_the_same_note_type_ids(look, make_deck, col):
+    log = import_apkg(col, make_deck("us-ma", "--cards", ALL_CARDS, *look))
+    assert note_count(col) == card_count(col) == 32 and len(log.log.new) == 32
+    assert_clean_media(col)
+    for card_type, model in notetypes.MODELS.items():
+        assert col.models.get(model.model_id) is not None, card_type  # the frozen id (ADR 0009)
+        assert col.models.get(model.model_id)["name"] == model.name
+        assert _field_names(col, model.model_id) == tuple(notetypes.FIELDS)
+    # What a learner sees: the answer carries the names, the tag and every credit; the front gives nothing away.
+    cards = rendered_cards(col)
+    assert_no_name_leak(col, cards)
+    assert_credits_on_answers(cards, CatalogClient(str(FIXTURE_CATALOG)).species())
+    assert 'class="ioc-tag"' in next(c for c in cards if c.species_id == "anas-platyrhynchos").answer_html
+
+
+def test_the_theme_is_in_the_imported_note_types_css(make_deck, col):
+    from avianki.deck import themes
+
+    import_apkg(col, make_deck("us-ma", "--cards", "photo", "--theme", "nord", "--name-on-photo"))
+    expected = themes.compose_css("nord", True)
+    assert _model_css(col, notetypes.MODELS["photo"].model_id) == expected
+    answer = next(iter(rendered_cards(col))).answer_html
+    assert 'class="photo"' in answer and answer.index('class="photo"') < answer.index('class="names"')
+
+
+def test_changing_the_theme_and_reimporting_keeps_every_note_and_all_progress(make_deck, col, tmp_path):
+    import_apkg(col, make_deck("us-ma", "--cards", "photo"))
+    assert answer_some_cards(col, 6) == 6
+    before = (note_count(col), note_ids(col), revlog_count(col), guids(col))
+    cards_before = set(col.db.list("select id from cards"))
+
+    log = import_apkg(col, make_deck("us-ma", "--cards", "photo", "--theme", "forest", "--name-on-photo"))
+
+    assert len(log.log.new) == 0
+    assert (note_count(col), note_ids(col), revlog_count(col), guids(col)) == before
+    assert set(col.db.list("select id from cards")) == cards_before
+    assert col.db.scalar("select count() from cards where type != 0") == 6
+    assert_clean_media(col)

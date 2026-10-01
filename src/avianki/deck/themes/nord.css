@@ -1,0 +1,5 @@
+.ioc-tag { color:var(--sub); border-color:var(--accent); background:color-mix(in srgb, var(--accent) 14%, transparent); }
+.credits { background:#e5e9f0; border:0; border-radius:8px; padding:8px 10px; }
+.nightMode .credits, .night_mode .credits { background:#3b4252; }
+.photo img { box-shadow:0 1px 3px rgba(46,52,64,.25); }
+.nightMode .photo img, .night_mode .photo img { box-shadow:none; }

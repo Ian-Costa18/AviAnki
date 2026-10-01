@@ -57,6 +57,7 @@ from avianki.deck.build import (
 )
 from avianki.deck.credits import EBIRD_NOTICE
 from avianki.deck.notetypes import CARD_TYPES
+from avianki.deck.themes import DEFAULT_THEME, THEME_NAMES, THEMES, ThemeError, Tokens, tokens_from_toml
 
 log = logging.getLogger("bird_deck")
 
@@ -174,6 +175,21 @@ def _deck_name(text: str) -> str:
     return name
 
 
+def _theme_file(text: str) -> Tokens:
+    """Read a theme file (TOML, the same text the website's "Copy theme" gives); any problem is a usage error."""
+    path = _path(text)
+    try:
+        source = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise argparse.ArgumentTypeError(f"cannot read the theme file {path}: {exc.strerror or exc}") from None
+    except UnicodeDecodeError:
+        raise argparse.ArgumentTypeError(f"{path} is not a UTF-8 text file") from None
+    try:
+        return tokens_from_toml(source)
+    except ThemeError as exc:
+        raise argparse.ArgumentTypeError(f"{path}: {exc}") from None
+
+
 def _version() -> str:
     try:
         return metadata.version("avianki")
@@ -231,6 +247,35 @@ def build_parser() -> argparse.ArgumentParser:
         help="put new notes in a subdeck named after the region (AviAnki::<Region>). Anki "
         "leaves a bird you already have in the deck it is in, so only birds not yet in your "
         "collection go to the subdeck; to reorganise the rest, move their cards in Anki's browser",
+    )
+    look = parser.add_argument_group(
+        "card look",
+        "Anki keeps one style per note type, so one collection has one look:\n"
+        "importing a deck with another theme restyles the cards you already have\n"
+        "and replaces any styling you edited by hand. The website shows a live preview.",
+    )
+    picked = look.add_mutually_exclusive_group()
+    picked.add_argument(
+        "--theme",
+        choices=THEME_NAMES,
+        default=DEFAULT_THEME,
+        metavar="NAME",
+        help="the colours and type of the cards: "
+        + "; ".join(f"{name} ({theme.description.rstrip('.')})" for name, theme in THEMES.items())
+        + f" (default: {DEFAULT_THEME})",
+    )
+    picked.add_argument(
+        "--theme-file",
+        type=_theme_file,
+        metavar="PATH",
+        help="a custom theme in TOML, such as the website's \"Copy theme\" button gives. "
+        "Cannot be combined with --theme",
+    )
+    look.add_argument(
+        "--name-on-photo",
+        action="store_true",
+        help="on the answer, put the name on a dark gradient over the bottom of the photo "
+        "(cards with no photo keep the name below). Works with every theme",
     )
     parser.add_argument(
         "--ebird",
@@ -411,6 +456,8 @@ def _finish(deck: _Deck, client: CatalogClient, args: argparse.Namespace) -> int
         deck_name=args.deck_name,
         subdeck=deck.subdeck,
         ebird=args.ebird is not None,
+        theme=args.theme_file if args.theme_file is not None else args.theme,
+        name_on_photo=args.name_on_photo,
     )
     if args.quiet:
         return EXIT_OK

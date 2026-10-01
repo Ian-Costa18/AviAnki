@@ -1,0 +1,5 @@
+.av { text-align:center; }
+.av .names { border-top:3px double var(--accent); border-bottom:3px double var(--accent); padding:10px 0; }
+.name { font-style:italic; }
+.sound { justify-content:center; }
+.credits { text-align:center; border-top-style:dotted; }

@@ -46,3 +46,8 @@ def test_built_wheel_contains_the_data_tables(tmp_path: Path) -> None:
             packaged = zf.read(f"avianki/data/{name}").replace(b"\r\n", b"\n")
             checked_in = (REPO_ROOT / "src" / "avianki" / "data" / name).read_bytes().replace(b"\r\n", b"\n")
             assert packaged == checked_in
+        # The card CSS (base, layout, theme template and each theme's extra rules) is read at import time.
+        deck = REPO_ROOT / "src" / "avianki" / "deck"
+        for css in [*deck.glob("*.css"), *(deck / "themes").glob("*.css")]:
+            member = f"avianki/deck/{css.relative_to(deck).as_posix()}"
+            assert member in names, f"{member} missing from {wheel.name}"

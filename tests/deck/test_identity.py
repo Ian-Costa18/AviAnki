@@ -80,3 +80,59 @@ def test_field_list_is_frozen_and_in_order() -> None:
     assert list(notetypes.FIELDS) == expected
     for model in notetypes.MODELS.values():
         assert [f["name"] for f in model.fields] == expected
+
+
+# --- themes and the name-on-photo layout change only styling and template HTML (ADR 0028) -----
+
+from avianki.deck import themes  # noqa: E402
+
+LOOKS = [(name, overlay) for name in themes.THEME_NAMES for overlay in (False, True)]
+CUSTOM = themes.tokens_from_mapping({"font": "mono", "rule": "side", "corners": "round"})
+
+
+def _identity(models: dict) -> dict:
+    return {
+        card_type: {
+            "id": m.model_id,
+            "name": m.name,
+            "fields": [f["name"] for f in m.fields],
+            "templates": [t["name"] for t in m.templates],
+            "sort_field": m.sort_field_index,
+            "type": m.model_type,
+        }
+        for card_type, m in models.items()
+    }
+
+
+@pytest.mark.parametrize(("theme", "overlay"), LOOKS)
+def test_every_theme_and_layout_keeps_the_note_type_identity(theme: str, overlay: bool) -> None:
+    models = notetypes.models_for(theme, overlay)
+    assert _identity(models) == _identity(notetypes.MODELS)
+    assert {ct: m.model_id for ct, m in models.items()} == {
+        "photo": 717156105,
+        "audio": 3710911882,
+        "photo_audio": 327952205,
+    }
+    for card_type, model in models.items():
+        assert [t["name"] for t in model.templates] == [t["name"] for t in notetypes.MODELS[card_type].templates]
+        assert [t["qfmt"] for t in model.templates] == [t["qfmt"] for t in notetypes.MODELS[card_type].templates]
+
+
+@pytest.mark.parametrize("overlay", [False, True])
+def test_a_custom_theme_keeps_the_note_type_identity(overlay: bool) -> None:
+    assert _identity(notetypes.models_for(CUSTOM, overlay)) == _identity(notetypes.MODELS)
+
+
+def test_the_default_models_are_card_css_and_the_original_back_exactly() -> None:
+    assert notetypes.CSS == themes.BASE_CSS
+    assert themes.compose_css() == themes.BASE_CSS
+    for model in notetypes.models_for("default", False).values():
+        assert model.css == themes.BASE_CSS
+        assert model.templates[0]["afmt"] == notetypes.back_for(False)
+
+
+def test_the_theme_is_set_when_the_models_are_built_not_when_a_note_is() -> None:
+    nord = notetypes.models_for("nord", True)
+    assert nord["photo"].css == themes.compose_css("nord", True)
+    assert nord["photo"].css != notetypes.MODELS["photo"].css
+    assert notetypes.MODELS["photo"].css == themes.BASE_CSS  # building another look never touches the default
