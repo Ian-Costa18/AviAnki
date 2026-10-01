@@ -10,7 +10,8 @@ upstream work (eBird, live media building) sits behind `avianki.catalog.adhoc`, 
 part of the pipeline this module may import (dependency rule, ADR 0018).
 
 Exit codes: 0 done, 1 the network or the catalog failed (or nothing to write), 2 a usage
-problem (unknown region, missing key, bad flag combination, missing tool).
+problem (unknown region, missing key, bad flag combination, an output path that can't be
+written, missing tool), 130 cancelled with Ctrl-C.
 """
 
 from __future__ import annotations
@@ -23,22 +24,26 @@ import sys
 import traceback
 from collections.abc import Sequence
 from dataclasses import dataclass, field
+from importlib import metadata
 from pathlib import Path
 
 import tqdm
-from dotenv import load_dotenv
+from dotenv import find_dotenv, load_dotenv
 
 from avianki.catalog.client import (
     AmbiguousRegion,
+    CacheWriteError,
     CatalogClient,
     CatalogError,
+    CatalogFetchError,
+    MediaNotFound,
     RegionNotFound,
     default_cache_dir,
 )
 from avianki.catalog.format import DEFAULT_BASE_URL, Manifest, RegionFile, SpeciesFile
 from avianki.core.http import SourceError
 from avianki.core.log import setup_logging, teardown_logging
-from avianki.core.text import fold
+from avianki.core.text import fold, use_utf8_output
 from avianki.deck.build import (
     DECK_NAME,
     STANDARD_LIMIT,
@@ -58,6 +63,9 @@ log = logging.getLogger("bird_deck")
 EBIRD_KEY_VAR = "EBIRD_API_KEY"
 EBIRD_KEY_URL = "https://ebird.org/api/keygen"
 DEFAULT_CARDS = "photo,audio"
+# The catalog keeps each region's top 400 species and "everything" is all of them (ADR 0015).
+# This is documentation for --help; the selection itself reads the region file.
+EVERYTHING_LIMIT = 400
 
 
 def _card_label(card_type: str) -> str:
@@ -68,6 +76,7 @@ def _card_label(card_type: str) -> str:
 _CARD_SPELLINGS = {_card_label(ct): ct for ct in CARD_TYPES}
 
 EXIT_OK, EXIT_FAILED, EXIT_USAGE = 0, 1, 2
+EXIT_INTERRUPTED = 130  # the shell convention for Ctrl-C
 
 # regions.csv is read directly (not through avianki.taxonomy, which cli may not import) only
 # to recognise an eBird code or a place name that the catalog does not have. It ships inside
@@ -109,6 +118,69 @@ def _month(text: str) -> int:
     return value
 
 
+def _path(text: str) -> Path:
+    """A path argument, with ``~`` expanded (PowerShell and cmd pass it through literally)."""
+    return Path(text).expanduser()
+
+
+def _output_path(text: str) -> Path:
+    if not text.strip():
+        raise argparse.ArgumentTypeError("the output path is empty; give a file name such as deck.apkg")
+    if text.endswith(("/", "\\")):
+        # "out/" names a folder, and Path would silently drop the slash and make a file "out".
+        raise argparse.ArgumentTypeError(f"{text!r} is a folder; give a file name such as {text}deck.apkg")
+    return _path(text)
+
+
+# Characters Windows refuses in a file name (a drive letter's colon is not part of a name)
+# and the device names it reserves whatever the extension.
+_WINDOWS_BAD_CHARS = frozenset('<>:"|?*')
+_WINDOWS_DEVICES = frozenset(
+    {"con", "prn", "aux", "nul"}
+    | {f"com{n}" for n in range(1, 10)}
+    | {f"lpt{n}" for n in range(1, 10)}
+)
+
+
+def output_problem(path: Path, *, platform: str = sys.platform) -> str | None:
+    """Why ``path`` can't be written as the deck, or None. Creates a missing parent folder.
+
+    Checked before anything is downloaded, so a typo costs nothing. An existing file is fine
+    (it is replaced).
+    """
+    if path.is_dir():
+        return f"{path} is a folder; give a file name, for example {path / 'deck.apkg'}"
+    if platform == "win32":
+        parts = path.parts[1:] if path.anchor else path.parts
+        for part in parts:
+            if part in (".", ".."):
+                continue
+            bad =sorted(_WINDOWS_BAD_CHARS & set(part))
+            if bad:
+                return f"{path}: Windows does not allow {' '.join(bad)} in a file name"
+            if part.split(".")[0].rstrip().lower() in _WINDOWS_DEVICES or part != part.rstrip(" ."):
+                return f"{path}: {part!r} is not a usable file name on Windows"
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        return f"cannot create the folder for {path}: {exc.strerror or exc}"
+    return None
+
+
+def _deck_name(text: str) -> str:
+    name = text.strip()
+    if not name:
+        raise argparse.ArgumentTypeError("the deck name must not be empty")
+    return name
+
+
+def _version() -> str:
+    try:
+        return metadata.version("avianki")
+    except metadata.PackageNotFoundError:
+        return "unknown"
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="avianki",
@@ -131,12 +203,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="a catalog region: its slug (us-ma) or display name (Massachusetts). "
         "Required unless --ebird is given",
     )
+    parser.add_argument("--version", action="version", version=f"avianki {_version()}")
     parser.add_argument(
         "--tier",
+        type=str.lower,
         choices=[TIER_STANDARD, TIER_EVERYTHING],
         default=TIER_STANDARD,
-        help=f"standard: the {STANDARD_LIMIT} most common species; everything: all of them "
-        "(default: standard)",
+        help=f"standard: the {STANDARD_LIMIT} most common species; everything: the region's "
+        f"{EVERYTHING_LIMIT} most common (default: standard)",
     )
     parser.add_argument(
         "--cards",
@@ -154,7 +228,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--subdeck",
         action="store_true",
-        help="put the notes in a subdeck named after the region (AviAnki::<Region>)",
+        help="put new notes in a subdeck named after the region (AviAnki::<Region>). Anki "
+        "leaves a bird you already have in the deck it is in, so only birds not yet in your "
+        "collection go to the subdeck; to reorganise the rest, move their cards in Anki's browser",
     )
     parser.add_argument(
         "--ebird",
@@ -167,7 +243,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "-o",
         "--output",
-        type=Path,
+        type=_output_path,
         metavar="FILE",
         help="where to write the deck (default: AviAnki-<region>.apkg, or AviAnki-<CODE>.apkg "
         "with --ebird)",
@@ -180,13 +256,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--cache-dir",
-        type=Path,
+        type=_path,
         metavar="DIR",
         help="where downloaded catalog files are kept (default: your per-user cache directory)",
     )
     advanced = parser.add_argument_group("advanced")
     advanced.add_argument(
         "--deck-name",
+        type=_deck_name,
         default=DECK_NAME,
         metavar="NAME",
         help=f"the deck's name (default: {DECK_NAME}). Changing it puts the notes into a "
@@ -239,10 +316,15 @@ def _human_size(n: int) -> str:
 
 
 class _Bar:
-    """A tqdm bar driven by ``progress(done, total)`` callbacks; silent when ``disable``."""
+    """A tqdm bar driven by ``progress(done, total)`` callbacks; silent when ``disable`` or when
+    stderr isn't a terminal (a redirected bar is a pile of carriage returns)."""
 
     def __init__(self, label: str, disable: bool) -> None:
-        self._bar = tqdm.tqdm(total=0, desc=label, unit="file", disable=disable, leave=False)
+        isatty = getattr(sys.stderr, "isatty", None)
+        interactive = bool(isatty is not None and isatty())
+        self._bar = tqdm.tqdm(
+            total=0, desc=label, unit="file", disable=disable or not interactive, leave=False
+        )
 
     def __call__(self, done: int, total: int) -> None:
         self._bar.total = total
@@ -280,8 +362,10 @@ def _error(message: str) -> None:
 
 def _report_missing_region(exc: RegionNotFound | AmbiguousRegion, query: str) -> None:
     _error(str(exc))
+    if isinstance(exc, AmbiguousRegion):
+        return  # the catalog has the region; --ebird would be the wrong advice
     known = _known_ebird_region(query)
-    if isinstance(exc, RegionNotFound) and known is not None:
+    if known is not None:
         code, name = known
         print(
             f"{name} ({code}) is an eBird region that this catalog does not cover. "
@@ -318,6 +402,7 @@ def _finish(deck: _Deck, client: CatalogClient, args: argparse.Namespace) -> int
     def media(name: str) -> Path:
         return extra_media[name] if name in extra_media else downloaded[name]
 
+    replaced = out.is_file()
     summary = write_deck(
         notes,
         deck.species,
@@ -338,16 +423,53 @@ def _finish(deck: _Deck, client: CatalogClient, args: argparse.Namespace) -> int
         if count
     )
     print(
-        f"Wrote {out} ({_human_size(out.stat().st_size)}): {summary.note_count} notes ({by_type}) "
-        f"for {species_count} species."
+        f"Wrote {out} ({_human_size(out.stat().st_size)}): "
+        f"{summary.note_count} {_plural(summary.note_count, 'note', 'notes')} ({by_type}) "
+        f"for {species_count} {_plural(species_count, 'species', 'species')}."
     )
+    if replaced:
+        print(f"The file already existed, so it was replaced: {out}")
     if species_count < selected:
+        missing = selected - species_count
         print(
-            f"{selected - species_count} of the {selected} selected species have no media for the "
-            "chosen card types, so they have no cards."
+            f"{missing} of the {selected} selected species "
+            f"{_plural(missing, 'has', 'have')} no media for the chosen card types, "
+            f"so {_plural(missing, 'it has', 'they have')} no cards."
         )
+    for line in _missing_kind_lines(notes, species_count, args.cards):
+        print(line)
     print(f"Next: open {out.name} in Anki (double-click it, or File > Import).")
     return EXIT_OK
+
+
+def _plural(count: int, one: str, many: str) -> str:
+    return one if count == 1 else many
+
+
+def _missing_kind_lines(notes: Sequence[PlannedNote], birds: int, cards: Sequence[str]) -> list[str]:
+    """One line per kind of media some bird in the deck lacks, so a bird with a photo but no
+    recording (or the reverse) is not a surprise. A bird's notes all carry the same media, and
+    a bird missing a kind only has the card types that don't need it."""
+    by_species: dict[str, PlannedNote] = {}
+    for note in notes:
+        by_species.setdefault(note.species_id, note)
+    chosen = set(cards)
+    lines: list[str] = []
+    for kind, other, needs_it in (
+        ("recording", "photo", ("audio", "photo_audio")),
+        ("photo", "audio", ("photo", "photo_audio")),
+    ):
+        if not chosen & set(needs_it):
+            continue  # no card of the deck asks for this kind
+        lacking = sum(
+            1 for n in by_species.values() if (n.audio if kind == "recording" else n.photo) is None
+        )
+        if lacking:
+            lines.append(
+                f"{lacking} of the {birds} {_plural(birds, 'bird', 'birds')} {_plural(lacking, 'has', 'have')} no {kind}, "
+                f"so {_plural(lacking, 'it has', 'they have')} {other} cards only."
+            )
+    return lines
 
 
 def _catalog_deck(args: argparse.Namespace, client: CatalogClient) -> int:
@@ -438,8 +560,24 @@ def _ebird_deck(args: argparse.Namespace, client: CatalogClient) -> int:
 # ---------------------------------------------------------------------------------------
 
 
+def _advice(exc: Exception) -> str | None:
+    """One line of what to try next, for the failures a user can do something about."""
+    if isinstance(exc, CacheWriteError):
+        return "Choose a folder you can write to with --cache-dir DIR."
+    if isinstance(exc, MediaNotFound):
+        return None  # its message already says what happened and to try again
+    if isinstance(exc, CatalogFetchError):
+        return "Check your internet connection and --catalog-url, or try again later."
+    if isinstance(exc, SourceError):
+        return "Check your internet connection, or try again later."
+    return None
+
+
 def main(argv: Sequence[str] | None = None) -> int:
-    load_dotenv()  # lets a .env file supply EBIRD_API_KEY
+    use_utf8_output()
+    # usecwd: find_dotenv otherwise searches from this module's folder, which for an installed
+    # package is site-packages, so a .env in the folder you run from would never be read.
+    load_dotenv(find_dotenv(usecwd=True))  # lets a .env file supply EBIRD_API_KEY
     parser = build_parser()
     args = parser.parse_args(argv)
     if args.ebird is None and not args.region:
@@ -448,14 +586,31 @@ def main(argv: Sequence[str] | None = None) -> int:
         parser.error("give either REGION or --ebird CODE, not both")
     if args.ebird is not None and args.month is not None:
         parser.error("--month needs the catalog's monthly data and cannot be used with --ebird")
+    if args.output is not None:
+        problem = output_problem(args.output)
+        if problem is not None:
+            _error(problem)
+            return EXIT_USAGE
+    if "::" in args.deck_name:
+        print(
+            f"avianki: warning: Anki treats '::' in a deck name as a subdeck separator, so "
+            f"{args.deck_name!r} will be nested. --subdeck is the usual way to get one.",
+            file=sys.stderr,
+        )
 
     setup_logging(None, args.verbose, args.quiet)
     try:
         cache_dir = args.cache_dir if args.cache_dir is not None else default_cache_dir()
         client = CatalogClient(args.catalog_url, cache_dir=cache_dir)
         return _ebird_deck(args, client) if args.ebird is not None else _catalog_deck(args, client)
+    except KeyboardInterrupt:
+        print("Cancelled.", file=sys.stderr)
+        return EXIT_INTERRUPTED
     except (CatalogError, SourceError, OSError) as exc:
         _error(str(exc))
+        advice = _advice(exc)
+        if advice:
+            print(advice, file=sys.stderr)
         if args.verbose:
             traceback.print_exc()
         else:

@@ -24,7 +24,7 @@
 
 ### Maintainer entry point
 
-`avianki-catalog build|validate|report` runs the pipeline. It's separate from `avianki` so the user-facing help stays short.
+`avianki-catalog build` runs the pipeline. It's separate from `avianki` so the user-facing help stays short.
 
 ### Flags (the README is updated in the same change)
 
@@ -41,3 +41,5 @@
 | `-v`, `-q` | as today |
 
 `--deck-name` stays as an advanced flag, and its help text warns that changing it puts notes into a different deck.
+
+Amended 2026-09-30: only `avianki-catalog build` exists; `validate` and `report` were never added, so this text named commands that are not there.
