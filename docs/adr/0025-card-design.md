@@ -15,14 +15,17 @@ The maintainer reviewed 18 variants and chose this design. The alternatives are 
 
 ## Decision
 
-### Layout: what's on the front stays where it is
+### Layout: the photo stays still, and every back is the same
 
-- Each card type gets its own back. The back repeats its front exactly, prompt line included, so nothing above the answer moves. The answer then follows underneath, in this order:
-  1. the optional IOC tag
-  2. the name
-  3. the scientific name
-  4. whichever medium the front didn't show (the recording for a photo card, the photo for an audio card)
-  5. the credits
+- Only the photo has to stay still when a card flips; it is the biggest thing on the card. The play button may move.
+- Fronts put the photo first, with the prompt under it ("What bird is this?"). The audio front is a compact play button with "Who's calling?" beside it, on one line. A photo + audio front is the photo, then the play button with the question beside it.
+- All three card types share one back, so the order never varies. There is no question on it. In this order:
+  1. the photo, if the note has one, where it was on the front
+  2. the optional IOC tag
+  3. the name
+  4. the scientific name
+  5. the recording, if the note has one, labelled "Hear the call"
+  6. the credits
 - The photo is full width, rounded, with height up to 46vh and `object-fit: contain`. The grey letterbox box is gone.
 
 ### Type and colour
@@ -63,4 +66,4 @@ The maintainer reviewed 18 variants and chose this design. The alternatives are 
 
 - Importing a 1.1 deck restyles every AviAnki card in the collection, including cards from an older import. That is intended.
 - Anyone who edited the AviAnki note type's styling by hand loses those edits on re-import. The changelog says so.
-- Themes (#67) build on this layout. They may change CSS and the order of the answer block, but must keep the front's media in place.
+- Themes (#67) build on this layout. They may change CSS and the order of the answer block, but must keep the photo in place.

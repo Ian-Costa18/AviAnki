@@ -9,9 +9,10 @@ Each card type is its own note type with one template. The front shows only the 
 media, never Name, SciName or Credits: a credit line such as a file title can give the
 species away (ADR 0012).
 
-Each back is built from its front (ADR 0025): the front's markup repeated exactly, so the
-prompt and the media stay where they were when the card flips, then the answer block under
-it. The wrapper is ``.av``, not ``.card``, because Anki's ``<body>`` already has class
+One back is shared by all three types (ADR 0025): photo, name, scientific name, recording,
+credits. Only the photo stays put when a card flips, so a photo front puts the photo first
+with the prompt under it, and the back opens with the same photo. No back repeats the
+question. The wrapper is ``.av``, not ``.card``, because Anki's ``<body>`` already has class
 ``card``. Templates stay self-contained and do not use ``{{FrontSide}}``.
 """
 
@@ -47,54 +48,47 @@ FIELDS: Final[tuple[str, ...]] = (
 CSS: Final[str] = (Path(__file__).with_name("card.css")).read_text(encoding="utf-8")
 
 _PHOTO_BLOCK = '<div class="photo">{{Photo}}</div>'
-_AUDIO_BLOCK = '<div class="sound">{{Audio}}</div>'
+
+
+def _sound(label: str) -> str:
+    """The play button with its label beside it, on one line."""
+    return f'<div class="sound">{{{{Audio}}}}<span class="sound-label">{label}</span></div>'
+
 
 _CLOSE = "</div>"
 _NL = "\n"
 
 
-def _front(prompt: str, *blocks: str) -> str:
-    """A front: the prompt, then the media it asks about, one block per line."""
-    lines = ['<div class="av">', f'  <div class="prompt">{prompt}</div>', *(f"  {b}" for b in blocks), _CLOSE]
-    return _NL.join(lines)
+def _front(*blocks: str) -> str:
+    """A front: its blocks, one per line. The photo comes first so the back can match it."""
+    return _NL.join(['<div class="av">', *(f"  {b}" for b in blocks), _CLOSE])
 
 
-def _back(front: str, *extra: str) -> str:
-    """The front's markup unchanged, then the answer: names, any medium the front lacked, credits.
-
-    The extras are conditional so a note without that medium leaves no empty box; the
-    fronts don't need that because their media always exists.
-    """
-    answer = [
+# The one back, the same for every card type. Each medium is conditional so a note without
+# it leaves no empty box; the fronts don't need that because their media always exists.
+_BACK = _NL.join(
+    [
+        '<div class="av">',
+        "  {{#Photo}}" + _PHOTO_BLOCK + "{{/Photo}}",
         '  <div class="names">',
         '    <div class="name">{{Name}}</div>',
         '    <div class="sci">{{SciName}}</div>',
         "  </div>",
-        *(f"  {e}" for e in extra),
+        "  {{#Audio}}" + _sound("Hear the call") + "{{/Audio}}",
         "  {{Credits}}",
+        _CLOSE,
     ]
-    return front.removesuffix(_CLOSE) + _NL.join(answer) + _NL + _CLOSE
+)
 
-
-_PHOTO_FRONT = _front("What bird is this?", _PHOTO_BLOCK)
-_AUDIO_FRONT = _front("Who's calling?", _AUDIO_BLOCK)
-_BOTH_FRONT = _front("What bird is this?", _PHOTO_BLOCK, _AUDIO_BLOCK)
+_PHOTO_FRONT = _front(_PHOTO_BLOCK, '<div class="prompt">What bird is this?</div>')
+_AUDIO_FRONT = _front(_sound("Who's calling?"))
+_BOTH_FRONT = _front(_PHOTO_BLOCK, _sound("What bird is this?"))
 
 # Per card type: the note type's name, the name of its one template, its front and its back.
 _NOTE_TYPES: Final[dict[str, tuple[str, str, str, str]]] = {
-    "photo": (
-        "AviAnki · Photo",
-        "Photo → Name",
-        _PHOTO_FRONT,
-        _back(_PHOTO_FRONT, "{{#Audio}}" + _AUDIO_BLOCK + "{{/Audio}}"),
-    ),
-    "audio": (
-        "AviAnki · Audio",
-        "Audio → Name",
-        _AUDIO_FRONT,
-        _back(_AUDIO_FRONT, "{{#Photo}}" + _PHOTO_BLOCK + "{{/Photo}}"),
-    ),
-    "photo_audio": ("AviAnki · Photo + Audio", "Photo + Audio → Name", _BOTH_FRONT, _back(_BOTH_FRONT)),
+    "photo": ("AviAnki · Photo", "Photo → Name", _PHOTO_FRONT, _BACK),
+    "audio": ("AviAnki · Audio", "Audio → Name", _AUDIO_FRONT, _BACK),
+    "photo_audio": ("AviAnki · Photo + Audio", "Photo + Audio → Name", _BOTH_FRONT, _BACK),
 }
 
 

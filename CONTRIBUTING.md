@@ -104,7 +104,7 @@ Most feature work falls into one of these two paths.
 
 ### 1) Edit Anki cards (layout, templates, fields)
 
-Each card type is its own `genanki.Model` in `src/avianki/deck/notetypes.py` with a single template: the front, and a back built from it (ADR 0025) that repeats the front, then adds the answer. All models share the same `FIELDS` tuple and the CSS in `src/avianki/deck/card.css`. Model seeds, note GUIDs and the deck id are frozen (ADR 0009); `tests/deck/test_identity.py` pins them, and you must not edit those expected strings.
+Each card type is its own `genanki.Model` in `src/avianki/deck/notetypes.py` with a single template: the front, and the one standard back all three share (ADR 0025): photo, name, scientific name, recording, credits. All models share the same `FIELDS` tuple and the CSS in `src/avianki/deck/card.css`. Model seeds, note GUIDs and the deck id are frozen (ADR 0009); `tests/deck/test_identity.py` pins them, and you must not edit those expected strings.
 
 **To add a new card type:**
 

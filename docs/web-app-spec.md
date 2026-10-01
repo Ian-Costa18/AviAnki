@@ -130,13 +130,13 @@ The `credit` values are pipeline-rendered, escaped HTML that uses only `a`, `b` 
 
 `Photo2` and `Audio2` are reserved and empty at 1.0.
 
-Each back repeats its front exactly, then adds the answer, so the photo doesn't move when the card flips ([ADR 0025](adr/0025-card-design.md)). The answer is `{{Name}}` and `{{SciName}}`, then the medium the front didn't show (if the note has it), then `{{Credits}}`.
+All three share one back, so the order is always the same, and only the photo stays still when the card flips ([ADR 0025](adr/0025-card-design.md)): `{{Photo}}` (if the note has it), `{{Name}}`, `{{SciName}}`, `{{Audio}}` labelled "Hear the call" (if the note has it), then `{{Credits}}`. Fronts put the photo first with the prompt under it; the audio front is a compact play button with the question beside it. No back repeats the question.
 
 | Note type | Front | Back |
 |---|---|---|
-| AviAnki · Photo | *What bird is this?* + `{{Photo}}` | the front, then `{{Name}}`, `{{SciName}}`, `{{Audio}}`, `{{Credits}}` |
-| AviAnki · Audio | *Who's calling?* + `{{Audio}}` | the front, then `{{Name}}`, `{{SciName}}`, `{{Photo}}`, `{{Credits}}` |
-| AviAnki · Photo + Audio | both | the front, then `{{Name}}`, `{{SciName}}`, `{{Credits}}` |
+| AviAnki · Photo | `{{Photo}}`, then *What bird is this?* | `{{Photo}}`, `{{Name}}`, `{{SciName}}`, `{{Audio}}`, `{{Credits}}` |
+| AviAnki · Audio | `{{Audio}}` with *Who's calling?* beside it | the same back |
+| AviAnki · Photo + Audio | `{{Photo}}`, then `{{Audio}}` with *What bird is this?* beside it | the same back |
 
 - **Media filenames** are `avianki_<catalog hash name>`, so identical media stays identical across builds.
 - **Fields hold** `<img src="…">` and `[sound:…]`.
