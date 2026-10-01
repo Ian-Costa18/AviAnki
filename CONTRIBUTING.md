@@ -41,6 +41,8 @@ uv run --python 3.13 pytest
 uv run --python 3.14 pytest
 ```
 
+Fix Dependabot alerts as soon as you see them: `uv lock --upgrade-package NAME`, then run the tests, in a commit of their own.
+
 The integration tests hit real network sources and are skipped by default. Pass `--integration` to opt in, and add `-m integration` to run only them. They are the weekly check's tests (below) plus the live BirdNET test, which needs the `verify` extra (`uv sync --extra verify` on Python 3.11-3.13). A network failure fails the test; the only skip is the eBird test without `EBIRD_API_KEY`.
 
 ### The weekly integration check
