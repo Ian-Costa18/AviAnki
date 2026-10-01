@@ -51,8 +51,8 @@ def species_file() -> SpeciesFile:
             ),
             # Neither: a species with no media at all makes no note.
             "empty-bird": SpeciesEntry("Empty Bird", "Vacuus avis", [], []),
-            # Markup characters in the names must be escaped in the fields.
-            "tom-and-jerry": SpeciesEntry("Tom & <Jerry>", "Muris <x> & y", [JAY_PHOTO], []),
+            # Markup characters in the names must be escaped in the fields. It also has an IOC name.
+            "tom-and-jerry": SpeciesEntry("Tom & <Jerry>", "Muris <x> & y", [JAY_PHOTO], [], "Ioc <Tom> & Jerry"),
         }
     )
 

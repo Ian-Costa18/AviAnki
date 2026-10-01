@@ -7,7 +7,7 @@
  *
  *     const { blob, summary } = await buildDeck({
  *       manifest,      // parsed manifest.json (only `dataset_credits` is read)
- *       speciesFile,   // parsed species.<hash>.json: { [speciesId]: { name, sci, photo, audio } }
+ *       speciesFile,   // parsed species.<hash>.json: { [speciesId]: { name, sci, photo, audio, ioc_name? } }
  *       notes,         // planNotes(...) output, in the order to write them
  *       subdeck,       // e.g. the region's name -> "AviAnki::Massachusetts", or null
  *       ebird,         // true adds the not-for-redistribution notice to the description
@@ -70,7 +70,7 @@ export function packageMediaName(catalogFile) {
 
 // --- escaping, as Python's html.escape ---------------------------------------------------
 
-/** `html.escape(s, quote=False)`: for SpeciesId, Name and SciName. */
+/** `html.escape(s, quote=False)`: for SpeciesId, Name, SciName and IocName. */
 export function escapeText(s) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
@@ -103,6 +103,7 @@ function noteFields(note, entry, fieldNames) {
     Audio: note.audio ? `[sound:${packageMediaName(note.audio.file)}]` : "",
     Audio2: "",
     Credits: creditsField(note.photo, note.audio),
+    IocName: escapeText(entry.ioc_name ?? ""),
   };
   return fieldNames.map((name) => values[name]);
 }

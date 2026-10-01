@@ -12,7 +12,7 @@ src/avianki/
     log.py               the "bird_deck" logger setup
     text.py              `fold`, the case-, accent- and space-insensitive key every name lookup uses; `use_utf8_output`, which keeps a redirected stream on Windows from crashing on a non-ASCII name
   taxonomy/              → core
-    species.py           loads data/species.csv (shipped in the wheel): minted ids, per-source keys, aliases
+    species.py           loads data/species.csv (shipped in the wheel): minted ids, per-source keys, aliases, the optional IOC name (ADR 0027)
     regions.py           loads data/regions.csv (shipped in the wheel): slug ↔ GADM gid ↔ eBird code
   sources/               → core, taxonomy
     __init__.py          re-exports the contract (contract.py) only, never the registry or a source
@@ -48,8 +48,8 @@ src/avianki/
     report.py            `BuildReport` + build-report.md, contact-sheet.html, credits.html
     client.py            reads a published catalog (manifest → region → species → media) from a URL or directory into a per-user cache; imports only format and core, works without the catalog extra
   deck/                  → catalog.format, catalog.client, core   (never sources/ or media/)
-    notetypes.py         three note types (each its own front, one shared back), frozen card types, model seeds and field list
-    card.css             card styling: the `.av` layout, night mode, `.credits` (ADR 0025)
+    notetypes.py         three note types (each its own front, one shared back), frozen card types, model seeds and field list (IocName appended, ADR 0027)
+    card.css             card styling: the `.av` layout, night mode, `.credits`, the `.ioc-tag` (ADR 0025, 0027)
     credits.py           Credits field + deck description
     build.py             frozen deck id and note GUID, `select_species` (month filter, media check, tier), `plan_notes`, the genanki writer `write_deck`
   cli.py                 `avianki REGION` and `avianki --ebird CODE` (ADR 0017)
@@ -78,7 +78,7 @@ web/                     imports no Python; depends only on catalog/format.py's 
   css/app.css            one mobile-first column, light and dark, no images
 
 src/avianki/data/        package data: ships in the wheel, found through taxonomy.DATA_DIR (issue #51)
-  species.csv            minted species ids (ADR 0008)
+  species.csv            minted species ids (ADR 0008), with an ioc_name column (ADR 0027)
   regions.csv            region slugs ↔ GADM gids, GADM version pinned
   pins.toml              pins, exclusions, credit-removal requests (ADR 0011)
 

@@ -86,6 +86,7 @@ class Rendered:
     answer_html: str
     question_files: list[str]  # media the front references: <img> sources and audio tags
     answer_files: list[str]
+    ioc_name: str  # the note's IocName field (ADR 0027); empty for most birds
     has_photo: bool  # the note's Photo field is filled
     has_audio: bool
 
@@ -110,6 +111,7 @@ def rendered_cards(col: Collection) -> list[Rendered]:
                 answer_html=a,
                 question_files=IMG_SRC.findall(q) + _audio_files(card.question_av_tags()),
                 answer_files=IMG_SRC.findall(a) + _audio_files(card.answer_av_tags()),
+                ioc_name=note["IocName"],
                 has_photo=bool(note["Photo"].strip()),
                 has_audio=bool(note["Audio"].strip()),
             )
@@ -152,7 +154,7 @@ def assert_no_name_leak(col: Collection, cards: list[Rendered]) -> None:
     """Check 5: the front, as text, has no word of the bird's names, and its media exists."""
     media_dir = Path(col.media.dir())
     for card in cards:
-        words = name_words(card.name, card.sci)
+        words = name_words(card.name, card.sci, card.ioc_name)
         leaked = words & {w.lower() for w in WORD.findall(plain(card.question_html))}
         assert not leaked, f"{card.species_id} ({card.template}): the front shows {sorted(leaked)}"
         assert card.question_files, f"{card.species_id} ({card.template}): the front has no media"

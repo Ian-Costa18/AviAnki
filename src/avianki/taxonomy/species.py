@@ -32,6 +32,9 @@ class SpeciesRow:
     ebird_code: str | None = None
     birdnet_label: str | None = None
     alias_of: str | None = None
+    # The IOC English name, only where it is a genuinely different name for the same bird
+    # from common_name (eBird's); empty everywhere else (ADR 0027). Last column.
+    ioc_name: str = ""
 
     @property
     def is_alias(self) -> bool:
@@ -203,6 +206,7 @@ def _parse_row(record: list[str], path: Path, line: int) -> SpeciesRow:
         ebird_code=text("ebird_code"),
         birdnet_label=text("birdnet_label"),
         alias_of=text("alias_of"),
+        ioc_name=v["ioc_name"],
     )
 
 

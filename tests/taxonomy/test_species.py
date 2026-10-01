@@ -14,7 +14,7 @@ from avianki.taxonomy.species import (
     save_species,
 )
 
-HEADER_LINE = "id,sci_name,common_name,gbif_key,inat_taxon_id,wikipedia_title,ebird_code,birdnet_label,alias_of"
+HEADER_LINE = "id,sci_name,common_name,gbif_key,inat_taxon_id,wikipedia_title,ebird_code,birdnet_label,alias_of,ioc_name"
 
 CARDINAL = SpeciesRow(
     id="cardinalis-cardinalis",
@@ -267,8 +267,8 @@ def test_save_is_sorted_stable_and_uses_lf(tmp_path: Path):
     assert data.decode("utf-8").splitlines() == [
         HEADER_LINE,
         "cardinalis-cardinalis,Cardinalis cardinalis,Northern Cardinal,9809229,9083,Northern cardinal,norcar,"
-        "Cardinalis cardinalis_Northern Cardinal,",
-        "cyanocitta-cristata,Cyanocitta cristata,Blue Jay,2482593,,,,,",
+        "Cardinalis cardinalis_Northern Cardinal,,",
+        "cyanocitta-cristata,Cyanocitta cristata,Blue Jay,2482593,,,,,,",
     ]
 
 
@@ -278,6 +278,18 @@ def test_save_quotes_and_keeps_utf8(tmp_path: Path):
     save_species(SpeciesTable([row]), p)
     assert '"Bird, Pîed"' in p.read_text(encoding="utf-8")
     assert load_species(p).get("aa-bb") == row
+
+
+def test_ioc_name_is_the_last_column_and_round_trips(tmp_path: Path):
+    plover = SpeciesRow(id="pluvialis-squatarola", sci_name="Pluvialis squatarola", common_name="Black-bellied Plover", ioc_name="Grey Plover")
+    p = tmp_path / "species.csv"
+    save_species(SpeciesTable([plover, JAY]), p)
+    lines = p.read_text(encoding="utf-8").splitlines()
+    assert lines[0].endswith(",alias_of,ioc_name")
+    assert lines[2].endswith(",,Grey Plover")
+    loaded = load_species(p)
+    assert loaded.get("pluvialis-squatarola").ioc_name == "Grey Plover"
+    assert loaded.get("cyanocitta-cristata").ioc_name == ""
 
 
 def test_empty_table_saves_header_only(tmp_path: Path):
@@ -296,6 +308,6 @@ def test_wrong_header_raises(tmp_path: Path):
 
 def test_non_integer_key_raises(tmp_path: Path):
     p = tmp_path / "species.csv"
-    p.write_text(HEADER_LINE + "\naa-bb,Aa bb,,notanumber,,,,,\n", encoding="utf-8")
+    p.write_text(HEADER_LINE + "\naa-bb,Aa bb,,notanumber,,,,,,\n", encoding="utf-8")
     with pytest.raises(ValueError, match="gbif_key"):
         load_species(p)

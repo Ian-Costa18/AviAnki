@@ -23,6 +23,7 @@ Your old deck and its review history aren't touched. Keep studying it, or delete
   - The catalog is rebuilt monthly.
 - **Photo and audio cards.** "What bird is this?" shows a photo, and "Who's calling?" plays a recording. A photo + audio card is optional. Every answer shows the name, the photo, the recording, and a credit line for each.
 - **A new look.** The photo stays put when you flip a card, so your eye doesn't have to find it again. Every back has the same order: photo, name, recording. Recording cards have a compact play button with the question beside it. Cards use your phone's own font, follow night mode, and the credits are smaller. Importing a deck restyles your existing AviAnki cards and keeps your review history. If you edited the AviAnki note types' styling by hand, those edits are replaced.
+- **Names North American birders know.** Cards use eBird's English names (Black-bellied Plover, Rock Pigeon). Where the international (IOC) name is different, a small "IOC" tag above the name shows it.
 - **Tiers and seasons.**
   - `--tier standard` (the default) gives the 100 most-seen birds. `--tier everything` gives the region's 400 most common species. A bird with no photo or recording for the card types you chose doesn't take up a place; the next most-seen bird does.
   - `--month` keeps only the birds seen that month.

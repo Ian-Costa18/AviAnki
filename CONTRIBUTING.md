@@ -100,7 +100,7 @@ Most feature work falls into one of these two paths.
 
 ### 1) Edit Anki cards (layout, templates, fields)
 
-Each card type is its own `genanki.Model` in `src/avianki/deck/notetypes.py` with a single template: the front, and the one standard back all three share (ADR 0025): photo, name, scientific name, recording, credits. All models share the same `FIELDS` tuple and the CSS in `src/avianki/deck/card.css`. Model seeds, note GUIDs and the deck id are frozen (ADR 0009); `tests/deck/test_identity.py` pins them, and you must not edit those expected strings.
+Each card type is its own `genanki.Model` in `src/avianki/deck/notetypes.py` with a single template: the front, and the one standard back all three share (ADR 0025): photo, name, scientific name, recording, credits. All models share the same `FIELDS` tuple (which ends with `IocName`, the field behind the small "IOC" tag, ADR 0027) and the CSS in `src/avianki/deck/card.css`. Model seeds, note GUIDs and the deck id are frozen (ADR 0009); `tests/deck/test_identity.py` pins them, and you must not edit those expected strings.
 
 **To add a new card type:**
 
@@ -111,7 +111,7 @@ Each card type is its own `genanki.Model` in `src/avianki/deck/notetypes.py` wit
 **Fields:**
 
 - Keep field order stable: Anki maps fields by position, not name. Always append new fields; never reorder or remove existing ones.
-- If you add a field, update `FIELDS` in `notetypes.py` and the note builder in `deck/build.py` in the same PR.
+- If you add a field, update `FIELDS` in `notetypes.py` and the note builder in `deck/build.py` in the same PR. The browser reads the field list from `web/js/notetypes.json`, so regenerate it and fill the field in `web/js/deck.js` too. Before the 1.0 announcement the field list could still be amended (ADR 0027 appended `IocName`, with a new ADR and the identity test's literal updated); after it, don't.
 
 **Styles:**
 

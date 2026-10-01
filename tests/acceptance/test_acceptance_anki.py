@@ -13,8 +13,10 @@ from __future__ import annotations
 
 import json
 import shutil
+import time
 from pathlib import Path
 
+import genanki
 import pytest
 
 pytest.importorskip("anki.collection")
@@ -30,13 +32,16 @@ from acceptance_support import (  # noqa: E402
     note_count,
     note_ids,
     open_collection,
+    plain,
     rendered_cards,
     revlog_count,
 )
 from cli_fakes import FIXTURE_CATALOG, run_cli  # noqa: E402
 
 from avianki.catalog.client import CatalogClient  # noqa: E402
+from avianki.catalog.format import load_catalog  # noqa: E402
 from avianki.deck import build as deck_build  # noqa: E402
+from avianki.deck import notetypes  # noqa: E402
 
 ALL_CARDS = "photo,audio,photo-audio"
 
@@ -206,3 +211,99 @@ def test_the_credit_check_would_catch_a_missing_credit(make_deck, col, species):
     cards[0].answer_html = "<div>no credit here</div>"
     with pytest.raises(AssertionError, match="credit missing"):
         assert_credits_on_answers(cards, species)
+
+
+# 7 (ADR 0027) --------------------------------------------------------------------------
+
+
+def _eight_field_models() -> dict[str, genanki.Model]:
+    """The AviAnki note types as 0.9/early-0.10 shipped them: same ids, names and templates, no IocName."""
+    tag = notetypes.MODELS["photo"].templates[0]["afmt"]
+    old_back = tag.replace(
+        '    {{#IocName}}<div class="ioc"><span class="ioc-tag"><b>IOC</b> {{IocName}}</span></div>{{/IocName}}\n', ""
+    )
+    assert old_back != tag and "IocName" not in old_back
+    models = {}
+    for card_type, model in notetypes.MODELS.items():
+        templates = [{**t, "afmt": old_back} for t in model.templates]
+        models[card_type] = genanki.Model(
+            model.model_id,
+            model.name,
+            fields=[{"name": f} for f in notetypes.FIELDS if f != "IocName"],
+            templates=templates,
+            css=model.css,
+            sort_field_index=model.sort_field_index,
+        )
+    return models
+
+
+def _field_names(col, model_id: int) -> tuple[str, ...]:
+    return tuple(col.db.list("select name from fields where ntid = ? order by ord", model_id))
+
+
+def _write_us_ma(path: Path, tmp_path: Path, *, timestamp: float) -> None:
+    catalog = load_catalog(FIXTURE_CATALOG)
+    ids = deck_build.select_species(
+        catalog.regions["us-ma"], catalog.species, set(deck_build.CARD_TYPES), tier="everything", month=None
+    )
+    notes = deck_build.plan_notes(ids, catalog.species, set(deck_build.CARD_TYPES))
+    deck_build.write_deck(
+        notes,
+        catalog.species,
+        catalog.manifest,
+        media=lambda f: FIXTURE_CATALOG / f,
+        out=path,
+        timestamp=timestamp,
+    )
+
+
+def test_a_nine_field_deck_imports_over_the_old_eight_field_note_types_and_keeps_progress(
+    col, tmp_path, monkeypatch
+):
+    """The 0.10 upgrade path: Anki updates the note types in place, keeps every card and its reviews, fills IocName."""
+    old_models = _eight_field_models()
+    old_fields = [f for f in notetypes.FIELDS if f != "IocName"]
+    with monkeypatch.context() as m:
+        m.setattr(deck_build, "MODELS", old_models)
+        m.setattr(deck_build, "FIELDS", tuple(f for f in notetypes.FIELDS if f != "IocName"))
+        _write_us_ma(tmp_path / "old.apkg", tmp_path, timestamp=1_700_000_000.0)
+    import_apkg(col, tmp_path / "old.apkg")
+    assert {_field_names(col, m.model_id) for m in notetypes.MODELS.values()} == {tuple(old_fields)}
+    assert answer_some_cards(col, 6) == 6
+    cards_before = set(col.db.list("select id from cards"))
+    reviewed = {cid: col.get_card(cid).reps for cid in col.db.list("select id from cards where type != 0")}
+    before = (note_count(col), note_ids(col), guids(col), revlog_count(col))
+    schema_before = col.db.scalar("select scm from col")
+
+    _write_us_ma(tmp_path / "new.apkg", tmp_path, timestamp=time.time() + 3600)
+    log = import_apkg(col, tmp_path / "new.apkg")
+
+    assert len(log.log.new) == 0
+    assert (note_count(col), note_ids(col), guids(col), revlog_count(col)) == before
+    assert set(col.db.list("select id from cards")) == cards_before
+    assert {cid: col.get_card(cid).reps for cid in reviewed} == reviewed  # scheduling is untouched
+    assert len(reviewed) == 6
+    # Changing a note type's fields is a schema change: the next AnkiWeb sync asks which side wins (ADR 0027).
+    assert col.db.scalar("select scm from col") > schema_before
+
+    # Read the tables, not col.models.get(): the Python wrapper keeps serving the cached 8-field type
+    # for the rest of the session, although the collection itself has been updated.
+    for model in notetypes.MODELS.values():
+        assert _field_names(col, model.model_id) == tuple(notetypes.FIELDS)
+    by_species = {c.species_id: c for c in rendered_cards(col)}
+    assert by_species["anas-platyrhynchos"].ioc_name == "Wild Duck"
+    assert 'class="ioc-tag"' in by_species["anas-platyrhynchos"].answer_html
+    assert "Wild Duck" in plain(by_species["anas-platyrhynchos"].answer_html)
+    assert all(c.ioc_name == "" for k, c in by_species.items() if k != "anas-platyrhynchos")
+    assert all('class="ioc-tag"' not in c.answer_html for k, c in by_species.items() if k != "anas-platyrhynchos")
+    assert_no_name_leak(col, list(by_species.values()))
+    assert_clean_media(col)
+
+
+def test_the_ioc_tag_shows_on_the_answer_above_the_name_and_never_on_the_front(make_deck, col):
+    import_apkg(col, make_deck("us-ma", "--cards", ALL_CARDS))
+    mallards = [c for c in rendered_cards(col) if c.species_id == "anas-platyrhynchos"]
+    assert len(mallards) == 3
+    for card in mallards:
+        assert plain(card.answer_html).index("IOC Wild Duck") < plain(card.answer_html).index("Mallard")
+        assert "IOC" not in plain(card.question_html) and "Wild Duck" not in card.question_html

@@ -121,3 +121,16 @@ def test_media_names_are_package_names(chromium_page, tmp_path) -> None:
     mapping = json.loads(pkg.media_json)
     assert list(mapping) == [str(i) for i in range(len(mapping))]
     assert all(v.startswith("avianki_") and "/" not in v for v in mapping.values())
+
+
+def test_the_ioc_name_is_filled_only_where_the_catalog_has_one(chromium_page, tmp_path) -> None:
+    """IocName is the ninth field (ADR 0027): the fixture's Mallard has one, every other species is empty."""
+    spec = Spec(tier="everything", cards=("photo",))
+    pkg = read_package(build_in_browser(chromium_page, spec).apkg, tmp_path, "browser")
+    by_id = {}
+    for row in pkg.tables["notes"]:
+        fields = row[13].split("\x1f")  # flds: column 6, as a (typeof, value) pair
+        assert len(fields) == 9
+        by_id[fields[0]] = fields[8]
+    assert by_id["anas-platyrhynchos"] == "Wild Duck"
+    assert {v for k, v in by_id.items() if k != "anas-platyrhynchos"} == {""}
