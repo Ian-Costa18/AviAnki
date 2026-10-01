@@ -2,7 +2,20 @@
 
 ## 1.0.1
 
-Fixes for the command line and the package, found by trying 1.0 the way a first-time user would.
+Fixes found by trying 1.0 the way a first-time user would, on the website and the command line.
+
+### Decks
+
+- **A 100-bird deck has 100 birds.** A bird with no photo or recording for the card types you chose no longer takes one of the 100 places; the next most-seen bird does. Before, Standard decks for Texas, Florida, Louisiana, Mississippi and Hawaii had 99, and an audio-only deck could have far fewer.
+- **More birds have photos and recordings.** Western Cattle Egret had none, and Eurasian Eagle-Owl, Black Francolin and Manx Shearwater had none from iNaturalist, because their names didn't match. They're matched now.
+
+### Website
+
+- **Reloading during a build no longer splits your next deck.** Leaving or reloading the page mid-build used to make the next build claim it had run out of memory and split into two files.
+- **A file that changed during your build gets the right message** ("the bird catalog was updated while you were building"), instead of a connection error, and isn't retried pointlessly.
+- **Part files carry the region**, such as `AviAnki-us-tx-part-1-of-3.apkg`, so two regions' parts don't collide in your Downloads.
+- **Clearer text.** Progress says whether it's fetching photos, recordings or both, and counts read "1 bird", "1 card".
+- **Smaller fixes.** Warnings disappear as soon as you fix them, a second tap on Build is ignored while one is running, links and buttons are easier to tap on a phone, and the page has an icon.
 
 ### Command line
 
