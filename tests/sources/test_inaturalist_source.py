@@ -75,7 +75,7 @@ def test_taxa_resolve_by_exact_name_and_are_asked_for_active_bird_species():
     assert source.resolve_taxa([MILLERBIRD, WHIMBREL]) == {MILLERBIRD: 116756, WHIMBREL: 3901}
     # taxon_id 3 is Aves: unrestricted, a short name like "Alle alle" is buried under fuzzy matches.
     assert session.params_for("/taxa")[0] == {"q": "Acrocephalus familiaris", "taxon_id": 3, "rank": "species",
-                                              "is_active": "true", "per_page": 5, "locale": "en"}
+                                              "is_active": "true", "per_page": 30, "locale": "en"}
     assert source.resolution_methods() == {MILLERBIRD: "exact", WHIMBREL: "exact"}
 
 

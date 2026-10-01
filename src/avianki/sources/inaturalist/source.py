@@ -36,6 +36,7 @@ API = "https://api.inaturalist.org/v1"
 LIMITS = Limits(requests_per_second=1, max_concurrency=1, daily_request_budget=10_000, needs_secret=None)
 
 NORTH_AMERICA_PLACES = "1,6712"  # place ids: United States, Canada (verified against /v1/places)
+TAXA_PAGE = 30  # exact names can rank below many fuzzy matches: Bubo bubo, Puffinus puffinus fell outside the first 5
 AVES_TAXON_ID = 3  # restricts /taxa to birds; without it a short name like "Alle alle" is buried under fuzzy matches
 
 # ADR 0008 says 5%. Measured against real data that is wrong by two orders of magnitude: iNaturalist
@@ -156,7 +157,7 @@ class INaturalistSource(AssetSource):
             self._how[species_id] = "table"
             return parse.TaxonMatch(row.inat_taxon_id, row.sci_name, "exact")
         payload = self._get("/taxa", {"q": row.sci_name, "taxon_id": AVES_TAXON_ID, "rank": "species",
-                                      "is_active": "true", "per_page": 5, "locale": "en"})
+                                      "is_active": "true", "per_page": TAXA_PAGE, "locale": "en"})
         match = parse.pick_taxon(row.sci_name, payload)
         if match is None:
             log.info("inaturalist: no unambiguous active bird taxon for %s (%s)", row.sci_name, species_id)
