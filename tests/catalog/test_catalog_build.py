@@ -39,6 +39,7 @@ from avianki.catalog.format import ProvenanceFile
 from avianki.catalog.pins import Pins, parse_pins
 from avianki.core.http import HttpError, SourceError
 from avianki.media.verify import VerifyUnavailable
+from avianki.taxonomy.species import SpeciesTable
 
 IDS = [ROBIN, JAY, CHICKADEE]
 LISTS: dict[str, Any] = {"us-ri": [ROBIN, JAY, CHICKADEE], "us-dc": [JAY, CHICKADEE, ROBIN]}
@@ -467,6 +468,33 @@ def test_refresh_species_rebuilds_the_species_half_when_the_eod_version_is_uncha
     assert source.calls == ["us-ri", "us-dc"] and seen["expected"]
     assert commons.calls == [] and inat.calls == []
     assert result.report.reused == 3 and result.ok
+
+
+def test_a_renamed_species_gets_its_kept_inaturalist_credit_and_provenance_retitled(
+    tmp_path: Path, first: BuildResult
+):
+    assert first.catalog is not None and first.catalog.provenance is not None
+    cat = first.catalog
+    robin_file = cat.species[ROBIN].photo[0].file
+    jay_file = cat.species[JAY].photo[0].file
+    entries = dict(cat.provenance.entries)  # type: ignore[union-attr]
+    entries[robin_file] = replace(
+        entries[robin_file],
+        record=replace(entries[robin_file].record, source="inaturalist", title="Old Robin (Turdus migratorius)"),
+    )
+    old_jay_title = entries[jay_file].record.title  # a Commons title: must stay as it is
+    tampered = mutated_copy(cat, tmp_path / "tampered", provenance=ProvenanceFile(entries))
+    renamed = SpeciesTable([replace(r, common_name="New Robin") if r.id == ROBIN else r for r in make_table()])
+    commons, inat = full_sources()
+    built = species_build(commons, inat, previous=tampered, table=renamed)
+    assert commons.calls == [] and inat.calls == []  # kept, not rebuilt
+    assert built.reused_media >= {robin_file, jay_file}
+    robin = built.species[ROBIN].photo[0]
+    assert robin.file == robin_file
+    assert "New Robin (Turdus migratorius)" in robin.credit and "Old Robin" not in robin.credit
+    assert built.provenance.entries[robin_file].record.title == "New Robin (Turdus migratorius)"
+    assert built.provenance.entries[jay_file].record.title == old_jay_title
+    assert old_jay_title in built.species[JAY].photo[0].credit
 
 
 def test_an_excluded_token_invalidates_the_sticky_asset_and_only_that_role_is_rebuilt(
