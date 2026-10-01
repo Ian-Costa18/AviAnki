@@ -136,7 +136,7 @@ footer.site p { margin: 0.6em 0; }
    keep their place in the line and grow only their hit area (vertical padding on an inline box);
    links on a line of their own become 44 px boxes. */
 @media (max-width: 40rem), (pointer: coarse) {
-  a { padding: 12px 0; }
+  a { padding: 14px 0; }  /* inline padding widens the hit area without moving the text */
   footer.site > p > a, .downloads a {
     display: inline-flex;
     align-items: center;
