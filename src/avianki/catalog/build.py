@@ -153,13 +153,13 @@ def dataset_credits() -> list[DatasetCredit]:
             text="eBird Observation Dataset, Cornell Lab of Ornithology, via GBIF",
             licence_id="CC-BY-4.0",
             url="https://doi.org/10.15468/aomfnb",
-            modifications="filtered and ranked by region",
+            modifications="filtered and ranked by region; English species names",
         ),
         DatasetCredit(
-            text="IOC World Bird List (Gill, Donsker and Rasmussen, eds.), for species names",
+            text="IOC World Bird List (Gill, Donsker and Rasmussen, eds.), for scientific names",
             licence_id="CC-BY-4.0",
             url="https://www.worldbirdnames.org/",
-            modifications="matched to GBIF taxa; common names from GBIF's copy of the list",
+            modifications="matched to GBIF taxa",
         ),
     ]
 

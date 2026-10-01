@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 import pytest
-from gbif_fakes import API, EOD, FIXTURES, REGIONS, TINY, RoutingSession, request_key, tiny_routes
+from gbif_fakes import API, EOD, FIXTURES, REGIONS, TINY, RoutingSession, eod_record_route, request_key, tiny_routes
 
 from avianki import catalog_cli
 from avianki.core.http import HttpClient
@@ -51,6 +51,19 @@ def test_writes_region_files_report_and_minted_rows(env):
     assert "2025-08-08 2024-eBird-dwca-1.0.zip" in report
     assert "| xx-tiny | Tiny | 4 | 4 |" in report
     assert "gamma-gamma" in report  # minted list
+
+
+def test_new_species_take_ebirds_name_and_existing_ones_keep_theirs_without_a_request(env):
+    args, out, csv, session, _ = env
+    assert catalog_cli.main(args) == 0
+    names = {r.id: r.common_name for r in load_species(csv)}
+    # alpha-alpha is already in species.csv: its name stands, and its EOD record is never fetched (ADR 0026)
+    assert names == {"alpha-alpha": "Alpha Bird", "gamma-gamma": "Gamma Birdie", "beta-beta": "Beta Birdie",
+                     "delta-delta": "Delta Birdie"}
+    assert eod_record_route(10) not in session.calls
+    assert session.calls.count(eod_record_route(5)) == 1
+    report = (out / "species-lists-report.md").read_text(encoding="utf-8")
+    assert "| gamma-gamma | Gamma gamma | Gamma Birdie | eod-record |" in report
 
 
 def test_top_n_limits_the_region_file(env):

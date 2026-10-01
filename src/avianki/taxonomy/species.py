@@ -141,17 +141,23 @@ class SpeciesTable:
                 return self._resolve(row)
         raise KeyError(f"no species with scientific name {name!r}")
 
-    def mint(self, sci_name: str, common_name: str, gbif_key: int | None) -> Minted:
-        """Return the known species for this GBIF key or name, else mint and add a new row."""
+    def find(self, sci_name: str, gbif_key: int | None) -> SpeciesRow | None:
+        """The known species for this GBIF key or scientific name, or None (what `mint` would reuse)."""
         if gbif_key is not None:
             try:
-                return Minted(self.by_gbif_key(gbif_key), created=False)
+                return self.by_gbif_key(gbif_key)
             except KeyError:
                 pass
         try:
-            return Minted(self.by_sci_name(sci_name), created=False)
+            return self.by_sci_name(sci_name)
         except KeyError:
-            pass
+            return None
+
+    def mint(self, sci_name: str, common_name: str, gbif_key: int | None) -> Minted:
+        """Return the known species for this GBIF key or name, else mint and add a new row."""
+        known = self.find(sci_name, gbif_key)
+        if known is not None:
+            return Minted(known, created=False)
         row = SpeciesRow(id=mint_id(sci_name), sci_name=" ".join(sci_name.split()), common_name=common_name, gbif_key=gbif_key)
         self.add(row)
         return Minted(row, created=True)

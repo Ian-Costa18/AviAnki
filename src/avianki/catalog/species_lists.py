@@ -27,6 +27,13 @@ class VersionedSource(Protocol):
 
 
 @runtime_checkable
+class NamesNewSpecies(Protocol):
+    def mint_name(self, record: SpeciesRecord) -> tuple[str, str]:
+        """(common name, where it came from) for a species about to be minted (ADR 0026)."""
+        ...
+
+
+@runtime_checkable
 class ReportsNameFallbacks(Protocol):
     def name_fallbacks(self) -> list[Any]: ...
 
@@ -83,6 +90,7 @@ class SpeciesListsResult:
     # for the iNaturalist plausibility check (ADR 0022). Only species that made a region's top N.
     species_totals: dict[str, int] = field(default_factory=dict)
     minted: list[SpeciesRow] = field(default_factory=list)  # new species.csv rows: the diff to commit
+    minted_name_from: dict[str, str] = field(default_factory=dict)  # minted id -> where its common name came from
     no_ioc_match: list[Any] = field(default_factory=list)  # the source's name fallbacks
     # backbone keys the source named by eBird's own names, differently from the IOC entry for the key
     re_resolved: list[Any] = field(default_factory=list)
@@ -139,7 +147,7 @@ def build_species_lists(
                 break
             if record.source_key in held:
                 continue  # not in the IOC list: reported, never minted (ADR 0008)
-            species_id = _species_id(record, species_table, result)
+            species_id = _species_id(record, source, species_table, result)
             if species_id is None:
                 if record.source_key not in unmintable_keys:
                     unmintable_keys.add(record.source_key)
@@ -194,8 +202,12 @@ def render_report(result: SpeciesListsResult, regions: Iterable[Region], top_n: 
     lines.append("")
     if result.minted:
         lines += ["## Minted species (the diff to commit to src/avianki/data/species.csv)", "",
-                  "| Id | Scientific name | Common name | GBIF key |", "|---|---|---|---|"]
-        lines += [f"| {r.id} | {cell(r.sci_name)} | {cell(r.common_name)} | {r.gbif_key or ''} |" for r in result.minted]
+                  "| Id | Scientific name | Common name | Common name from | GBIF key |", "|---|---|---|---|---|"]
+        lines += [
+            f"| {r.id} | {cell(r.sci_name)} | {cell(r.common_name)} | {result.minted_name_from.get(r.id, '')} "
+            f"| {r.gbif_key or ''} |"
+            for r in result.minted
+        ]
         lines.append("")
     if result.no_ioc_match:
         lines += ["## No IOC match: held back", "",
@@ -243,16 +255,22 @@ def _held_keys(source: SpeciesSource) -> set[str]:
     return set()
 
 
-def _species_id(record: SpeciesRecord, table: SpeciesTable, result: SpeciesListsResult) -> str | None:
+def _species_id(record: SpeciesRecord, source: SpeciesSource, table: SpeciesTable,
+                result: SpeciesListsResult) -> str | None:
     if record.species_id is not None and record.species_id in table:
         return table.get(record.species_id).id
     gbif_key = int(record.source_key) if record.source_key.isdigit() else None
+    common_name, name_from = record.common_name, "source"
+    if table.find(record.sci_name, gbif_key) is None and isinstance(source, NamesNewSpecies):
+        # Only a species about to be minted asks for eBird's name; known rows keep species.csv's (ADR 0026).
+        common_name, name_from = source.mint_name(record)
     try:
-        minted = table.mint(record.sci_name, record.common_name, gbif_key)
+        minted = table.mint(record.sci_name, common_name, gbif_key)
     except ValueError as e:
         log.warning("can't mint an id for %s (%s): %s", record.sci_name, record.source_key, e)
         return None
     if minted.created:
         log.info("minted %s (%s, gbif %s)", minted.row.id, minted.row.common_name, gbif_key)
         result.minted.append(minted.row)
+        result.minted_name_from[minted.row.id] = name_from
     return minted.row.id

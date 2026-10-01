@@ -1,6 +1,6 @@
 # 0008 — Minted species ids under IOC; GADM level-1 regions
 
-**Status:** Accepted, 2026-08-25 · **Amended by:** [0022](0022-plausibility-threshold.md) · **Ticket:** [#20](https://github.com/Ian-Costa18/AviAnki/issues/20) (Q4, Q5)
+**Status:** Accepted, 2026-08-25 · **Amended by:** [0022](0022-plausibility-threshold.md); common names amended by [0026](0026-north-american-common-names.md) · **Ticket:** [#20](https://github.com/Ian-Costa18/AviAnki/issues/20) (Q4, Q5)
 
 ## Context
 

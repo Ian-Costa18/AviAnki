@@ -18,7 +18,7 @@ src/avianki/
     __init__.py          re-exports the contract (contract.py) only, never the registry or a source
     contract.py          SpeciesSource, AssetSource, Candidate, FetchedAsset, Limits
     registry.py          registered sources and the ordered list per asset kind
-    gbif/                SpeciesSource: eBird Observation Dataset facets, IOC names
+    gbif/                SpeciesSource: eBird Observation Dataset facets, IOC scientific names, eBird English names for new species (ADR 0026)
     commons/             AssetSource: Wikipedia lead image + Commons audio
       source.py            CommonsSource: batched Wikipedia/Wikidata/Commons queries, fetch, resolve_pin
       parse.py             pure: payload parsers, taxon guard, photo/audio gates, credit chain, ranking

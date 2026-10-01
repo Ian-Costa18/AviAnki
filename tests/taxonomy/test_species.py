@@ -205,6 +205,14 @@ def test_mint_creates_a_new_row():
     assert table.get("cardinalis-cardinalis") == minted.row
 
 
+def test_find_returns_what_mint_would_reuse_and_never_adds():
+    table = SpeciesTable([CARDINAL])
+    assert table.find("Other name", CARDINAL.gbif_key) is CARDINAL
+    assert table.find(CARDINAL.sci_name, 123) is CARDINAL
+    assert table.find("Passer domesticus", 5) is None
+    assert len(table) == 1
+
+
 def test_mint_is_idempotent():
     table = SpeciesTable()
     first = table.mint("Cardinalis cardinalis", "Northern Cardinal", 9809229)

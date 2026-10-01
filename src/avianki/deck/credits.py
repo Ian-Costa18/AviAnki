@@ -59,7 +59,7 @@ def deck_description(manifest: Manifest, *, ebird: bool) -> str:
     """The HTML shown on the deck overview in every Anki client (ADR 0012).
 
     In order: three lines of study guidance, each dataset credit from the manifest (the
-    eBird Observation Dataset, and IOC names when the manifest lists them), the
+    eBird Observation Dataset, and the IOC World Bird List when the manifest lists it), the
     compilation and licence notice, and for ``--ebird`` builds the not-for-redistribution
     line.
     """

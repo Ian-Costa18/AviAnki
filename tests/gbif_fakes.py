@@ -85,6 +85,11 @@ def verbatim_route(key: int, gid: str | None = None) -> str:
     return request_key(f"{API}/occurrence/search", params)
 
 
+def eod_record_route(key: int) -> str:
+    """The request for one EOD record of a backbone key (its eBird English name, ADR 0026)."""
+    return request_key(f"{API}/occurrence/search", {"datasetKey": EOD, "speciesKey": key, "limit": 1})
+
+
 def verbatim_response(counts: Mapping[str, int]) -> dict:
     ordered = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
     return {"facets": [{"field": "VERBATIM_SCIENTIFIC_NAME",
@@ -150,6 +155,8 @@ TINY_MONTHLY: dict[int, dict[int, int]] = {
 }
 # What eBird calls the records under each key: the IOC names (lower-case), so nothing is re-resolved.
 TINY_VERBATIM = {10: "alpha alpha", 5: "gamma gamma", 20: "beta beta", 30: "delta delta"}
+# eBird's English name on a record of each key (ADR 0026): what a newly minted species is called.
+TINY_EBIRD_NAMES = {10: "Alpha Birdie", 5: "Gamma Birdie", 20: "Beta Birdie", 30: "Delta Birdie"}
 TINY_IOC = [
     ioc_entry(10, "Alpha alpha", "Alpha Bird"),
     ioc_entry(5, "Gamma gamma", "Gamma Bird"),
@@ -170,6 +177,8 @@ def tiny_routes(facet_limit: int = 3000) -> dict[str, Any]:
     }
     for k, name in TINY_VERBATIM.items():
         routes[verbatim_route(k)] = verbatim_response({name: annual[k]})
+    for k, name in TINY_EBIRD_NAMES.items():
+        routes[eod_record_route(k)] = {"results": [{"speciesKey": k, "vernacularName": name}]}
     for month in range(1, 13):
         counts = {k: m[month] for k, m in TINY_MONTHLY.items() if month in m}
         routes[request_key(f"{API}/occurrence/search",
