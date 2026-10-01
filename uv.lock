@@ -88,7 +88,7 @@ wheels = [
 
 [[package]]
 name = "avianki"
-version = "1.0.1"
+version = "0.10.0"
 source = { editable = "." }
 dependencies = [
     { name = "bs4" },
