@@ -137,7 +137,7 @@ footer.site p { margin: 0.6em 0; }
    links on a line of their own become 44 px boxes. */
 @media (max-width: 40rem), (pointer: coarse) {
   a { padding: 12px 0; }
-  footer.site a, .downloads a {
+  footer.site > p > a, .downloads a {
     display: inline-flex;
     align-items: center;
     min-height: 44px;
