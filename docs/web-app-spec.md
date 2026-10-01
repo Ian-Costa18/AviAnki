@@ -130,15 +130,17 @@ The `credit` values are pipeline-rendered, escaped HTML that uses only `a`, `b` 
 
 `Photo2` and `Audio2` are reserved and empty at 1.0.
 
+Each back repeats its front exactly, then adds the answer, so the photo doesn't move when the card flips ([ADR 0025](adr/0025-card-design.md)). The answer is `{{Name}}` and `{{SciName}}`, then the medium the front didn't show (if the note has it), then `{{Credits}}`.
+
 | Note type | Front | Back |
 |---|---|---|
-| AviAnki · Photo | *What bird is this?* + `{{Photo}}` | `{{Name}}`, `{{SciName}}`, `{{Photo}}`, `{{Audio}}`, `{{Credits}}` |
-| AviAnki · Audio | *Who's calling?* + `{{Audio}}` | the same back |
-| AviAnki · Photo + Audio | both | the same back |
+| AviAnki · Photo | *What bird is this?* + `{{Photo}}` | the front, then `{{Name}}`, `{{SciName}}`, `{{Audio}}`, `{{Credits}}` |
+| AviAnki · Audio | *Who's calling?* + `{{Audio}}` | the front, then `{{Name}}`, `{{SciName}}`, `{{Photo}}`, `{{Credits}}` |
+| AviAnki · Photo + Audio | both | the front, then `{{Name}}`, `{{SciName}}`, `{{Credits}}` |
 
 - **Media filenames** are `avianki_<catalog hash name>`, so identical media stays identical across builds.
 - **Fields hold** `<img src="…">` and `[sound:…]`.
-- **`card.css`** carries forward the current styling, plus `.credits { font-size: .75em; opacity: .7 }` with underlined links.
+- **`card.css`** styles the `.av` wrapper (not `.card`, which is Anki's own `<body>`): the phone's font, night mode under `.nightMode` and `.night_mode`, and small `.credits` with underlined links (ADR 0025). The browser reads the templates and CSS from `web/js/notetypes.json`, generated from `deck/notetypes.py`.
 
 **Deck.** `AviAnki`, or `AviAnki::<Region>` with the subdeck option. The description holds:
 
