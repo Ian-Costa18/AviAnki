@@ -32,6 +32,21 @@ SPECS = {
     "us-az everything, all cards, a whole-second timestamp": Spec(
         region="us-az", tier="everything", cards=("photo", "audio", "photo_audio"), timestamp=1_600_000_000.0
     ),
+    # the look (ADR 0028): the CSS and back template the page writes are the ones genanki writes
+    "nord theme": Spec(theme="nord", cards=("photo", "audio", "photo_audio")),
+    "name on the photo": Spec(name_on_photo=True),
+    "field-guide with the name on the photo": Spec(theme="field-guide", name_on_photo=True),
+    "high-contrast theme, ca-qc": Spec(region="ca-qc", theme="high-contrast"),
+    "a custom theme": Spec(
+        theme={
+            "font": "rounded", "name_style": "caps", "name_weight": "regular", "corners": "round", "rule": "side",
+            "light": {"background": "#fff7e0", "text": "#3b2f00", "secondary": "#6a5a1a", "name": "#c2410c",
+                      "accent": "#e11d48", "credits": "#6a5a1a"},
+            "night": {"background": "#2a2208", "text": "#fff3c4", "secondary": "#e0cf8a", "name": "#fdba74",
+                      "accent": "#fb7185", "credits": "#e0cf8a"},
+        },
+        name_on_photo=True,
+    ),
 }
 
 

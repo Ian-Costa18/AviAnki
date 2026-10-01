@@ -47,6 +47,9 @@ function resolveUrl(manifest, path) {
   return new URL(path, base).href;
 }
 
+/** The URL of a catalog file (`media/ab12.webp`), for things that load it directly, such as the card preview. */
+export const mediaUrl = resolveUrl;
+
 const sleep = (ms, signal) =>
   new Promise((resolve, reject) => {
     const timer = setTimeout(resolve, ms);

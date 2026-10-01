@@ -20,7 +20,17 @@ from pathlib import Path
 from typing import Any
 
 from avianki.deck.credits import EBIRD_NOTICE, LICENCE_NOTICE, STUDY_GUIDANCE
-from avianki.deck.notetypes import CARD_TYPES, FIELDS, MODEL_SEEDS, MODELS
+from avianki.deck.notetypes import CARD_TYPES, FIELDS, MODEL_SEEDS, MODELS, back_for
+from avianki.deck.themes import (
+    BASE_CSS,
+    CHOICES,
+    COLOUR_KEYS,
+    DEFAULT_THEME,
+    NAME_ON_PHOTO_CSS,
+    TEMPLATE_CSS,
+    THEMES,
+    tokens_as_dict,
+)
 
 OUT = Path(__file__).resolve().parents[1] / "web" / "js" / "notetypes.json"
 
@@ -44,11 +54,42 @@ def build_notetypes() -> dict[str, Any]:
         "card_types": list(CARD_TYPES),
         "fields": list(FIELDS),
         "models": models,
+        "look": build_look(),
         "description": {
             "study_guidance": list(STUDY_GUIDANCE),
             "licence_notice": LICENCE_NOTICE,
             "ebird_notice": EBIRD_NOTICE,
         },
+    }
+
+
+def build_look() -> dict[str, Any]:
+    """Everything the page needs to compose a card's CSS and back like ``models_for`` does (ADR 0028).
+
+    The composition rule itself (card.css, then the theme's CSS, then the layout's, each piece
+    after a newline when it is not empty) is written once in ``avianki.deck.themes`` and once in
+    ``web/js/themes.js``; ``tests/web/test_web_themes.py`` runs both over every theme and layout.
+    A built-in theme ships as tokens plus its extra rules, not as finished CSS, so one code path
+    in the browser serves built-in and custom themes alike.
+    """
+    return {
+        "base_css": BASE_CSS,
+        "template_css": TEMPLATE_CSS,
+        "tables": {key: dict(table) for key, table in CHOICES.items()},
+        "colour_keys": list(COLOUR_KEYS),
+        "default_theme": DEFAULT_THEME,
+        "themes": [
+            {
+                "name": theme.name,
+                "description": theme.description,
+                "generate": theme.generate,
+                "tokens": tokens_as_dict(theme.tokens),
+                "extra_css": theme.extra_css,
+            }
+            for theme in THEMES.values()
+        ],
+        "layout_css": {"name_on_photo": NAME_ON_PHOTO_CSS},
+        "backs": {"default": back_for(False), "name_on_photo": back_for(True)},
     }
 
 
