@@ -48,9 +48,29 @@ export function planParts(ids, speciesFile, cards, { size = PART_SIZE, split = "
   return planned.map((notes, i) => ({ index: i + 1, count: planned.length, notes }));
 }
 
-/** `AviAnki-us-ma.apkg`, or `AviAnki-part-2-of-3.apkg` for one of several. */
+/**
+ * `AviAnki-us-ma.apkg`, or `AviAnki-us-ma-part-2-of-3.apkg` for one of several. The slug is in
+ * both so two regions' parts never share a name in Downloads.
+ */
 export function fileName(slug, part) {
-  return part.count > 1 ? `AviAnki-part-${part.index}-of-${part.count}.apkg` : `AviAnki-${slug}.apkg`;
+  return part.count > 1 ? `AviAnki-${slug}-part-${part.index}-of-${part.count}.apkg` : `AviAnki-${slug}.apkg`;
+}
+
+/** `1 bird`, `2 birds`: a count with its noun, singular only for exactly 1. */
+export function plural(n, word) {
+  return `${n} ${word}${n === 1 ? "" : "s"}`;
+}
+
+/**
+ * What the download step is fetching, for the progress text: "photos", "recordings" or "photos and
+ * recordings", from the media these notes actually use (a photo note also carries the species'
+ * recording for its answer side, so the card types alone don't say).
+ */
+export function downloadWhat(notes) {
+  const photos = notes.some((n) => n.photo);
+  const recordings = notes.some((n) => n.audio);
+  if (photos && recordings) return "photos and recordings";
+  return recordings ? "recordings" : "photos";
 }
 
 /**

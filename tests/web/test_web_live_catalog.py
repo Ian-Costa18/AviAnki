@@ -31,7 +31,7 @@ def test_build_massachusetts_standard_from_the_published_catalog(new_context, ba
     ref = next(r for r in manifest["regions"] if r["slug"] == "us-ma")
     region = RegionFile.from_dict(_get_json(ref["file"]))
     species = SpeciesFile.from_dict(_get_json(manifest["species_file"]))
-    ids = select_species(region, tier="standard", month=None)
+    ids = select_species(region, species, ("photo", "audio"), tier="standard", month=None)
     wanted = {note_guid(n.species_id, n.card_type) for n in plan_notes(ids, species, ("photo", "audio"))}
 
     context = new_context("chromium")

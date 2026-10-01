@@ -123,7 +123,7 @@ def test_everything_in_parts_stays_inside_the_mobile_heap(
         f"largest {max(f.stat().st_size for f in files) / MB:.1f} MB, {seconds:.1f} s at {CPU_THROTTLE}x CPU "
         f"throttle, peak JS heap {peak:.1f} MB (limit {HEAP_LIMIT / MB:.0f} MB)"
     )
-    assert [f.name for f in files] == [f"AviAnki-part-{i}-of-3.apkg" for i in (1, 2, 3)]
+    assert [f.name for f in files] == [f"AviAnki-us-ma-part-{i}-of-3.apkg" for i in (1, 2, 3)]
     assert 0 < peak * MB <= HEAP_LIMIT
 
     per_part = [apkg_guids(f, tmp_path) for f in files]
@@ -147,4 +147,4 @@ def test_iphone_builds_standard_and_everything(new_context, synthetic_url, tmp_p
     if tier == "standard":
         assert [f.name for f in files] == ["AviAnki-us-ma.apkg"]
     else:
-        assert [f.name for f in files] == [f"AviAnki-part-{i}-of-3.apkg" for i in (1, 2, 3)]
+        assert [f.name for f in files] == [f"AviAnki-us-ma-part-{i}-of-3.apkg" for i in (1, 2, 3)]

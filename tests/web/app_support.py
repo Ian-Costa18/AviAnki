@@ -140,7 +140,7 @@ def expected_guids(
     from avianki.deck.build import note_guid, plan_notes, select_species
 
     catalog = load_catalog(catalog_dir)
-    ids = select_species(catalog.regions[region], tier=tier, month=month)
+    ids = select_species(catalog.regions[region], catalog.species, cards, tier=tier, month=month)
     return {note_guid(n.species_id, n.card_type) for n in plan_notes(ids, catalog.species, cards)}
 
 

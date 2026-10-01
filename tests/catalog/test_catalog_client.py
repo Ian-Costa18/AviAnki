@@ -23,8 +23,11 @@ import requests
 
 from avianki.catalog.client import (
     AmbiguousRegion,
+    CacheWriteError,
     CatalogClient,
     CatalogError,
+    CatalogFetchError,
+    MediaNotFound,
     RegionNotFound,
     default_cache_dir,
 )
@@ -554,3 +557,154 @@ def test_live_manifest_has_us_ma(tmp_path: Path) -> None:
     ref = client.find_region("us-ma")
     assert ref.name == "Massachusetts"
     assert client.find_region("Massachusetts") == ref
+
+
+# ---------------------------------------------------------------------------------------
+# 1.0.1: cached media is re-verified, errors carry their cause, region shorthands
+# ---------------------------------------------------------------------------------------
+
+
+def test_corrupt_cached_media_is_dropped_and_fetched_again(
+    catalog_copy: Path, cache: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    client = CatalogClient(catalog_copy, cache_dir=cache)
+    file = some_media(client)
+    good = (catalog_copy / file).read_bytes()
+    cached = cache / file
+    cached.parent.mkdir(parents=True)
+    cached.write_bytes(good[:-5] + b"XXXXX")  # same size, wrong bytes: only hashing notices
+    with caplog.at_level("WARNING", logger="bird_deck"):
+        path = client.media(file)
+    assert path == cached and path.read_bytes() == good
+    assert "damaged" in caplog.text and file.split("/")[-1] in caplog.text
+
+
+def test_truncated_cached_media_is_fetched_again(served: Served, cache: Path) -> None:
+    client = http_client(served, cache)
+    file = some_media(client)
+    first = client.media(file)
+    good = first.read_bytes()
+    first.write_bytes(good[:10])
+    assert client.media(file).read_bytes() == good
+    assert served.hits[f"/catalog/{file}"] == 2
+
+
+def test_an_intact_cached_file_is_not_downloaded_again(served: Served, cache: Path) -> None:
+    client = http_client(served, cache)
+    file = some_media(client)
+    client.media(file)
+    client.media(file)
+    assert served.hits[f"/catalog/{file}"] == 1
+
+
+def test_a_media_404_says_the_catalog_was_probably_updated(served: Served, cache: Path) -> None:
+    client = http_client(served, cache)
+    file = some_media(client)
+    served.script[f"/catalog/{file}"] = [(404, b"")]
+    with pytest.raises(MediaNotFound, match="probably updated") as exc:
+        client.media(file)
+    assert isinstance(exc.value, CatalogFetchError) and exc.value.status == 404
+
+
+def test_a_missing_local_media_file_is_also_media_not_found(catalog_copy: Path, cache: Path) -> None:
+    client = CatalogClient(catalog_copy, cache_dir=cache)
+    file = some_media(client)
+    (catalog_copy / file).unlink()
+    with pytest.raises(MediaNotFound):
+        client.media(file)
+
+
+def test_network_failures_are_fetch_errors(served: Served, cache: Path) -> None:
+    client = http_client(served, cache, retries=0)
+    served.script["/catalog/manifest.json"] = [(500, b"")]
+    with pytest.raises(CatalogFetchError):
+        client.manifest()
+
+
+def test_an_unwritable_cache_is_a_cache_write_error(catalog_copy: Path, tmp_path: Path) -> None:
+    blocker = tmp_path / "not-a-folder"
+    blocker.write_text("a file where the cache folder should be")
+    client = CatalogClient(catalog_copy, cache_dir=blocker / "cache")
+    with pytest.raises(CacheWriteError, match="cannot write"):
+        client.media(some_media(client))
+
+
+def _synthetic_client(tmp_path: Path, regions: list[tuple[str, str]]) -> CatalogClient:
+    manifest = json.loads((FIXTURE / "manifest.json").read_text(encoding="utf-8"))
+    manifest["regions"] = [
+        {
+            "country": slug[:2].upper(),
+            "file": f"regions/{slug}.00000000.json",
+            "name": name,
+            "slug": slug,
+            "species_count": 1,
+        }
+        for slug, name in regions
+    ]
+    root = tmp_path / "synthetic"
+    root.mkdir()
+    (root / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    return CatalogClient(root, cache_dir=tmp_path / "cache")
+
+
+# Names as the published manifest spells them (src/avianki/data/regions.csv), plus the fixture's.
+REAL_NAMES = [
+    ("us-dc", "District of Columbia"),
+    ("us-wa", "Washington"),
+    ("us-ma", "Massachusetts"),
+    ("us-ca", "California"),
+    ("us-in", "Indiana"),
+    ("us-or", "Oregon"),
+    ("ca-qc", "Québec"),
+    ("ca-on", "Ontario"),
+    ("ca-nl", "Newfoundland and Labrador"),
+]
+
+
+@pytest.mark.parametrize(
+    ("query", "slug"),
+    [
+        ("DC", "us-dc"),
+        ("dc", "us-dc"),
+        ("D.C.", "us-dc"),
+        ("Washington DC", "us-dc"),
+        ("washington, d.c.", "us-dc"),
+        ("Washington D.C.", "us-dc"),
+        ("District of Columbia", "us-dc"),
+        ("Washington", "us-wa"),  # the state keeps its own name
+        ("wa", "us-wa"),
+        ("ma", "us-ma"),
+        ("MA", "us-ma"),
+        ("qc", "ca-qc"),
+        ("On", "ca-on"),
+        ("nl", "ca-nl"),
+        ("us-ma", "us-ma"),
+    ],
+)
+def test_find_region_shorthands(tmp_path: Path, query: str, slug: str) -> None:
+    assert _synthetic_client(tmp_path, REAL_NAMES).find_region(query).slug == slug
+
+
+def test_a_bare_code_that_two_regions_share_is_ambiguous(tmp_path: Path) -> None:
+    client = _synthetic_client(tmp_path, [("us-xx", "Xland"), ("ca-xx", "Xcanada")])
+    with pytest.raises(AmbiguousRegion, match=r"us-xx.*ca-xx|ca-xx.*us-xx"):
+        client.find_region("xx")
+
+
+def test_an_exact_name_beats_a_bare_code(tmp_path: Path) -> None:
+    # "in" is Indiana's code, but a region *named* In wins; likewise a slug beats both.
+    client = _synthetic_client(tmp_path, [("us-in", "Indiana"), ("us-zz", "In")])
+    assert client.find_region("in").slug == "us-zz"
+
+
+@pytest.mark.parametrize("query", ["xx", "washington dc", "d c"])
+def test_shorthands_do_not_invent_regions_the_manifest_lacks(tmp_path: Path, query: str) -> None:
+    client = _synthetic_client(tmp_path, [("us-ma", "Massachusetts")])
+    with pytest.raises(RegionNotFound):
+        client.find_region(query)
+
+
+def test_the_fixture_manifest_still_resolves_its_own_names(local: CatalogClient) -> None:
+    assert local.find_region("ma").slug == "us-ma"
+    assert local.find_region("qc").slug == "ca-qc"
+    assert local.find_region("az").slug == "us-az"

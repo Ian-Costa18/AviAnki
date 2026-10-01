@@ -60,7 +60,7 @@ h2:focus, h3:focus { outline: none; }
 a { color: var(--link); }
 :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 
-.field { margin: 1.2em 0 0.4em; }
+.field { margin-top: 1.2em; margin-bottom: 0.4em; }
 label { font-weight: 600; }
 .field > label { display: block; margin-bottom: 6px; }
 
@@ -130,6 +130,21 @@ footer.site p { margin: 0.6em 0; }
 
 @media (min-width: 40rem) {
   button.primary { width: auto; min-width: 16rem; }
+}
+
+/* Touch targets: every link and button is at least 44 px tall on a phone. Links inside a sentence
+   keep their place in the line and grow only their hit area (vertical padding on an inline box);
+   links on a line of their own become 44 px boxes. */
+@media (max-width: 40rem), (pointer: coarse) {
+  a { padding: 14px 0; }  /* inline padding widens the hit area without moving the text */
+  footer.site > p > a, .downloads a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  button { min-height: 44px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

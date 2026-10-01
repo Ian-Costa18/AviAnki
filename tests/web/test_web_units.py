@@ -342,7 +342,7 @@ async function setup(cards = ['photo', 'audio']) {
   const manifest = await json('manifest.json');
   const region = await json(manifest.regions.find((r) => r.slug === 'us-ma').file);
   const speciesFile = await json(manifest.species_file);
-  const ids = selectSpecies(region, { tier: 'standard', month: null }).slice(0, 3);
+  const ids = selectSpecies(region, speciesFile, cards, { tier: 'standard', month: null }).slice(0, 3);
   const notes = planNotes(ids, speciesFile, cards);
   const files = mediaFiles(notes);
   const data = (name) => ({ name, data: Uint8Array.of(1, 2, 3) });

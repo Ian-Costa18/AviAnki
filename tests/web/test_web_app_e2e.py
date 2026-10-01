@@ -47,7 +47,7 @@ def test_massachusetts_default_build_passes_the_acceptance_checks(new_context, e
 
     texts = page.evaluate("window.__texts")
     assert "Finding the 12 birds most seen in Massachusetts…" in texts
-    assert any(t.startswith("Downloading photos and calls (") and " of 12)" in t for t in texts)
+    assert any(t.startswith("Downloading photos and recordings (") and " of 12)" in t for t in texts)
     assert "Packing your deck…" in texts
     assert page.errors == []
 

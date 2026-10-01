@@ -151,10 +151,17 @@ The `credit` values are pipeline-rendered, escaped HTML that uses only `a`, `b` 
 
 1. Take the region's ordered list.
 2. Apply the month filter if one is set: keep species with `monthly[m] ≥ 0.1 × max(monthly)`, computed in integers as `10 × monthly[m] ≥ max(monthly)` so exactly 10% is kept. A species whose values are all zero is dropped.
-3. Take the first 100 (Standard) or all of them (Everything).
-4. For each species, make one note per selected card type whose media exists. Every note carries both of the species' first photo and first recording (when it has them) and both credit lines, because every back shows the photo and plays the recording.
+3. Keep the species that would get at least one note for the selected card types: a photo card needs a photo, an audio card needs a recording, a photo-and-audio card needs both. A species with no usable media is passed over, not counted.
+4. Take the first 100 (Standard) or all of them (Everything).
+5. For each kept species, make one note per selected card type whose media exists. Every note carries both of the species' first photo and first recording (when it has them) and both credit lines, because every back shows the photo and plays the recording.
 
-The browser (`web/js/select.js`) and the CLI (`deck/`) implement this identically, and a shared fixture test proves it.
+Because the media check comes before the limit, a Standard deck is 100 birds you can study whenever the region has that many: a species without media in the top 100 is replaced by the 101st, and so on down the list.
+
+The browser (`web/js/select.js`, `selectSpecies`) and the CLI (`deck/build.py`, `select_species`) implement this identically, and a shared fixture test (`tests/fixtures/selection/cases.json`) proves it.
+
+*Amended 2026-09-30: the media check (step 3) used to come after the limit, so a bird without media shrank a Standard deck below 100.*
+
+**Part names.** When a build is split, each file is `AviAnki-<region slug>-part-<n>-of-<m>.apkg` (for example `AviAnki-us-ma-part-1-of-3.apkg`), so the parts of two regions never share a name in Downloads. An unsplit build is `AviAnki-<region slug>.apkg`.
 
 ## 7. The web app
 
@@ -168,7 +175,7 @@ The code is in `web/`: plain ES modules, vendored `sql.js` and `fflate`, with no
 - *Advanced* (collapsed): tier, month, card types, subdeck.
 - Footer: dataset credit, licence notice, the catalog's `credits.html` (published at `catalog/credits.html`) and a GitHub link.
 
-**Screen 2: Building.** The progress text speaks a bird watcher's language: *"Finding the 100 birds most seen in Massachusetts… Downloading photos and calls (43 of 100)… Packing your deck…"*. Media is fetched with at most 6 in flight, and read from Cache Storage when it's already there. The zip streams into Blob parts ([ADR 0006](adr/0006-browser-builds-the-apkg.md)). On constrained devices, Everything builds in parts of 150, and the page says so *before* starting.
+**Screen 2: Building.** The progress text speaks a bird watcher's language: *"Finding the 100 birds most seen in Massachusetts… Downloading photos and recordings (43 of 100)… Packing your deck…"* (it says "photos", "recordings" or "photos and recordings" to match the cards chosen, and every count agrees in number: "1 bird", "2 birds"). Media is fetched with at most 6 in flight, and read from Cache Storage when it's already there. The zip streams into Blob parts ([ADR 0006](adr/0006-browser-builds-the-apkg.md)). On constrained devices, Everything builds in parts of 150, and the page says so *before* starting.
 
 **Screen 3: Done.** The file downloads automatically, with a **Save again** link and, where supported, a **Share** button. Then come the platform-specific instructions and the *What you'll see* box ([ADR 0016](adr/0016-last-mile.md)), and finally *"Add another region"*, which is additive.
 

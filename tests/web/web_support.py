@@ -160,7 +160,7 @@ async (spec) => {
   const ref = manifest.regions.find((r) => r.slug === spec.region);
   const region = await json(ref.file);
   const speciesFile = await json(manifest.species_file);
-  const ids = selectSpecies(region, { tier: spec.tier, month: spec.month });
+  const ids = selectSpecies(region, speciesFile, spec.cards, { tier: spec.tier, month: spec.month });
   const notes = planNotes(ids, speciesFile, spec.cards);
   const before = performance.memory ? performance.memory.usedJSHeapSize : null;
   const fetchBytes = async (file, signal) => {
@@ -214,7 +214,7 @@ def build_with_python(spec: Spec, out: Path) -> dict[str, Any]:
     from avianki.deck.build import plan_notes, select_species, write_deck
 
     catalog = load_catalog(CATALOG_DIR)
-    ids = select_species(catalog.regions[spec.region], tier=spec.tier, month=spec.month)
+    ids = select_species(catalog.regions[spec.region], catalog.species, spec.cards, tier=spec.tier, month=spec.month)
     notes = plan_notes(ids, catalog.species, spec.cards)
     summary = write_deck(
         notes,

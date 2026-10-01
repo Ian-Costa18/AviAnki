@@ -118,6 +118,18 @@ def test_limit_keeps_the_first_n_before_anything_is_built(monkeypatch, tmp_path,
     assert set(got.entries) == {WREN_ID}
 
 
+def test_limit_counts_only_species_that_keep_accepts_and_reads_further_down_the_list(
+    monkeypatch, tmp_path, catalog
+):
+    # The wren is rejected (say it has no media for the chosen cards), so the first 2 that
+    # qualify are the robin and the new bird; the jay, after them, is never reached.
+    _s, (commons, _i), _a = install(monkeypatch)
+    got = build(catalog, tmp_path, limit=2, keep=lambda entry: entry.sci != "Troglodytes aedon")
+    assert got.species_ids == [ROBIN_ID, WREN_ID, NEW_ID]
+    assert JAY_ID not in got.species_ids
+    assert set(got.entries) == {WREN_ID, NEW_ID}
+
+
 def test_when_the_catalog_has_everything_nothing_is_built_and_no_tools_are_needed(monkeypatch, tmp_path, catalog):
     session = EbirdSession(order=[ROBIN_CODE, "blujay"])
     install(monkeypatch, session=session)

@@ -25,20 +25,31 @@ from typing import Any
 
 import requests
 
-from avianki.catalog.build import DEFAULT_BASE_URL, BuildOptions, make_registry, run_build
-from avianki.catalog.format import FormatError, LoadedCatalog, load_catalog
-from avianki.catalog.pins import Pins, PinsError, load_pins
-from avianki.catalog.species_lists import TOP_N, build_species_lists, render_report
-from avianki.catalog.validate import format_result
-from avianki.core.http import HttpClient, SourceError
-from avianki.core.log import setup_logging, teardown_logging
-from avianki.media.verify import VerifyUnavailable, default_analyzer
-from avianki.sources.contract import Region
-from avianki.sources.gbif import GbifSpeciesSource
-from avianki.sources.registry import Registry
-from avianki.taxonomy import DATA_DIR
-from avianki.taxonomy.regions import RegionTable, load_regions
-from avianki.taxonomy.species import SPECIES_CSV, SpeciesTable, load_species, save_species
+# The build needs the `catalog` extra (Pillow, jsonschema, tomli). Without it these imports fail
+# deep inside the pipeline, so this is the one place that turns that into a plain message; the
+# console script imports this module first, which makes even `--help` safe.
+_EXTRA_MODULES = frozenset({"PIL", "jsonschema", "tomli"})
+try:
+    from avianki.catalog.build import DEFAULT_BASE_URL, BuildOptions, make_registry, run_build
+    from avianki.catalog.format import FormatError, LoadedCatalog, load_catalog
+    from avianki.catalog.pins import Pins, PinsError, load_pins
+    from avianki.catalog.species_lists import TOP_N, build_species_lists, render_report
+    from avianki.catalog.validate import format_result
+    from avianki.core.http import HttpClient, SourceError
+    from avianki.core.log import setup_logging, teardown_logging
+    from avianki.core.text import use_utf8_output
+    from avianki.media.verify import VerifyUnavailable, default_analyzer
+    from avianki.sources.contract import Region
+    from avianki.sources.gbif import GbifSpeciesSource
+    from avianki.sources.registry import Registry
+    from avianki.taxonomy import DATA_DIR
+    from avianki.taxonomy.regions import RegionTable, load_regions
+    from avianki.taxonomy.species import SPECIES_CSV, SpeciesTable, load_species, save_species
+except ModuleNotFoundError as _missing:
+    if (_missing.name or "").partition(".")[0] not in _EXTRA_MODULES:
+        raise
+    print('avianki-catalog needs the catalog extra: pip install "avianki[catalog]"', file=sys.stderr)
+    raise SystemExit(2) from None
 
 log = logging.getLogger("bird_deck")
 
@@ -110,6 +121,7 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    use_utf8_output()
     parser = _parser()
     args = parser.parse_args(argv)
     if args.top_n < 1:

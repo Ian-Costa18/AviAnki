@@ -1,20 +1,31 @@
 """`select_species` against the shared selection fixture, plus `plan_notes`.
 
-Fixture schema (``tests/fixtures/selection/cases.json``, language-neutral so the M6
-browser tests reuse it): a JSON list of cases, each
+Fixture schema (``tests/fixtures/selection/cases.json``, language-neutral so the browser
+tests reuse it): a JSON list of cases, each
 
     {
       "name":             str,   # what the case demonstrates
       "region":           {"slug": str, "species": [[species_id, [12 ints, January first]], ...]},
+      "cards":            ["photo" | "audio" | "photo_audio", ...],   # the selected card types
+      "media":            {species_id: ["photo" | "audio", ...]},     # OPTIONAL, see below
       "tier":             "standard" | "everything",
       "month":            int 1-12 | null,
       "expected_species": [species_id, ...]   # in region rank order
     }
 
-``region`` has the published region-file shape (spec section 5). The rules under test
-(spec section 6): the month filter first (keep a species when 10 * monthly[m-1] >= max(monthly);
-an all-zero vector is dropped when a month is set), then the first 100 for ``standard`` or
-all for ``everything``. Values are compared as integers so exactly 10% is kept.
+``region`` has the published region-file shape (spec section 5). ``media`` says which first
+assets each species has: ``["photo", "audio"]`` for both, ``["photo"]`` or ``["audio"]`` for
+one, ``[]`` or no entry for none. When ``media`` is omitted every species has both. A test turns
+it into a species file with one photo and/or one recording per species.
+
+The rules under test (spec section 6, amended 2026-09-30), in this order:
+
+1. take the region's ordered list;
+2. the month filter (keep a species when 10 * monthly[m-1] >= max(monthly); an all-zero vector
+   is dropped when a month is set; integers, so exactly 10% is kept);
+3. keep only species that would get at least one note for ``cards``: ``photo`` needs a photo,
+   ``audio`` a recording, ``photo_audio`` both;
+4. the first 100 for ``standard`` or all for ``everything``.
 """
 
 from __future__ import annotations
@@ -26,7 +37,7 @@ from pathlib import Path
 import pytest
 from deck_fakes import species_file
 
-from avianki.catalog.format import RegionFile
+from avianki.catalog.format import MediaRef, RegionFile, SpeciesEntry, SpeciesFile
 from avianki.deck.build import PlannedNote, plan_notes, select_species
 
 CASES = json.loads(
@@ -38,27 +49,57 @@ CASES = json.loads(
 
 def test_fixture_covers_the_required_situations() -> None:
     names = " | ".join(c["name"] for c in CASES)
-    for needle in ("10 percent boundary", "all-zero", "first 100 of 150", "everything", "month null"):
+    for needle in (
+        "10 percent boundary", "all-zero", "first 100 of 150", "everything", "month null",
+        "skips species without media and takes the 101st", "photo cards need a photo",
+        "audio cards need a recording", "photo_audio cards need both", "in that order",
+    ):
         assert needle in names
     assert any(c["month"] is None for c in CASES)
     assert any(len(c["region"]["species"]) > 100 for c in CASES)
 
 
+def case_species(case: dict) -> SpeciesFile:
+    """The species file a case describes (every species has both assets when ``media`` is omitted)."""
+    media = case.get("media")
+    entries = {}
+    for species_id, _monthly in case["region"]["species"]:
+        kinds = ["photo", "audio"] if media is None else media.get(species_id, [])
+        ref = MediaRef(f"media/{species_id}.bin", 1, "credit")
+        entries[species_id] = SpeciesEntry(
+            species_id, species_id, [ref] if "photo" in kinds else [], [ref] if "audio" in kinds else []
+        )
+    return SpeciesFile(entries)
+
+
 @pytest.mark.parametrize("case", CASES, ids=[c["name"] for c in CASES])
 def test_select_species_matches_fixture(case: dict) -> None:
     region = RegionFile.from_dict(case["region"])
-    got = select_species(region, tier=case["tier"], month=case["month"])
+    got = select_species(
+        region, case_species(case), case["cards"], tier=case["tier"], month=case["month"]
+    )
     assert got == case["expected_species"]
 
 
 def test_select_species_rejects_bad_arguments() -> None:
     region = RegionFile("x", [("a", (1,) * 12)])
+    sp = species_file()
     with pytest.raises(ValueError, match="tier must be one of"):
-        select_species(region, tier="huge", month=None)
+        select_species(region, sp, ["photo"], tier="huge", month=None)
     with pytest.raises(ValueError, match="month must be 1-12"):
-        select_species(region, tier="standard", month=13)
+        select_species(region, sp, ["photo"], tier="standard", month=13)
     with pytest.raises(ValueError, match="month must be 1-12"):
-        select_species(region, tier="standard", month=0)
+        select_species(region, sp, ["photo"], tier="standard", month=0)
+    with pytest.raises(ValueError, match="unknown card types"):
+        select_species(region, sp, ["video"], tier="standard", month=None)
+
+
+def test_a_species_missing_from_the_species_file_is_dropped_with_a_warning(caplog) -> None:
+    region = RegionFile("x", [("no-such-bird", (1,) * 12), ("turdus-migratorius", (1,) * 12)])
+    with caplog.at_level(logging.WARNING, logger="bird_deck"):
+        got = select_species(region, species_file(), ["photo"], tier="everything", month=None)
+    assert got == ["turdus-migratorius"]
+    assert "no-such-bird" in caplog.text
 
 
 # --- plan_notes ------------------------------------------------------------------------

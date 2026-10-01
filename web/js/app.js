@@ -10,7 +10,9 @@ import {
   loadSpeciesFile, manifestUrl,
 } from "./catalog.js";
 import { detectPlatform, renderLastMile } from "./lastmile.js";
-import { birdCounter, fileName, isConstrained, isOutOfMemory, partSizeOverride, planParts } from "./parts.js";
+import {
+  birdCounter, downloadWhat, fileName, isConstrained, isOutOfMemory, partSizeOverride, planParts, plural,
+} from "./parts.js";
 
 const $ = (id) => document.getElementById(id);
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September",
@@ -36,9 +38,13 @@ const partSize = partSizeOverride(location.search);
 
 let manifest = null;
 // After an out-of-memory, the next builds are split into parts. A tab that was killed mid-build
-// (the usual way a phone runs out of memory) leaves BUILDING_KEY behind, which counts too.
+// (the usual way a phone runs out of memory) leaves BUILDING_KEY behind, which counts too. A tab the
+// user reloads or leaves fires `pagehide` and clears it first, so only a kill (which fires nothing)
+// is mistaken for running out of memory.
 let forceParts = session.get(BUILDING_KEY) !== null;
 session.remove(BUILDING_KEY);
+addEventListener("pagehide", () => session.remove(BUILDING_KEY));
+let building = false; // one build at a time: a second submit while one runs is ignored
 let saved = []; // {name, url, blob} of the last build, for "Save again"
 
 // --- screens and messages -----------------------------------------------------------------
@@ -151,7 +157,7 @@ function refreshPartsHint() {
   const big = ref && tier !== TIER_STANDARD && ref.species_count > partSize;
   if (big && (constrained || forceParts)) {
     const files = month === null ? `${Math.ceil(ref.species_count / partSize)} smaller files` : "several smaller files";
-    hint.textContent = `That's a big deck, so your device will get it as ${files} of up to ${partSize} birds each.`;
+    hint.textContent = `That's a big deck, so your device will get it as ${files} of up to ${plural(partSize, "bird")} each.`;
     hint.hidden = false;
   } else {
     hint.hidden = true;
@@ -174,17 +180,28 @@ function sizeText(bytes) {
   return bytes >= 1e6 ? `${(bytes / 1e6).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1e3))} KB`;
 }
 
+/** Build, once at a time: a second call while one is running does nothing. */
 async function runBuild(settings) {
+  if (building) return;
+  building = true;
+  try {
+    await buildOnce(settings);
+  } finally {
+    building = false;
+  }
+}
+
+async function buildOnce(settings) {
   hideError();
   for (const file of saved) URL.revokeObjectURL(file.url);
   saved = [];
   const ref = regionRef(settings.slug);
   const month = settings.month === null ? "" : ` in ${MONTHS[settings.month - 1]}`;
   const wanted = settings.month === null
-    ? `${settings.tier === TIER_STANDARD ? Math.min(STANDARD_LIMIT, ref.species_count) : ref.species_count} ` : "";
+    ? `${plural(settings.tier === TIER_STANDARD ? Math.min(STANDARD_LIMIT, ref.species_count) : ref.species_count, "bird")} ` : "";
   $("parts-announce").hidden = true;
   lastAnnounced = "";
-  setProgress(`Finding the ${wanted}birds most seen in ${ref.name}${month}…`, 0, { announce: true });
+  setProgress(`Finding the ${wanted || "birds "}most seen in ${ref.name}${month}…`, 0, { announce: true });
   show("build");
   session.set(BUILDING_KEY, "1");
 
@@ -195,7 +212,7 @@ async function runBuild(settings) {
     manifest = current;
     const [region, speciesFile] = await Promise.all([loadRegion(current, currentRef), loadSpeciesFile(current)]);
 
-    const ids = selectSpecies(region, { tier: settings.tier, month: settings.month });
+    const ids = selectSpecies(region, speciesFile, settings.cards, { tier: settings.tier, month: settings.month });
     const split = forceParts ? "always" : constrained ? "whenLarge" : "never";
     const parts = planParts(ids, speciesFile, settings.cards, { size: partSize, split });
     if (!parts.length) {
@@ -218,17 +235,18 @@ async function runBuild(settings) {
       const files = mediaFiles(part.notes);
       const birds = birdCounter(part.notes, files);
       const label = part.count > 1 ? `Part ${part.index} of ${part.count}: ` : "";
+      const what = downloadWhat(part.notes);
       const overall = (fraction) => (part.index - 1 + fraction) / part.count;
       const { blob, summary } = await buildDeck({
         manifest: current, speciesFile, notes: part.notes, subdeck, media: feed,
         onProgress({ stage, done = 0, total = 0 }) {
           if (stage === "media" && done < total) {
-            setProgress(`${label}Downloading photos and calls (${birds.done(done)} of ${birds.total})…`,
+            setProgress(`${label}Downloading ${what} (${birds.done(done)} of ${birds.total})…`,
               overall(done / total), { announce: done === 0 || done % Math.ceil(total / 4) === 0 });
           } else if (stage === "media" || stage === "done") {
             setProgress(`${label}Packing your deck…`, overall(0.98), { announce: true });
           } else if (stage === "database") {
-            setProgress(`${label}Downloading photos and calls (0 of ${birds.total})…`, overall(0));
+            setProgress(`${label}Downloading ${what} (0 of ${birds.total})…`, overall(0));
           }
         },
       });
@@ -248,7 +266,7 @@ async function runBuild(settings) {
     saved = [];
     if (isOutOfMemory(err) && !forceParts) {
       forceParts = true; // "the next attempt" is in parts; do it now rather than make people ask
-      return runBuild(settings);
+      return buildOnce(settings);
     }
     show("pick");
     showError(err, () => runBuild(settings));
@@ -267,8 +285,8 @@ function renderDone(ref, built) {
   const birds = built.reduce((n, b) => n + b.birds, 0);
   const cards = built.reduce((n, b) => n + b.summary.noteCount, 0);
   const bytes = built.reduce((n, b) => n + b.summary.bytes, 0);
-  const files = built.length > 1 ? ` in ${built.length} files. Open them all in Anki, in any order` : "";
-  $("done-summary").textContent = `${ref.name}: ${birds} birds, ${cards} cards, ${sizeText(bytes)}${files}.`;
+  const files = built.length > 1 ? ` in ${plural(built.length, "file")}. Open them all in Anki, in any order` : "";
+  $("done-summary").textContent = `${ref.name}: ${plural(birds, "bird")}, ${plural(cards, "card")}, ${sizeText(bytes)}${files}.`;
 
   const list = $("downloads");
   list.replaceChildren();
@@ -318,6 +336,12 @@ async function init() {
   refreshPartsHint();
 }
 
+function syncProblems() {
+  const { slug, cards } = readSettings();
+  if (slug !== "") $("region-problem").hidden = true;
+  if (cards.length > 0) $("cards-problem").hidden = true;
+}
+
 $("form").addEventListener("submit", (event) => {
   event.preventDefault();
   const settings = readSettings();
@@ -333,6 +357,9 @@ $("form").addEventListener("submit", (event) => {
 });
 
 for (const id of ["region", "month"]) $(id).addEventListener("change", refreshPartsHint);
+// A validation message goes as soon as its input is fixed, not on the next submit.
+$("region").addEventListener("change", syncProblems);
+for (const el of document.querySelectorAll('input[name="cards"]')) el.addEventListener("change", syncProblems);
 for (const el of document.querySelectorAll('input[name="tier"]')) el.addEventListener("change", refreshPartsHint);
 $("again").addEventListener("click", () => show("pick"));
 

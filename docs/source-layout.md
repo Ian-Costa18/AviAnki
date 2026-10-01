@@ -10,7 +10,7 @@ src/avianki/
     http.py              throttled, cached, budgeted client; honours Limits and Retry-After; one User-Agent
     licences.py          exact versioned allowlist; AssetRecord (licence research §5.1)
     log.py               the "bird_deck" logger setup
-    text.py              `fold`, the case-, accent- and space-insensitive key every name lookup uses
+    text.py              `fold`, the case-, accent- and space-insensitive key every name lookup uses; `use_utf8_output`, which keeps a redirected stream on Windows from crashing on a non-ASCII name
   taxonomy/              → core
     species.py           loads data/species.csv (shipped in the wheel): minted ids, per-source keys, aliases
     regions.py           loads data/regions.csv (shipped in the wheel): slug ↔ GADM gid ↔ eBird code
@@ -51,7 +51,7 @@ src/avianki/
     notetypes.py         three note types, frozen card types, model seeds and field list
     card.css             carried-forward styling plus `.credits`
     credits.py           Credits field + deck description
-    build.py             frozen deck id and note GUID, `select_species`, `plan_notes`, the genanki writer `write_deck`
+    build.py             frozen deck id and note GUID, `select_species` (month filter, media check, tier), `plan_notes`, the genanki writer `write_deck`
   cli.py                 `avianki REGION` and `avianki --ebird CODE` (ADR 0017)
   catalog_cli.py         `avianki-catalog build`  (`build --species-only` runs the species half alone; validation and the reports run inside `build`)
   redact.py              imports nothing from the package; unused until Description→Name returns
@@ -62,7 +62,7 @@ web/                     imports no Python; depends only on catalog/format.py's 
   js/
     app.js               the page: pick, `selectSpecies`, `planParts`, `buildDeck` fed from Cache Storage, download, Done screen, focus and error handling
     catalog.js           manifest (no-cache, format check), region and species files, media through Cache Storage, 2 retries with backoff, `?catalog=` override
-    select.js            `selectSpecies` (tier, month filter) and `planNotes` (card types, first assets); mirrors deck/build.py, proven on tests/fixtures/selection/cases.json
+    select.js            `selectSpecies` (month filter, media check, tier) and `planNotes` (card types, first assets); mirrors deck/build.py, proven on tests/fixtures/selection/cases.json
     deck.js              `buildDeck`: notes, fields, credits, description, ids; documents the media-feed contract
     notetypes.json       the three note types (with `req`) and the fixed description strings, generated from deck/ by scripts/gen_web_notetypes.py
     lastmile.js          `detectPlatform` (pure, unit-tested with sample user agents) and the per-platform steps, detected device first
