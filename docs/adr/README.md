@@ -30,3 +30,4 @@ An accepted ADR is not edited to change its decision. To change it, write a new 
 | [0022](0022-plausibility-threshold.md) | The plausibility threshold is 0.02%, not 5%, and compares like with like (amends 0008) | #41 |
 | [0023](0023-audio-first-pass.md) | Audio: first candidate that passes BirdNET wins, analysing only the first minute (amends 0011) | #41 |
 | [0024](0024-species-names-from-ebird-verbatim.md) | A GBIF backbone key takes the name eBird itself gives its records (amends 0004) | #56 |
+| [0025](0025-card-design.md) | Card design: photo first, the phone's own font, night mode, and an IOC tag (amends 0012) | #68 |

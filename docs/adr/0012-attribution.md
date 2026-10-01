@@ -1,6 +1,6 @@
 # 0012 — Credits go on the answer side of every card, and dataset credit goes in the deck description
 
-**Status:** Accepted, 2026-09-28 · **Ticket:** [#22](https://github.com/Ian-Costa18/AviAnki/issues/22) · **Evidence:** branch `research/licence-obligations` §5.3
+**Status:** Accepted, 2026-09-28; credit type size amended by [0025](0025-card-design.md) · **Ticket:** [#22](https://github.com/Ian-Costa18/AviAnki/issues/22) · **Evidence:** branch `research/licence-obligations` §5.3
 
 ## Decision
 
