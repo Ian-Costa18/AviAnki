@@ -598,3 +598,13 @@ def test_no_verify_is_reported_loudly_in_the_build_report(tmp_path: Path):
     result, _, _ = go(tmp_path / "out", commons, inat, verify=False)
     assert result.catalog is not None and all(e.audio == [] for e in result.catalog.species.entries.values())
     assert "AUDIO NOT VERIFIED" in (tmp_path / "out" / "build-report.md").read_text(encoding="utf-8")
+
+
+def test_dataset_credits_say_ebird_gives_the_english_names_and_ioc_the_scientific_ones():
+    from avianki.catalog.build import dataset_credits
+
+    ebird, ioc = dataset_credits()
+    assert ebird.text == "eBird Observation Dataset, Cornell Lab of Ornithology, via GBIF"
+    assert ebird.modifications == "filtered and ranked by region; English species names"
+    assert ioc.text == "IOC World Bird List (Gill, Donsker and Rasmussen, eds.), for scientific names"
+    assert ioc.modifications == "matched to GBIF taxa"

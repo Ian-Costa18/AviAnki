@@ -14,6 +14,7 @@ from gbif_fakes import (
     TINY,
     TINY_IOC,
     RoutingSession,
+    eod_record_route,
     ioc_entry,
     ioc_page,
     ioc_params,
@@ -24,6 +25,7 @@ from gbif_fakes import (
 )
 
 from avianki.core.http import Limits, SourceError
+from avianki.sources.contract import SpeciesRecord
 from avianki.sources.gbif import GbifSpeciesSource, NameFallback
 
 
@@ -146,6 +148,31 @@ def _unmatched_routes(**extra):
     }
     routes.update(extra)
     return routes
+
+
+def _record(common: str, key: str = "10", sci: str = "Alpha alpha") -> SpeciesRecord:
+    return SpeciesRecord(None, sci, common, key, 1, (0,) * 12, 5)
+
+
+def test_mint_name_is_ebirds_name_from_an_eod_record():
+    source, session = tiny_source()
+    assert source.mint_name(_record("Alpha Bird")) == ("Alpha Birdie", "eod-record")
+    assert session.calls == [eod_record_route(10)]
+
+
+def test_mint_name_falls_back_to_the_ioc_name_then_the_scientific_name():
+    routes = tiny_routes()
+    routes[eod_record_route(10)] = {"results": []}
+    routes[eod_record_route(5)] = {"results": [{"speciesKey": 5}]}  # a record with no vernacularName
+    source, _ = tiny_source(routes)
+    assert source.mint_name(_record("Alpha Bird")) == ("Alpha Bird", "ioc")
+    assert source.mint_name(_record("Gamma gamma", "5", "Gamma gamma")) == ("Gamma gamma", "sci-name")
+
+
+def test_listing_a_region_makes_no_eod_record_requests():
+    source, session = tiny_source()
+    source.species_for(TINY.slug)
+    assert not [c for c in session.calls if "limit=1&" in c and "speciesKey" in c and "facet" not in c]
 
 
 def test_no_ioc_match_falls_back_to_the_eod_record_name_and_is_reported():

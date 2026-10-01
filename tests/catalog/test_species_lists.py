@@ -104,6 +104,49 @@ def test_new_species_are_minted_and_reported_once():
     assert table.by_gbif_key(2490384).id == "cardinalis-cardinalis"
 
 
+class NamingSource(FakeSource):
+    """A source that names new species by eBird and records who it was asked about."""
+
+    def __init__(self, lists, names):
+        super().__init__(lists)
+        self.names = names
+        self.named: list[str] = []
+
+    def mint_name(self, record):
+        self.named.append(record.sci_name)
+        return self.names.get(record.sci_name, (record.common_name, "ioc"))
+
+
+def test_a_new_species_takes_the_name_the_source_gives_and_a_known_one_is_never_asked_about():
+    source = NamingSource(
+        {"us-ri": [rec("Turdus migratorius", "American Robin", 9510564, 1),
+                   rec("Pluvialis squatarola", "Grey Plover", 2480283, 2)]},
+        {"Pluvialis squatarola": ("Black-bellied Plover", "eod-record")},
+    )
+    robin = SpeciesRow("turdus-migratorius", "Turdus migratorius", "Robin from the csv", gbif_key=9510564)
+    table = SpeciesTable([robin])
+    result = build_species_lists(source, [RI], table)
+    assert source.named == ["Pluvialis squatarola"]
+    assert table.get("turdus-migratorius").common_name == "Robin from the csv"
+    assert [r.common_name for r in result.minted] == ["Black-bellied Plover"]
+    assert result.minted_name_from == {"pluvialis-squatarola": "eod-record"}
+    assert "| pluvialis-squatarola | Pluvialis squatarola | Black-bellied Plover | eod-record |" in render_report(
+        result, [RI], 400)
+
+
+def test_a_species_minted_in_one_region_is_not_named_again_in_the_next():
+    record = rec("Pluvialis squatarola", "Grey Plover", 2480283, 1)
+    source = NamingSource({"us-ri": [record], "us-dc": [record]}, {})
+    build_species_lists(source, [RI, DC], SpeciesTable())
+    assert source.named == ["Pluvialis squatarola"]
+
+
+def test_a_source_without_mint_name_mints_with_the_name_it_reported():
+    result = build_species_lists(FakeSource({"us-ri": [rec("Pluvialis squatarola", "Grey Plover", 1, 1)]}), [RI],
+                                 SpeciesTable())
+    assert [r.common_name for r in result.minted] == ["Grey Plover"]
+
+
 def test_a_known_gbif_key_keeps_its_id_even_after_an_ioc_rename():
     renamed = rec("Turdus newname", "Robin Renamed", 9510564, 1)
     result = build_species_lists(FakeSource({"us-ri": [renamed]}), [RI], SpeciesTable([ROBIN]))

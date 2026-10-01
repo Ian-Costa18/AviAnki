@@ -61,7 +61,7 @@ def test_live_species_get_names_photo_audio_and_credits(monkeypatch, tmp_path, c
     install(monkeypatch)
     got = build(catalog, tmp_path)
     wren = got.entries[WREN_ID]
-    assert (wren.name, wren.sci) == ("House Wren", "Troglodytes aedon")
+    assert (wren.name, wren.sci) == ("Northern House Wren", "Troglodytes aedon")
     assert len(wren.photo) == 1 and len(wren.audio) == 1
     assert "Creator" in wren.photo[0].credit and "Creator" in wren.audio[0].credit
     # every referenced file was written under the cache dir, in the catalog's layout

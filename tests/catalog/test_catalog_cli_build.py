@@ -96,6 +96,15 @@ def test_a_full_build_writes_everything_and_exits_zero(env: Env, capsys):
     assert env.expected[0] and env.expected[0]["alpha-alpha"] > 0  # ADR 0022 expected counts reached the registry
 
 
+def test_the_catalog_names_new_species_by_ebird_and_never_renames_an_existing_one(env: Env):
+    assert catalog_cli.main([*env.args, "--update-species-csv"]) == 0
+    cat = load_catalog(env.out / "site")
+    # species.csv's name wins for alpha-alpha even though EOD's record says "Alpha Birdie" (ADR 0026)
+    assert cat.species["alpha-alpha"].name == "Alpha Bird"
+    assert cat.species["gamma-gamma"].name == "Gamma Birdie"
+    assert {r.id: r.common_name for r in load_species(env.csv)}["alpha-alpha"] == "Alpha Bird"
+
+
 def test_a_build_leaves_species_csv_alone_without_the_flag(env: Env):
     before = env.csv.read_text(encoding="utf-8")
     assert catalog_cli.main(env.args) == 0

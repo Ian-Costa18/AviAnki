@@ -176,6 +176,25 @@ class GbifSpeciesSource(SpeciesSource):
         payload = self._client.get_json(self.name, self.limits, f"{API}/dataset/{EOD_DATASET_KEY}", cache=False)
         return parse.dataset_version(payload)
 
+    def mint_name(self, record: SpeciesRecord) -> tuple[str, str]:
+        """The common name for a species about to be minted (ADR 0026), and where it came from.
+
+        eBird's English name from an EOD record of the species, else the IOC name the record
+        carries, else its scientific name. One request, made only for new species.
+        """
+        if record.source_key.isdigit():
+            occ = self._get("/occurrence/search", {"datasetKey": EOD_DATASET_KEY, "speciesKey": int(record.source_key),
+                                                   "limit": 1})
+            try:
+                results = occ["results"]
+            except (KeyError, TypeError) as e:
+                raise SourceError(f"gbif: malformed occurrence search for species {record.source_key}: {e!r}") from e
+            if results and results[0].get("vernacularName"):
+                return " ".join(str(results[0]["vernacularName"]).split()), "eod-record"
+        if record.common_name and record.common_name != record.sci_name:
+            return record.common_name, "ioc"
+        return record.sci_name, "sci-name"
+
     def name_fallbacks(self) -> list[NameFallback]:
         """Species seen so far that the IOC checklist didn't match, by backbone key."""
         return [self._fallbacks[k] for k in sorted(self._fallbacks)]
