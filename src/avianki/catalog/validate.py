@@ -23,6 +23,7 @@ Codes
 ``credit.stale``                 stored credit lacks the licence label or the creator
 ``audio.unverified``             audio with ``verified`` unset
 ``audio.low_confidence``         ``verified == "birdnet"`` without confidence >= 0.5
+``audio.scores_missing``         audio chosen under rule 2 or later without presence, competitor and quality
 ``pins.excluded_present``        an asset whose token a pin excludes is still in the catalog
 ``pins.unbacked`` (warning)      ``verified == "pinned"`` but no pin names that token
 ``size.total``                   the site on disk exceeds ``max_site_bytes``
@@ -46,6 +47,7 @@ from typing import Any
 from avianki.catalog.credit import credit_is_safe, licence_label
 from avianki.media.verify import MIN_CONFIDENCE
 from avianki.catalog.format import (
+    AUDIO_RULE,
     FormatError,
     LoadedCatalog,
     file_digest16,
@@ -245,6 +247,15 @@ def check_audio_verified(catalog: LoadedCatalog) -> ValidationResult:
                         f"audio for {sid}: {shown}, need >= {BIRDNET_MIN_CONFIDENCE}",
                         m.file,
                     )
+                elif prov.audio_rule is not None and prov.audio_rule >= AUDIO_RULE:
+                    scores = (prov.presence, prov.competitor, prov.quality)
+                    if any(v is None for v in scores):
+                        res.error(
+                            "audio.scores_missing",
+                            f"audio for {sid} was chosen under rule {prov.audio_rule} but lacks "
+                            "presence, competitor or quality",
+                            m.file,
+                        )
     return res
 
 

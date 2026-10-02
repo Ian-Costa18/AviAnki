@@ -247,6 +247,21 @@ def test_empty_report_says_none_everywhere() -> None:
     assert "SOURCE FAILURES" not in md
 
 
+def test_the_report_says_how_good_the_chosen_audio_is_and_what_the_search_cost() -> None:
+    md = BuildReport(
+        catalog_version="2026-10-01",
+        audio_scores={"blue-jay": (0.25, 0.5, 0.128), "white-breasted-nuthatch": (0.875, 0.07, 0.8)},
+        audio_not_good=["blue-jay"],
+        audio_candidates_tried=14,
+        audio_species_searched=3,
+    ).to_markdown()
+    assert "## Audio quality" in md
+    assert "good: 1; settled for a clip that is not good: 1" in md
+    assert "14 for 3 species" in md
+    assert "blue-jay" in md.split("Not good:")[1]
+    assert "## Audio quality" in BuildReport(catalog_version="2026-10-01").to_markdown()  # also when empty
+
+
 def full_report() -> BuildReport:
     return BuildReport(
         catalog_version="2026-10-01",

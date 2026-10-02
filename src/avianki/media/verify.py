@@ -1,8 +1,10 @@
 """BirdNET verification of audio candidates (ADR 0011, optional extra ``avianki[verify]``).
 
-An audio candidate is accepted only if BirdNET, run on the *whole* recording, scores the
-expected species at ``>= 0.5`` in at least one 3-second window. The clip that finally ships is
-the 10-second stretch with the highest summed confidence for that species.
+An audio candidate is usable only if BirdNET, run over the first minute of the recording,
+scores the expected species at ``>= 0.5`` in at least one 3-second window. It is *good* when
+the 10-second clip that would ship is also about that bird: present in most of the clip, with
+no other species or noise louder than a faint background (ADR 0031, which supersedes 0023's
+"first pass wins"). `ClipAnalysis.choose` finds the clip and measures it.
 
 The scoring maths (`WindowScore`, `ClipAnalysis`) is pure and needs no model. The model itself
 lives behind the `Analyzer` protocol so the catalog pipeline and the tests can fake it:
@@ -15,9 +17,8 @@ Decisions the ADR left open:
   through ``ai-edge-litert`` (no TensorFlow). ``birdnet`` downloads it on first use from a
   versioned Zenodo record into ``%APPDATA%/birdnet`` (Windows) or ``~/.local/share/birdnet``
   (Linux); set ``BIRDNET_APP_DATA`` to move it (that directory is what CI should cache).
-* Segments: back-to-back 3-second windows (overlap 0), so "some 3-second window" is BirdNET's own
-  segmentation, the 10-second sum never double-counts audio, and CPU cost is one inference per
-  3 s of audio. ``BirdNetAnalyzer(overlap_s=...)`` can raise it.
+* Segments: 3-second windows every second (overlap 2 s, ADR 0031), so a clip can start on the
+  bird and presence is measured per second. CPU cost is three inferences per second of audio.
 * No location or week filter is applied. A Rhode Island recording may be a vagrant from
   elsewhere; this gate asks whether the sound is the species, not whether the bird is likely
   there.
@@ -32,7 +33,7 @@ import shutil
 import subprocess
 import tempfile
 import wave
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Collection, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol
@@ -42,8 +43,17 @@ from avianki.media.errors import MediaError
 log = logging.getLogger("bird_deck")
 
 SEGMENT_S = 3.0  # BirdNET's analysis window; fixed by the model.
-MIN_CONFIDENCE = 0.5  # ADR 0011: the one place to tune the gate.
+MIN_CONFIDENCE = 0.5  # ADR 0011: the gate. Below it a candidate is not usable at all.
 CLIP_S = 10.0  # length of the clip that ships.
+
+# ADR 0031: what makes a usable candidate *good*, and the single number candidates are ranked by.
+# Every threshold lives here; `docs/adr/0031-audio-quality-selection.md` records how they were
+# calibrated.
+OVERLAP_S = 2.0  # BirdNET window overlap: a 3 s window every second
+PRESENCE_MIN = 0.6  # share of the clip's steps where the target is at MIN_CONFIDENCE or more
+COMPETITOR_MAX = 0.5  # a competing label at or above this makes the clip not good
+COMPETITOR_FREE = 0.3  # quality ignores a competitor up to here: faint background is wanted
+OTHER_FLOOR = 0.05  # other labels below this are not reported per window (keeps predict small)
 MODEL_SAMPLE_RATE = 48_000
 _EPS = 1e-6
 _FFMPEG_TIMEOUT_S = 300
@@ -70,11 +80,50 @@ class UnreadableAudio(VerifyError):
 
 @dataclass(frozen=True)
 class WindowScore:
-    """BirdNET's confidence for the expected species in ``[start_s, end_s)``."""
+    """BirdNET's confidence for the expected species in ``[start_s, end_s)``.
+
+    ``others`` maps every other label scored at ``OTHER_FLOOR`` or more in the same window to
+    its confidence (the competitor measure, ADR 0031, needs them).
+    """
 
     start_s: float
     end_s: float
     confidence: float
+    others: Mapping[str, float] = field(default_factory=dict, compare=False)
+
+
+@dataclass(frozen=True)
+class ClipChoice:
+    """The 10-second clip a candidate would become, and how well it is about the target.
+
+    ``presence`` is the share of the clip's steps where the target is at ``min_confidence`` or
+    more; ``competitor`` the highest confidence of any other counted label inside the clip
+    (``competitor_label`` names it); ``quality`` the one number candidates are ranked by.
+    """
+
+    start_s: float
+    end_s: float
+    presence: float
+    competitor: float
+    competitor_label: str
+    mean_target: float
+    best_confidence: float  # the target's highest step inside the clip
+    min_confidence: float = MIN_CONFIDENCE
+
+    @property
+    def usable(self) -> bool:
+        """The 0.5 gate (ADR 0011), on the clip that ships."""
+        return self.best_confidence >= self.min_confidence
+
+    @property
+    def quality(self) -> float:
+        """Mean target confidence, less the competitor's excess over ``COMPETITOR_FREE``."""
+        return self.mean_target - max(0.0, self.competitor - COMPETITOR_FREE)
+
+    @property
+    def good(self) -> bool:
+        """Usable, present for most of the clip, and no competing label at COMPETITOR_MAX or more."""
+        return self.usable and self.presence >= PRESENCE_MIN and self.competitor < COMPETITOR_MAX
 
 
 @dataclass
@@ -86,6 +135,7 @@ class ClipAnalysis:
     # Length of the audio. BirdNET pads the last window past the end, so the last window's
     # end can exceed it; when unknown, the last window's end stands in.
     duration_s: float | None = field(default=None)
+    label: str = ""  # the target's BirdNET label; its genus is not counted as a competitor
 
     @property
     def passes(self) -> bool:
@@ -116,10 +166,74 @@ class ClipAnalysis:
         """The summed confidence inside `best_window`; what candidates are ranked by."""
         return self._best(seconds)[2]
 
-    def _best(self, seconds: float) -> tuple[float, float, float]:
+    def choose(
+        self,
+        counted: Collection[str] | None = None,
+        *,
+        seconds: float = CLIP_S,
+    ) -> ClipChoice:
+        """The clip this recording would become, measured (ADR 0031).
+
+        1. Take the ``seconds`` stretch with the highest summed target confidence, among the
+           stretches that hold at least one step at ``min_confidence`` (when any step does).
+        2. Move its start to the first such step, keeping ``seconds`` where the recording
+           allows it; the clip then opens on the bird.
+        3. Measure that exact clip over the steps lying inside it.
+
+        ``counted`` is the set of labels that may count as a competitor (None: every label).
+        Labels in the target's own genus never count.
+        """
+        total = self.total_duration_s
+        start, end, _ = self._best(seconds, anchored=True)
+        if total > seconds + _EPS:
+            hits = [
+                w.start_s
+                for w in self.windows
+                if w.confidence >= self.min_confidence and start - _EPS <= w.start_s <= end - SEGMENT_S + _EPS
+            ]
+            if hits:
+                start = min(min(hits), total - seconds)
+                end = start + seconds
+        steps = self._inside(start, end)
+        confidences = [w.confidence for w in steps]
+        hit = [c for c in confidences if c >= self.min_confidence]
+        genus = self.label.partition("_")[0].split(" ")[0]
+        competitor, competitor_label = 0.0, ""
+        for w in steps:
+            for other, c in w.others.items():
+                if c <= competitor or other == self.label:
+                    continue
+                if counted is not None and other not in counted:
+                    continue
+                if genus and other.partition("_")[0].split(" ")[0] == genus:
+                    continue
+                competitor, competitor_label = c, other
+        return ClipChoice(
+            start_s=start,
+            end_s=end,
+            presence=len(hit) / len(steps) if steps else 0.0,
+            competitor=competitor,
+            competitor_label=competitor_label,
+            mean_target=sum(confidences) / len(confidences) if confidences else 0.0,
+            best_confidence=max(confidences, default=0.0),
+            min_confidence=self.min_confidence,
+        )
+
+    def _inside(self, start: float, end: float) -> list[WindowScore]:
+        """The steps lying entirely inside ``[start, end]`` (the padded final window never does).
+
+        A clip too short for any whole window (under 3 s) falls back to every window that
+        starts inside it."""
+        inside = [w for w in self.windows if w.start_s >= start - _EPS and w.end_s <= end + _EPS]
+        return inside or [w for w in self.windows if start - _EPS <= w.start_s < end]
+
+    def _best(self, seconds: float, *, anchored: bool = False) -> tuple[float, float, float]:
         total = self.total_duration_s
         if total <= seconds + _EPS:
             return 0.0, total, sum(w.confidence for w in self.windows)
+        # `anchored`: only stretches that hold a step at min_confidence qualify, so the chosen
+        # clip still passes the gate when the recording does.
+        anchored = anchored and self.passes
 
         # The covered set only changes when the stretch starts on a window boundary, and the
         # last possible stretch is the one flush with the end of the recording.
@@ -131,14 +245,14 @@ class ClipAnalysis:
         best: tuple[float, float, float] | None = None
         for s in starts:
             e = s + seconds
-            covered = sum(
-                w.confidence
-                for w in self.windows
-                if w.start_s >= s - _EPS and w.end_s <= e + _EPS
-            )
+            inside = [w for w in self.windows if w.start_s >= s - _EPS and w.end_s <= e + _EPS]
+            if anchored and not any(w.confidence >= self.min_confidence for w in inside):
+                continue
+            covered = sum(w.confidence for w in inside)
             if best is None or covered > best[2] + _EPS:  # strict: earliest wins ties
                 best = (s, e, covered)
-        assert best is not None
+        if best is None:  # no qualifying stretch (cannot happen when anchored and passes)
+            return self._best(seconds)
         return best
 
 
@@ -149,6 +263,33 @@ class Analyzer(Protocol):
 
 
 # -- label mapping -----------------------------------------------------------------------------
+
+# BirdNET's non-bird labels that count as a competitor (ADR 0031): people and machines. Insects
+# (crickets), wind and rain (``Environmental``) and the generic ``Noise`` are natural background
+# and do not count; a faint distant bird or a cricket behind the target is wanted.
+NOISE_LABELS = frozenset(
+    {
+        "Dog_Dog",
+        "Engine_Engine",
+        "Fireworks_Fireworks",
+        "Gun_Gun",
+        "Human non-vocal_Human non-vocal",
+        "Human vocal_Human vocal",
+        "Human whistle_Human whistle",
+        "Power tools_Power tools",
+        "Siren_Siren",
+    }
+)
+
+
+def competitor_labels(sci_names: Iterable[str], labels: Iterable[str]) -> frozenset[str]:
+    """The BirdNET labels that may count as a competing sound: our own species and the noise labels.
+
+    ``sci_names`` are the scientific names in ``species.csv``. BirdNET's European and other
+    species we do not teach are false positives for our purposes and never count.
+    """
+    ours = set(sci_names)
+    return frozenset(label for label in labels if label in NOISE_LABELS or label.partition("_")[0] in ours)
 
 
 def birdnet_label(
@@ -191,7 +332,7 @@ class BirdNetAnalyzer:
     this must sit behind ``if __name__ == "__main__":`` because the workers are spawned.
     """
 
-    def __init__(self, *, overlap_s: float = 0.0, n_workers: int = 1) -> None:
+    def __init__(self, *, overlap_s: float = OVERLAP_S, n_workers: int = 1) -> None:
         if not 0.0 <= overlap_s < SEGMENT_S:
             raise ValueError(f"overlap_s must be in [0, {SEGMENT_S}): {overlap_s}")
         self.overlap_s = overlap_s
@@ -244,7 +385,8 @@ class BirdNetAnalyzer:
 
     def predict(self, path: Path, label: str) -> list[WindowScore]:
         self._load_model()
-        assert self._label_index is not None
+        assert self._label_index is not None and self._labels is not None
+        labels = self._labels
         wanted = self._label_index.get(label)
         if wanted is None:
             raise VerifyError(f"not a BirdNET v2.4 label: {label!r}")
@@ -256,7 +398,12 @@ class BirdNetAnalyzer:
         for i in range(ids.shape[0]):
             hit = (ids[i] == wanted).nonzero()[0]
             confidence = float(probs[i][hit[0]]) if len(hit) else 0.0
-            windows.append(WindowScore(i * step, i * step + SEGMENT_S, confidence))
+            others = {
+                labels[int(ids[i][j])]: float(probs[i][j])
+                for j in (probs[i] >= OTHER_FLOOR).nonzero()[0]
+                if int(ids[i][j]) != wanted
+            }
+            windows.append(WindowScore(i * step, i * step + SEGMENT_S, confidence, others))
         return windows
 
 
@@ -307,7 +454,7 @@ def analyse(
     min_confidence: float = MIN_CONFIDENCE,
     analyzer: Analyzer | None = None,
 ) -> ClipAnalysis:
-    """Score every 3-second window of a recording for ``label``.
+    """Score every 3-second step of a recording for ``label``.
 
     ``data`` is any audio ffmpeg can read. It is decoded to 48 kHz mono wav in a temp dir, so
     the analyser sees one format. Raises `UnreadableAudio` when the bytes are not audio (reject
@@ -319,4 +466,4 @@ def analyse(
         _to_wav(src, wav_path)
         duration = _wav_duration_s(wav_path)
         windows = list((analyzer or default_analyzer()).predict(wav_path, label))
-    return ClipAnalysis(windows, min_confidence=min_confidence, duration_s=duration)
+    return ClipAnalysis(windows, min_confidence=min_confidence, duration_s=duration, label=label)

@@ -118,7 +118,7 @@ It's defined in code by `src/avianki/catalog/format.py` (JSON Schema). This sect
 
 The `credit` values are pipeline-rendered, escaped HTML that uses only `a`, `b` and `i`. Empty `photo` or `audio` lists mean absence. `ioc_name` is optional ([ADR 0027](adr/0027-ioc-name-field.md)): the IOC English name, present only for the birds where it is a different name from `name`, and omitted otherwise. For example, `"pluvialis-squatarola": {"name": "Black-bellied Plover", "sci": "Pluvialis squatarola", "ioc_name": "Grey Plover", ...}`.
 
-**`catalog/provenance.<hash>.json`** maps each media filename to its full licence research §5.1 record. It's for audit only.
+**`catalog/provenance.<hash>.json`** maps each media filename to its full licence research §5.1 record. It's for audit only. Audio chosen by BirdNET also carries `audio_rule` (the selection rule's version, 2 under [ADR 0031](adr/0031-audio-quality-selection.md)) and the shipped clip's `presence`, `competitor` and `quality`; the web app ignores them.
 
 **Compatibility.** Adding optional keys doesn't change `format`. Anything else bumps it, and old clients show a "please reload" message.
 

@@ -1,4 +1,4 @@
-"""The M3 catalog build: pick media per species, assemble, validate (spec section 4, ADR 0007, 0011, 0014, 0023).
+"""The M3 catalog build: pick media per species, assemble, validate (spec section 4, ADR 0007, 0011, 0014, 0031).
 
 Two public entry points:
 
@@ -20,9 +20,11 @@ Rules that matter more than the code around them:
 * **Sticky** (ADR 0014). A previous asset is kept, byte for byte, unless it can no longer be
   published (`select.sticky_problem`). Species whose roles are all kept make no source calls,
   and BirdNET never re-runs on a kept recording.
-* **Audio** (ADR 0023). Candidates are tried in source order, at most five, and the first that
-  BirdNET scores at 0.5 or more in some 3 s window (analysing only the first 60 s) wins. Later
-  candidates are never downloaded.
+* **Audio** (ADR 0031). Candidates are tried in source order, at most ten. Each is scored on the
+  10 s clip it would become (presence of the bird, competing labels, quality). The first *good*
+  candidate wins and later ones are never downloaded; failing that, the usable candidate (one
+  that reaches 0.5 in the clip) with the best quality does; with none usable the species has no
+  audio. BirdNET analyses only the first 60 s.
 * **Pins** (ADR 0011) skip ranking and BirdNET but not the licence gate. A pin that can't be
   honoured is a hard error for its species, reported prominently; the previous entry stays.
 """
@@ -71,11 +73,15 @@ from avianki.catalog.report import (
 from avianki.catalog.select import (
     PHOTO_CANDIDATES,
     PreviousAsset,
+    audio_rule_problem,
+    audio_verdict,
     final_record,
     hard_problem,
+    keep_best,
     kind_name,
     media_ref,
     overall_order,
+    pick_audio,
     previous_asset,
     provenance_entry,
     reused_media_ref,
@@ -88,16 +94,20 @@ from avianki.catalog.species_lists import TOP_N, SpeciesListsResult, build_speci
 from avianki.catalog.validate import BIRDNET_MIN_CONFIDENCE, ValidationResult, validate_catalog
 from avianki.core.http import BudgetExhausted, HttpClient, HttpError, SourceError
 from avianki.core.licences import AssetRecord, is_allowed
-from avianki.media.audio import excerpt, process_audio
+from avianki.media.audio import ProcessedAudio, excerpt, process_audio
 from avianki.media.errors import MediaError
 from avianki.media.images import process_image
 from avianki.media.verify import (
+    COMPETITOR_MAX,
+    PRESENCE_MIN,
     Analyzer,
+    ClipChoice,
     UnreadableAudio,
     VerifyError,
     VerifyUnavailable,
     analyse,
     birdnet_label,
+    competitor_labels,
     load_labels,
 )
 from avianki.sources.commons.source import CommonsSource
@@ -200,6 +210,17 @@ class _StopSource(Exception):
     """Internal: this source can't be used any more this run (budget spent)."""
 
 
+@dataclass(frozen=True)
+class _Trial:
+    """A usable audio candidate, scored and already cut, held until the search is over."""
+
+    source: str
+    token: str
+    choice: ClipChoice
+    processed: ProcessedAudio
+    record: AssetRecord
+
+
 @dataclass
 class _Role:
     """One (species, photo|audio) slot while the build runs."""
@@ -211,6 +232,9 @@ class _Role:
     data: bytes | None = None  # bytes of a media file built this run
     reused: bool = False
     fallback: PreviousAsset | None = None  # previous asset that a new pin replaces
+    # a previous audio clip chosen under an older rule: it stands only if re-selection can't run
+    rule_fallback: PreviousAsset | None = None
+    trials: list[_Trial] = field(default_factory=list)  # usable, not good: the best few, best first
     closed: bool = False  # nothing to try (no BirdNET label, --no-verify)
     incomplete: bool = False  # a source failed, ran out of budget or time: not absence, and no fall-through
     pin_failed: bool = False
@@ -252,6 +276,8 @@ class _Builder:
         self.verify = verify
         self._labels_arg = labels
         self._labels: list[str] | None = None
+        self._counted: frozenset[str] | None = None
+        self._counted_known = False
         self.deadline = deadline
         self.clock = clock
         self.report = BuildReport()
@@ -303,6 +329,20 @@ class _Builder:
         if what not in missing:
             missing.append(what)
 
+    def _counted_labels(self) -> frozenset[str] | None:
+        """The labels that may count as a competitor (ADR 0031): our species and the noise labels.
+
+        None, meaning every label counts, when BirdNET's label list isn't at hand without
+        loading the model (only a test's fake analyser lacks one).
+        """
+        if not self._counted_known:
+            labels = self._labels_arg if self._labels_arg is not None else getattr(self.analyzer, "labels", None)
+            if labels is not None:
+                names = [row.sci_name for row in self.table.all_rows()]
+                self._counted = competitor_labels(names, labels)
+            self._counted_known = True
+        return self._counted
+
     def _label(self, sid: str) -> str | None:
         row = self.rows[sid]
         if row.birdnet_label:
@@ -341,6 +381,7 @@ class _Builder:
         *,
         verified: Verified | None,
         confidence: float | None = None,
+        choice: ClipChoice | None = None,
     ) -> str | None:
         """Take a processed asset for ``role``. Returns None on success, else why it was refused."""
         if not is_allowed(record.licence_id):
@@ -361,6 +402,7 @@ class _Builder:
             token=token,
             verified=verified,
             birdnet_confidence=confidence,
+            choice=choice,
         )
         role.data = data
         role.reused = False
@@ -410,7 +452,10 @@ class _Builder:
                 self.report.sticky_invalidated += 1
                 log.info("%s %s: previous asset not kept: %s", sid, kind, problem)
                 if hard_problem(sid, kind, asset, pin, media) is None:
-                    role.fallback = asset  # only a new pin stands in its way
+                    if kind == "audio" and audio_rule_problem(asset) is not None:
+                        role.rule_fallback = asset  # only the new audio rule stands in its way
+                    else:
+                        role.fallback = asset  # only a new pin stands in its way
 
     def _pinned(self) -> None:
         for sid in self.ids:
@@ -651,6 +696,31 @@ class _Builder:
                 if self.roles[sid]["audio"].pending and slots_left(self.roles[sid]["audio"].tried) > 0
             ]
             self._stage(source, AssetKind.AUDIO, pending, self._audio_species)
+        self._settle_audio()
+
+    def _settle_audio(self) -> None:
+        """Species that found no good clip take the usable one with the best quality (ADR 0031)."""
+        for sid in self.ids:
+            role = self.roles[sid]["audio"]
+            self.report.audio_candidates_tried += role.tried
+            if role.tried:
+                self.report.audio_species_searched += 1
+            if role.done or not role.trials:
+                continue
+            for trial in pick_audio(role.trials):
+                why = self._accept_trial(role, sid, trial)
+                if why is None:
+                    log.info("%s audio: settled for %s, the best usable clip (quality %.2f)", sid, trial.token, trial.choice.quality)
+                    break
+                self._reject(sid, "audio", trial.source, trial.token, why)
+            role.trials = []
+
+    def _accept_trial(self, role: _Role, sid: str, trial: _Trial) -> str | None:
+        record = final_record(trial.record, trial.processed.modifications)
+        return self._accept(
+            role, sid, trial.token, trial.processed.data, AUDIO_EXT, record,
+            verified="birdnet", confidence=round(trial.choice.best_confidence, 4), choice=trial.choice,
+        )  # fmt: skip
 
     def _audio_species(self, source: AssetSource, sid: str, candidates: list[Candidate]) -> None:
         role = self.roles[sid]["audio"]
@@ -691,20 +761,20 @@ class _Builder:
                     f"birdnet: best {analysis.best_confidence:.2f} < {BIRDNET_MIN_CONFIDENCE}",
                 )  # fmt: skip
                 continue
-            start, _end = analysis.best_window()
+            choice = analysis.choose(self._counted_labels())
             try:
-                processed = process_audio(fetched.data, start)
+                processed = process_audio(fetched.data, choice.start_s)
             except MediaError as exc:
                 self._reject(sid, "audio", source.name, cand.token, f"unprocessable: {exc}")
                 continue
-            record = final_record(fetched.record, processed.modifications)
-            why = self._accept(
-                role, sid, cand.token, processed.data, AUDIO_EXT, record,
-                verified="birdnet", confidence=round(analysis.best_confidence, 4),
-            )  # fmt: skip
-            if why is None:
-                return
-            self._reject(sid, "audio", source.name, cand.token, why)
+            trial = _Trial(source.name, cand.token, choice, processed, fetched.record)
+            if audio_verdict(choice) == "good":
+                why = self._accept_trial(role, sid, trial)
+                if why is None:
+                    return
+                self._reject(sid, "audio", source.name, cand.token, why)
+            else:
+                role.trials = keep_best(role.trials, trial)
 
     # -- plausibility, assembly ---------------------------------------------------------
 
@@ -736,6 +806,9 @@ class _Builder:
             roles = self.roles[sid]
             # A pin that failed leaves the previous entry standing.
             for kind, role in roles.items():
+                if not role.done and role.rule_fallback is not None and (role.incomplete or role.closed):
+                    # re-selection under the new audio rule could not run: keep the old clip
+                    role.fallback = role.rule_fallback
                 if not role.done and role.fallback is not None:
                     role.ref = reused_media_ref(kind, role.fallback, self.rows[sid])
                     role.prov = reused_provenance(role.fallback, self.rows[sid])
@@ -759,6 +832,11 @@ class _Builder:
                 else:
                     report.audio += 1
                     report.audio_by_source[source] = report.audio_by_source.get(source, 0) + 1
+                    prov = role.prov
+                    if prov.presence is not None and prov.competitor is not None and prov.quality is not None:
+                        report.audio_scores[sid] = (prov.presence, prov.competitor, prov.quality)
+                        if prov.presence < PRESENCE_MIN or prov.competitor >= COMPETITOR_MAX:
+                            report.audio_not_good.append(sid)
                 if role.pin is not None and (source, role.prov.token) == (role.pin.source, role.pin.token):
                     report.pinned_used += 1
             entries[sid] = SpeciesEntry(row.common_name, row.sci_name, refs["photo"], refs["audio"], row.ioc_name)

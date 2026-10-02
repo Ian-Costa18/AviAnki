@@ -32,6 +32,7 @@ from typing import Any, Literal
 from avianki.core.licences import AssetRecord
 
 FORMAT_VERSION = 1
+AUDIO_RULE = 2  # ADR 0031: how audio is chosen. Audio recorded under an older rule is re-selected once.
 MONTHS = 12
 MANIFEST_NAME = "manifest.json"
 # Where the published catalog lives (the web-app spec's example). Here rather than in
@@ -309,7 +310,9 @@ class ProvenanceEntry:
 
     The JSON is flat: the record's fields, then ``species_id``, ``kind`` and ``token`` (the
     source-native pin token, so stickiness and pins can find the asset again), and the
-    optional ``verified`` (``"birdnet"`` or ``"pinned"``) and ``birdnet_confidence``.
+    optional ``verified`` (``"birdnet"`` or ``"pinned"``) and ``birdnet_confidence``. Audio
+    chosen under ADR 0031 also carries ``audio_rule`` (the selection rule's version) and the
+    shipped clip's ``presence``, ``competitor`` and ``quality`` scores. Pinned audio has none.
     """
 
     record: AssetRecord
@@ -318,6 +321,10 @@ class ProvenanceEntry:
     token: str
     verified: Verified | None = None
     birdnet_confidence: float | None = None
+    audio_rule: int | None = None
+    presence: float | None = None
+    competitor: float | None = None
+    quality: float | None = None
 
     def to_dict(self) -> dict[str, Any]:
         d = self.record.to_dict()
@@ -326,6 +333,9 @@ class ProvenanceEntry:
             d["verified"] = self.verified
         if self.birdnet_confidence is not None:
             d["birdnet_confidence"] = self.birdnet_confidence
+        for key in ("audio_rule", "presence", "competitor", "quality"):
+            if getattr(self, key) is not None:
+                d[key] = getattr(self, key)
         return d
 
     @classmethod
@@ -340,6 +350,10 @@ class ProvenanceEntry:
             token=d["token"],
             verified=d.get("verified"),
             birdnet_confidence=d.get("birdnet_confidence"),
+            audio_rule=d.get("audio_rule"),
+            presence=d.get("presence"),
+            competitor=d.get("competitor"),
+            quality=d.get("quality"),
         )
 
 
@@ -545,6 +559,11 @@ PROVENANCE_SCHEMA: dict[str, Any] = {
             "token": _NONEMPTY,
             "verified": {"enum": ["birdnet", "pinned", None]},
             "birdnet_confidence": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+            "audio_rule": {"type": ["integer", "null"], "minimum": 1},
+            "presence": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+            "competitor": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+            # mean target confidence less the competitor's excess over 0.3: from -0.7 to 1
+            "quality": {"type": ["number", "null"], "minimum": -1, "maximum": 1},
         },
     },
 }

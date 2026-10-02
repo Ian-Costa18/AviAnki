@@ -202,6 +202,27 @@ def test_provenance_round_trip_flat_json() -> None:
     assert ProvenanceFile.from_dict(file.to_dict()) == file
 
 
+def test_provenance_audio_scores_round_trip_and_validate() -> None:
+    entry = ProvenanceEntry(
+        make_record(), "turdus-migratorius", "audio", "XC1", "birdnet", 0.91,
+        audio_rule=2, presence=0.625, competitor=0.541, quality=0.342,
+    )  # fmt: skip
+    d = entry.to_dict()
+    assert (d["audio_rule"], d["presence"], d["competitor"], d["quality"]) == (2, 0.625, 0.541, 0.342)
+    assert ProvenanceEntry.from_dict(json.loads(json.dumps(d))) == entry
+    validate_provenance({"media/9f8e7d6c5b4a3921.mp3": d})
+    for key, bad in (("presence", 1.5), ("competitor", -0.1), ("quality", 2), ("audio_rule", 0)):
+        with pytest.raises(FormatError):
+            validate_provenance({"media/9f8e7d6c5b4a3921.mp3": d | {key: bad}})
+
+
+def test_provenance_from_before_the_audio_rule_still_loads_without_scores() -> None:
+    d = ProvenanceEntry(make_record(), "x", "audio", "t", "birdnet", 0.8).to_dict()
+    assert not {"audio_rule", "presence", "competitor", "quality"} & d.keys()
+    old = ProvenanceEntry.from_dict(d)
+    assert (old.audio_rule, old.presence, old.competitor, old.quality) == (None, None, None, None)
+
+
 def test_provenance_optional_keys_omitted_when_none() -> None:
     d = ProvenanceEntry(make_record(), "x", "photo", "t").to_dict()
     assert "verified" not in d and "birdnet_confidence" not in d

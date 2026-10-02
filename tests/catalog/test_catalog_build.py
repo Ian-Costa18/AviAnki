@@ -18,6 +18,7 @@ from pipeline_fakes import (
     JAY,
     JUNK_AUDIO,
     LABELS,
+    CHICKADEE_LABEL,
     ROBIN_LABEL,
     PHOTO,
     REGION_DC,
@@ -128,7 +129,7 @@ def test_a_small_image_is_rejected_and_the_next_candidate_used():
     assert "too small" in reasons["tiny-advertised"]
     assert reasons["tiny-real"].startswith("image:") and "800" in reasons["tiny-real"]
     assert built.provenance.entries[built.species[ROBIN].photo[0].file].token == "good"
-    assert inat.calls_of("candidates") == [("candidates", (ROBIN,), AUDIO, 5)]  # photo not asked of source 2
+    assert inat.calls_of("candidates") == [("candidates", (ROBIN,), AUDIO, 10)]  # photo not asked of source 2
 
 
 def test_a_candidate_that_has_gone_is_skipped_but_other_errors_are_not_absence():
@@ -149,11 +150,11 @@ def test_a_candidate_that_has_gone_is_skipped_but_other_errors_are_not_absence()
     assert [f.species_id for f in built.report.source_failures] == [JAY]
 
 
-def test_audio_stops_at_the_first_pass_and_never_fetches_later_candidates():
+def test_audio_stops_at_the_first_good_clip_and_never_fetches_later_candidates():
     commons, inat = FakeSource("commons"), FakeSourceNoSpecies("inaturalist")
     for token in ("a1", "a2", "a3"):
         commons.add(ROBIN, AUDIO, token)
-    analyzer = ScriptedAnalyzer([0.2, 0.3], [0.7, 0.1], [0.99])
+    analyzer = ScriptedAnalyzer([0.2, 0.3], [0.7, 0.7, 0.7], [0.99])
     built = species_build(commons, inat, analyzer=analyzer, ids=[ROBIN])
     assert commons.fetched == ["a1", "a2"]  # a3 was never downloaded
     entry = built.provenance.entries[built.species[ROBIN].audio[0].file]
@@ -162,6 +163,61 @@ def test_audio_stops_at_the_first_pass_and_never_fetches_later_candidates():
     assert analyzer.calls == [ROBIN_LABEL] * 2
     mp3 = built.media[built.species[ROBIN].audio[0].file]
     assert mp3[:3] == b"ID3" or mp3[0] == 0xFF  # an MP3 the pipeline encoded, not the source's WAV
+
+
+def test_the_first_good_clip_wins_over_a_later_one_that_scores_higher():
+    commons, inat = FakeSource("commons"), FakeSourceNoSpecies("inaturalist")
+    for token in ("modest", "perfect"):
+        commons.add(ROBIN, AUDIO, token)
+    built = species_build(commons, inat, analyzer=ScriptedAnalyzer([0.6] * 4, [0.99] * 4), ids=[ROBIN])
+    assert commons.fetched == ["modest"]
+    assert built.provenance.entries[built.species[ROBIN].audio[0].file].token == "modest"
+
+
+def test_without_a_good_clip_the_usable_one_with_the_best_quality_is_used_and_counted():
+    commons, inat = FakeSource("commons"), FakeSourceNoSpecies("inaturalist")
+    for token in ("faint", "contested", "silent"):
+        commons.add(ROBIN, AUDIO, token)
+    loud_chickadee = {CHICKADEE_LABEL: 0.6, "Cardinalis cardinalis_Northern Cardinal": 0.99}  # only ours counts
+    analyzer = ScriptedAnalyzer(
+        [0.5, 0.1, 0.1, 0.0],  # present in a third of the clip: usable, quality 0.233
+        [0.9, 0.9, 0.1, 0.0],  # present in two thirds, but a chickadee at 0.6: quality 0.333
+        [0.2, 0.2, 0.2, 0.2],  # never reaches the gate
+        others=[{}, loud_chickadee, {}],
+    )
+    built = species_build(commons, inat, analyzer=analyzer, ids=[ROBIN])
+    assert commons.fetched == ["faint", "contested", "silent"]
+    entry = built.provenance.entries[built.species[ROBIN].audio[0].file]
+    assert entry.token == "contested"
+    assert (entry.audio_rule, entry.presence, entry.competitor) == (2, 0.6667, 0.6)
+    assert entry.quality == pytest.approx(0.3333, abs=1e-4)
+    assert entry.birdnet_confidence == 0.9
+    rep = built.report
+    assert rep.audio_not_good == [ROBIN] and rep.audio_candidates_tried == 3
+    assert rep.audio_scores[ROBIN] == (0.6667, 0.6, 0.3333)
+    assert rep.species_without_audio == []
+    assert [r.token for r in rep.rejections if r.kind == "audio"] == ["silent"]
+
+
+def test_a_species_whose_candidates_are_all_unusable_gets_no_audio():
+    commons, inat = FakeSource("commons"), FakeSourceNoSpecies("inaturalist")
+    for token in ("a", "b"):
+        commons.add(ROBIN, AUDIO, token)
+    built = species_build(commons, inat, analyzer=ScriptedAnalyzer([0.4] * 4), ids=[ROBIN])
+    assert built.species[ROBIN].audio == [] and built.report.species_without_audio == [ROBIN]
+    assert built.report.audio_not_good == []
+
+
+def test_the_shipped_clip_is_cut_where_the_bird_starts(monkeypatch):
+    from avianki.catalog import build as build_module
+
+    starts: list[float] = []
+    real = build_module.process_audio
+    monkeypatch.setattr(build_module, "process_audio", lambda data, start_s=0.0: starts.append(start_s) or real(data, start_s))
+    commons, inat = FakeSource("commons"), FakeSourceNoSpecies("inaturalist")
+    commons.add(ROBIN, AUDIO, "late")
+    species_build(commons, inat, analyzer=ScriptedAnalyzer([0.0, 0.9, 0.9, 0.9]), ids=[ROBIN])
+    assert starts == [3.0]  # the 14 s recording's first step at the gate (3 s), not second 0
 
 
 def test_an_unreadable_recording_is_skipped_without_scoring_it():
@@ -176,20 +232,20 @@ def test_an_unreadable_recording_is_skipped_without_scoring_it():
     assert built.provenance.entries[built.species[ROBIN].audio[0].file].token == "fine"
 
 
-def test_at_most_five_audio_candidates_across_all_sources():
+def test_at_most_ten_audio_candidates_across_all_sources():
     commons, inat = FakeSource("commons"), FakeSourceNoSpecies("inaturalist")
-    for i in range(3):
+    for i in range(6):
         commons.add(ROBIN, AUDIO, f"c{i}")
-    for i in range(4):
+    for i in range(6):
         inat.add(ROBIN, AUDIO, f"i{i}")
     analyzer = ScriptedAnalyzer([0.1])
     built = species_build(commons, inat, analyzer=analyzer, ids=[ROBIN])
-    assert len(commons.fetched) + len(inat.fetched) == 5
-    assert len(analyzer.calls) == 5
+    assert len(commons.fetched) + len(inat.fetched) == 10
+    assert len(analyzer.calls) == 10
     assert built.species[ROBIN].audio == []
     assert built.report.species_without_audio == [ROBIN]  # every source answered: real absence
     audio_limits = [c[3] for c in commons.calls_of("candidates") + inat.calls_of("candidates") if c[2] is AUDIO]
-    assert audio_limits == [5, 2]  # the second source is only asked for the slots left
+    assert audio_limits == [10, 4]  # the second source is only asked for the slots left
 
 
 def test_no_birdnet_label_and_no_pin_means_no_audio_and_no_request():
@@ -536,6 +592,64 @@ def test_a_previous_asset_whose_licence_is_no_longer_allowed_is_rebuilt(tmp_path
     new = result.catalog.species[JAY].photo[0].file
     assert result.catalog.provenance.entries[new].record.licence_id != "CC-BY-NC-4.0"  # type: ignore[union-attr]
     assert set(commons.candidate_species()) <= {JAY}
+
+
+def without_audio_rule(cat) -> Any:
+    """``cat``'s provenance as an older build would have published it: audio with no rule or scores."""
+    assert cat.provenance is not None
+    entries = {
+        name: replace(e, audio_rule=None, presence=None, competitor=None, quality=None) if e.kind == "audio" else e
+        for name, e in cat.provenance.entries.items()
+    }
+    return ProvenanceFile(entries)
+
+
+def test_audio_from_before_the_selection_rule_is_reselected_once_and_photos_are_kept(
+    tmp_path: Path, first: BuildResult
+):
+    assert first.catalog is not None
+    old = mutated_copy(first.catalog, tmp_path / "old", provenance=without_audio_rule(first.catalog))
+    commons, inat = full_sources()
+    result, _, _ = go(tmp_path / "two", commons, inat, previous=old)
+    assert result.catalog is not None and result.catalog.provenance is not None
+    assert result.report.sticky_invalidated == len(IDS)  # one audio clip per species, no photos
+    assert all(f"{sid}-ca" in commons.fetched for sid in IDS) and not any(t.endswith("-cp") for t in commons.fetched)
+    for sid in IDS:
+        entry = result.catalog.provenance.entries[result.catalog.species[sid].audio[0].file]
+        assert (entry.audio_rule, entry.presence, entry.competitor) == (2, 1.0, 0.0)
+    assert result.validation is not None and not result.validation.errors, result.validation.errors
+    # and it sticks: a build on top of that one asks the sources for nothing
+    commons2, inat2 = full_sources()
+    again, _, _ = go(tmp_path / "three", commons2, inat2, previous=result.catalog)
+    assert (again.report.sticky_invalidated, again.report.reused) == (0, len(IDS))
+    assert commons2.fetched == []
+
+
+def test_old_audio_stays_when_the_reselection_cannot_run(tmp_path: Path, first: BuildResult):
+    assert first.catalog is not None
+    old = mutated_copy(first.catalog, tmp_path / "old", provenance=without_audio_rule(first.catalog))
+    old_audio = old.species[ROBIN].audio[0].file
+    commons, inat = full_sources()
+    commons.candidate_errors[ROBIN] = SourceError("HTTP 503")
+    result, _, _ = go(tmp_path / "two", commons, inat, previous=old)
+    assert result.catalog is not None
+    assert result.catalog.species[ROBIN].audio[0].file == old_audio  # a flaky source never costs a clip
+    assert [(f.source, f.species_id) for f in result.report.source_failures] == [("commons", ROBIN)]
+    assert result.catalog.provenance.entries[old_audio].audio_rule is None  # so the next build tries again
+
+
+def test_pinned_audio_carries_no_rule_and_is_never_invalidated_by_one(tmp_path: Path, first: BuildResult):
+    assert first.catalog is not None
+    commons, inat = full_sources()
+    commons.add(ROBIN, AUDIO, "chosen")
+    pins = pins_for('[turdus-migratorius]\naudio = "commons:chosen"\nnote = "n"\n')
+    pinned, _, _ = go(tmp_path / "two", commons, inat, previous=first.catalog, pins=pins)
+    assert pinned.catalog is not None and pinned.catalog.provenance is not None
+    entry = pinned.catalog.provenance.entries[pinned.catalog.species[ROBIN].audio[0].file]
+    assert (entry.verified, entry.audio_rule, entry.presence) == ("pinned", None, None)
+    commons3, inat3 = full_sources()
+    third, _, _ = go(tmp_path / "three", commons3, inat3, previous=pinned.catalog, pins=pins)
+    assert third.report.sticky_invalidated == 0 and commons3.fetched == []
 
 
 def test_a_pin_failure_keeps_the_previous_entry_and_is_reported(tmp_path: Path, first: BuildResult):

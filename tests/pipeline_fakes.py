@@ -111,17 +111,31 @@ JUNK_AUDIO = b"this is not an audio file"
 
 class ScriptedAnalyzer:
     """A stand-in for the BirdNET model: each `predict` call returns the next scripted list of
-    3 s window confidences (the last script repeats once the list runs out)."""
+    confidences for the target, one window per ``step_s`` (3 s by default, so a script is a few
+    whole windows; the last script repeats once the list runs out).
 
-    def __init__(self, *scripts: Sequence[float], labels: Sequence[str] = LABELS) -> None:
+    ``others[i]`` maps competing labels to confidences for every window of call ``i``.
+    """
+
+    def __init__(
+        self,
+        *scripts: Sequence[float],
+        labels: Sequence[str] = LABELS,
+        others: Sequence[dict[str, float]] = (),
+        step_s: float = 3.0,
+    ) -> None:
         self.scripts = [list(s) for s in scripts] or [[0.0]]
+        self.others = list(others)
         self.labels = list(labels)
+        self.step_s = step_s
         self.calls: list[str] = []
 
     def predict(self, path: Path, label: str) -> list[WindowScore]:
+        n = len(self.calls)
         self.calls.append(label)
         script = self.scripts.pop(0) if len(self.scripts) > 1 else self.scripts[0]
-        return [WindowScore(i * 3.0, i * 3.0 + 3.0, c) for i, c in enumerate(script)]
+        around = self.others[n] if n < len(self.others) else {}
+        return [WindowScore(i * self.step_s, i * self.step_s + 3.0, c, dict(around)) for i, c in enumerate(script)]
 
 
 # ---------------------------------------------------------------------------------------
