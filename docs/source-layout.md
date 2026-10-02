@@ -22,6 +22,7 @@ src/avianki/
     commons/             AssetSource: Wikipedia lead image + Commons audio
       source.py            CommonsSource: batched Wikipedia/Wikidata/Commons queries, fetch, resolve_pin
       parse.py             pure: payload parsers, taxon guard, photo/audio gates, credit chain, ranking
+      xenocanto.py         xeno-canto API v3 metadata lookup (grade, background species) that orders Commons audio; the key is a secret param, ADR 0031
     inaturalist/         AssetSource: photo fallback, audio
       source.py          INaturalistSource: taxon mapping + plausibility check (ADR 0008), candidates, fetch, pins
       parse.py           pure: /taxa, species_counts and observation parsing; the photo and sound gates (ADR 0011)

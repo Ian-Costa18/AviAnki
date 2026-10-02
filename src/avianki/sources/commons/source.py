@@ -20,6 +20,11 @@ Audio candidates are ranked best first by `parse.audio_rank_key`: (1) duration b
 first up to 120 s; (4) lower page id. The same xeno-canto recording is often uploaded
 both as ``.ogg`` and ``.mp3``; only the best-ranked copy is kept.
 
+When a `XenoCantoLookup` is given, that rank is refined first by xeno-canto's own metadata for
+the recordings that mirror it (ADR 0031): recordings with no background species, then by quality
+grade A to E, then the order above. It orders and never rejects; without a key or when the API
+fails, the order above stands and the lookup leaves a note for the build report (`notes`).
+
 **Failure versus absence** (ADR 0007). No article, no lead image, a disambiguation page,
 a failed taxon guard, no audio category: absence. Any HTTP error, exhausted ``maxlag``
 retry, exhausted budget, or a response without the structure the parser expects:
@@ -37,6 +42,7 @@ from typing import Any, TypeVar
 from avianki.core.http import HttpClient, Limits, SourceError
 from avianki.core.licences import AssetRecord
 from avianki.sources.commons import parse
+from avianki.sources.commons.xenocanto import XcInfo, XenoCantoLookup, order_key
 from avianki.sources.contract import AssetKind, AssetSource, Candidate, FetchedAsset, SpeciesId
 from avianki.taxonomy.species import SpeciesRow, SpeciesTable
 
@@ -66,6 +72,12 @@ def _chunks(items: Sequence[_T], size: int) -> Iterator[list[_T]]:
         yield list(items[i : i + size])
 
 
+def _xc_number(title: str) -> str | None:
+    """The xeno-canto number a Commons file name mirrors, without leading zeros."""
+    key = parse.recording_key(title)
+    return str(int(key)) if key is not None else None
+
+
 def _media_type(content_type: str) -> str:
     return content_type.split(";", 1)[0].strip().lower()
 
@@ -76,9 +88,10 @@ class CommonsSource(AssetSource):
     republishable = True
     limits = LIMITS
 
-    def __init__(self, client: HttpClient, species: SpeciesTable) -> None:
+    def __init__(self, client: HttpClient, species: SpeciesTable, xc: XenoCantoLookup | None = None) -> None:
         self._client = client
         self._species = species
+        self._xc = xc
         self.stats: Counter[str] = Counter()
         """Files and species turned away so far, by reason code (for the build report)."""
         self.guard_drops: dict[SpeciesId, str] = {}
@@ -97,6 +110,9 @@ class CommonsSource(AssetSource):
         if kind is AssetKind.PHOTO:
             return self._photos(rows)
         return self._audio(rows, limit)
+
+    def notes(self) -> list[str]:
+        return self._xc.notes() if self._xc is not None else []
 
     def fetch(self, candidate: Candidate) -> FetchedAsset:
         record = candidate.record
@@ -241,18 +257,23 @@ class CommonsSource(AssetSource):
             if category not in sizes:
                 self._skip(sid, "no-audio-category", category)
                 continue
-            ranked: list[tuple[tuple[int, int, float, int], parse.FileInfo, AssetRecord]] = []
-            seen_recordings: set[str] = set()
+            gated_files: list[tuple[parse.FileInfo, AssetRecord]] = []
             for info in self._category_files(category):
                 gated = parse.audio_record(info, retrieved_at, species_name=row.sci_name)
                 if isinstance(gated, parse.Reject):
                     self.stats[f"audio-{gated.reason}"] += 1
                     log.debug("commons: %s: %s rejected: %s", sid, info.title, gated)
                     continue
+                gated_files.append((info, gated))
+            xc = self._xeno_canto([info for info, _ in gated_files])
+            ranked: list[tuple[tuple[Any, ...], parse.FileInfo, AssetRecord]] = []
+            for info, gated in gated_files:
                 key = parse.audio_rank_key(info.duration, gated.licence_id, info.pageid)
-                ranked.append((key, info, gated))
+                recording = _xc_number(info.title)
+                ranked.append(((*order_key(xc.get(recording) if recording else None), *key), info, gated))
             ranked.sort(key=lambda t: t[0])
             picked: list[Candidate] = []
+            seen_recordings: set[str] = set()
             for _, info, record in ranked:
                 recording = parse.recording_key(info.title)
                 if recording is not None:
@@ -260,7 +281,8 @@ class CommonsSource(AssetSource):
                         self.stats["audio-duplicate"] += 1
                         continue
                     seen_recordings.add(recording)
-                picked.append(self._candidate(sid, AssetKind.AUDIO, info, record))
+                number = _xc_number(info.title)
+                picked.append(self._candidate(sid, AssetKind.AUDIO, info, record, xc.get(number) if number else None))
                 if len(picked) == limit:
                     break
             if picked:
@@ -268,6 +290,13 @@ class CommonsSource(AssetSource):
             else:
                 self._skip(sid, "no-usable-audio", f"{sizes[category]} files in {category}, none passed")
         return out
+
+    def _xeno_canto(self, files: Sequence[parse.FileInfo]) -> dict[str, XcInfo]:
+        """xeno-canto's metadata for the files that mirror a recording there; ``{}`` when off."""
+        if self._xc is None:
+            return {}
+        numbers = [n for n in (_xc_number(info.title) for info in files) if n]
+        return self._xc.metadata(numbers) if numbers else {}
 
     def _category_files(self, category: str) -> list[parse.FileInfo]:
         """Up to ``MAX_AUDIO_PAGES`` pages of the category's files, each once."""
@@ -345,8 +374,12 @@ class CommonsSource(AssetSource):
         log.debug("commons: %s: no candidate (%s): %s", sid, reason, detail)
 
     @staticmethod
-    def _candidate(sid: SpeciesId, kind: AssetKind, info: parse.FileInfo, record: AssetRecord) -> Candidate:
+    def _candidate(
+        sid: SpeciesId, kind: AssetKind, info: parse.FileInfo, record: AssetRecord, xc: XcInfo | None = None
+    ) -> Candidate:
         if kind is AssetKind.PHOTO:
             return Candidate(sid, kind, record.source_asset_id, record, width=info.width, height=info.height)
         # Candidate has no duration field: it is used for ranking here and not carried on.
+        if xc is not None:
+            return Candidate(sid, kind, record.source_asset_id, record, xc_quality=xc.quality, xc_background=xc.background)
         return Candidate(sid, kind, record.source_asset_id, record)

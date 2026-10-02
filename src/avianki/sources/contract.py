@@ -90,8 +90,11 @@ class Candidate:
     """An asset a source offers, before download: metadata and licence record only.
 
     ``token`` is the opaque, source-native pin token (`AssetSource.resolve_pin`).
-    The last three fields are optional ranking/filter hints the pipeline reads
+    The last five fields are optional ranking/filter hints the pipeline reads
     without knowing which source produced them; None means the source doesn't say.
+    ``xc_quality`` and ``xc_background`` are xeno-canto's grade and background-species count
+    for a Commons recording that mirrors one (ADR 0031); like the rest they steer selection
+    only and never reach the catalog.
     """
 
     species_id: SpeciesId
@@ -101,6 +104,8 @@ class Candidate:
     width: int | None = None  # pixels, photos: the 800 px long-side filter (ADR 0011)
     height: int | None = None
     agreements: int | None = None  # community ID agreements: iNat ranking (ADR 0011)
+    xc_quality: str | None = None  # xeno-canto grade "A" to "E": Commons audio ordering (ADR 0031)
+    xc_background: int | None = None  # background species xeno-canto lists; 0 = a clean recording
 
 
 @dataclass(frozen=True)
@@ -161,3 +166,10 @@ class AssetSource(ABC):
         Raises `SourceError` if the token no longer resolves (deleted, relicensed) or
         the lookup fails; there is no "empty" answer to a pin.
         """
+
+    def notes(self) -> list[str]:
+        """Lines for the build report about this run, such as a lookup that fell back.
+
+        Read once, after the source's last call. Most sources have nothing to say.
+        """
+        return []

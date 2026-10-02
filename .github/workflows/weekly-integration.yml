@@ -25,6 +25,8 @@ jobs:
     timeout-minutes: 60
     env:
       EBIRD_API_KEY: ${{ secrets.EBIRD_API_KEY }}
+      # The live xeno-canto lookup (tests/sources/test_xenocanto.py) skips without it, and skips are not allowed.
+      XC_API_KEY: ${{ secrets.XC_API_KEY }}
       # birdnet downloads its 77 MB model on first use; pinning the location lets it be cached.
       BIRDNET_APP_DATA: ${{ github.workspace }}/.cache/birdnet
     steps:

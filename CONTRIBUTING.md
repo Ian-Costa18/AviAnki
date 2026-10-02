@@ -11,7 +11,7 @@
    uv sync --group dev --extra catalog
    ```
 
-3. Copy `.env.example` to `.env` and add your eBird API key (`EBIRD_API_KEY`) if you plan to test `avianki --ebird` or run the integration tests
+3. Copy `.env.example` to `.env` and add your eBird API key (`EBIRD_API_KEY`) if you plan to test `avianki --ebird` or run the integration tests. Add a xeno-canto key (`XC_API_KEY`, free at xeno-canto.org/account) if you run `avianki-catalog build`, so Commons audio is ordered by xeno-canto metadata ([ADR 0031](docs/adr/0031-audio-quality-selection.md)); without it the build keeps the default order and says so in its report
 
 ## Quick verification checklist
 
@@ -43,7 +43,7 @@ uv run --python 3.14 pytest
 
 Fix Dependabot alerts as soon as you see them: `uv lock --upgrade-package NAME`, then run the tests, in a commit of their own.
 
-The integration tests hit real network sources and are skipped by default. Pass `--integration` to opt in, and add `-m integration` to run only them. They are the weekly check's tests (below) plus the live BirdNET test, which needs the `verify` extra (`uv sync --extra verify` on Python 3.11-3.13). A network failure fails the test; the only skip is the eBird test without `EBIRD_API_KEY`.
+The integration tests hit real network sources and are skipped by default. Pass `--integration` to opt in, and add `-m integration` to run only them. They are the weekly check's tests (below) plus the live BirdNET test, which needs the `verify` extra (`uv sync --extra verify` on Python 3.11-3.13). A network failure fails the test; the only skips are the eBird test without `EBIRD_API_KEY` and the live xeno-canto lookup without `XC_API_KEY`.
 
 ### The weekly integration check
 

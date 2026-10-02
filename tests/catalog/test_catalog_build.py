@@ -636,3 +636,17 @@ def test_dataset_credits_say_ebird_gives_the_english_names_and_ioc_the_scientifi
     assert ebird.modifications == "filtered and ranked by region; English species names"
     assert ioc.text == "IOC World Bird List (Gill, Donsker and Rasmussen, eds.), for scientific names"
     assert ioc.modifications == "matched to GBIF taxa"
+
+
+def test_a_source_s_notes_land_in_the_build_report():
+    class Noting(FakeSource):
+        def notes(self) -> list[str]:
+            return ["xeno-canto: XC_API_KEY is not set; Commons audio candidates keep their default order (ADR 0031)"]
+
+    commons = Noting("commons")
+    _, inat = full_sources()
+    for sid in IDS:
+        commons.add(sid, PHOTO, f"{sid}-cp")
+        commons.add(sid, AUDIO, f"{sid}-ca")
+    built = species_build(commons, inat)
+    assert sum("XC_API_KEY is not set" in n for n in built.report.notes) == 1
