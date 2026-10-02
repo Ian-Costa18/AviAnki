@@ -5,9 +5,15 @@ share a file.
 
 from __future__ import annotations
 
+from urllib.parse import urlparse
+
 import pytest
 from app_support import build, open_app
 from web_support import REPO
+
+
+def _hosts(links: list[str]) -> set[str]:
+    return {urlparse(link).hostname or "" for link in links}
 
 ANDROID_CHROME = (
     "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -163,7 +169,7 @@ def test_android_emulation_preselects_the_android_tab(new_context, base_url) -> 
     assert guide["selected"] == ["android"]
     assert guide["shown"] == ["android"]
     assert "AnkiDroid" in guide["text"]
-    assert any("play.google.com" in href for href in guide["links"])
+    assert "play.google.com" in _hosts(guide["links"])
     page.click("#study-pick-tab-ios")  # the others are one tap away
     assert _guide(page)["selected"] == ["ios"]
 
@@ -176,7 +182,7 @@ def test_iphone_emulation_preselects_ios_and_shows_two_equal_paths_free_first(ne
     assert "US$24.99" in guide["text"]
     assert "supports Anki's development" in guide["text"]
     assert "AnkiWeb" in guide["text"]
-    assert any("apps.apple.com" in href for href in guide["links"])
+    assert "apps.apple.com" in _hosts(guide["links"])
     assert any(href.rstrip("/") == "https://ankiweb.net" for href in guide["links"])
     # equal weight: the two paths are siblings with the same styling, neither inside the other
     sizes = page.eval_on_selector_all("#study-pick section.path", "els => els.map(e => e.className)")
@@ -200,7 +206,7 @@ def test_desktop_preselects_the_computer_tab(new_context, engine_name, base_url)
     page = open_app(new_context(engine_name), base_url)
     guide = _guide(page)
     assert guide["selected"] == ["desktop"]
-    assert any("apps.ankiweb.net" in href for href in guide["links"])
+    assert "apps.ankiweb.net" in _hosts(guide["links"])
     assert "Study Now" in guide["text"]
 
 
