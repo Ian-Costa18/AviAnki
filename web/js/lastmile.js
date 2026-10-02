@@ -36,30 +36,34 @@ const TABS = [
 ];
 
 // Text is a list of pieces: plain strings, bold pieces and links. The copy follows ADR 0030: friendly,
-// one action per step, and never an assumption that anyone will pay.
+// one action per step, button names exactly as the apps show them, and never an assumption that
+// anyone will pay. "Deck file" is the one name for the download, everywhere.
+const IMPORT_STEP = ["Double-click your deck file, then click ", bold("Import"), "."];
 const PANELS = {
   [IOS]: {
-    intro: ["There are two ways to study on an iPhone or iPad. Pick whichever suits you."],
+    intro: ["There are two good ways to study on iPhone and iPad. Pick whichever suits you."],
     paths: [
       {
-        title: "Free, needs a computer once",
-        lead: ["AnkiWeb, Anki's free website, can't open a deck file on its own, so a computer helps get your deck there. After that, you can study on your phone."],
+        title: "Free: study on AnkiWeb",
+        lead: ["AnkiWeb is Anki's free website. It can't open a deck file by itself, so you'll set it up once on a computer."],
         steps: [
-          ["Get ", link("Anki", ANKI_DESKTOP), " on a computer. It's free."],
-          ["On that computer, build your deck on this page and open the file. Anki adds it."],
-          ["In Anki, click ", bold("Sync"), " and sign in to ", link("AnkiWeb", ANKIWEB),
-            ". You can sign up there for free. If Anki asks, choose ", bold("Upload"), "."],
-          ["On your iPhone or iPad, open Safari, go to ", link("ankiweb.net", ANKIWEB), " and sign in."],
-          ["Open ", bold("AviAnki"), " to start studying."],
+          ["On a computer, get ", link("Anki", ANKI_DESKTOP), ". It's free."],
+          ["On that computer, make your deck on this page."],
+          IMPORT_STEP,
+          ["Click ", bold("Sync"), " and sign in to ", link("AnkiWeb", ANKIWEB), ", or sign up there for free."],
+          ["If Anki asks “Replace it with local collection?”, click ", bold("Yes"), ". This only comes up the first time."],
+          ["On your iPhone or iPad, go to ", link("ankiweb.net", ANKIWEB), " in Safari and sign in."],
+          ["Tap ", bold("AviAnki"), " to start studying."],
         ],
-        note: ["You'll need an internet connection to study this way."],
+        note: ["AnkiWeb is a website, so you'll need to be online to study."],
       },
       {
-        title: "Paid app, phone only",
-        lead: [link("AnkiMobile", ANKIMOBILE), " is Anki's own app for iPhone and iPad. It costs US$24.99, and that supports Anki's development."],
+        title: "Paid: the AnkiMobile app",
+        lead: [link("AnkiMobile", ANKIMOBILE), " is Anki's official app for iPhone and iPad. It costs US$24.99, paid once, and helps fund Anki's development. No computer needed."],
         steps: [
           ["Get ", link("AnkiMobile", ANKIMOBILE), " from the App Store."],
-          ["Find the file you downloaded, tap ", bold("Share"), ", then choose ", bold("AnkiMobile"), "."],
+          ["In the ", bold("Files"), " app, open ", bold("Downloads"), " and tap your deck file."],
+          ["Tap the ", bold("Share"), " button, then choose ", bold("AnkiMobile"), "."],
           ["Tap ", bold("AviAnki"), " to start studying."],
         ],
       },
@@ -68,24 +72,27 @@ const PANELS = {
   [ANDROID]: {
     steps: [
       ["Get ", link("AnkiDroid", ANKIDROID), " from the Play Store. It's free."],
-      ["Open the file you downloaded. If your phone asks, choose ", bold("AnkiDroid"), ", then tap ", bold("Add"), "."],
+      ["Open your deck file from your downloads. If your phone asks which app to use, choose ", bold("AnkiDroid"), "."],
+      ["When AnkiDroid asks to add it to your collection, tap ", bold("Add"), "."],
       ["Tap ", bold("AviAnki"), " to start studying."],
     ],
   },
   [DESKTOP]: {
     steps: [
       ["Get ", link("Anki", ANKI_DESKTOP), " for Windows, Mac or Linux. It's free."],
-      ["Open the file you downloaded. Anki adds your deck."],
+      IMPORT_STEP,
       ["Click ", bold("AviAnki"), ", then ", bold("Study Now"), "."],
     ],
+    note: ["Want your birds on your phone too? Click ", bold("Sync"), " to save them to a free ",
+      link("AnkiWeb", ANKIWEB), " account, then sign in to the same account on your phone."],
   },
 };
 
 // The same words as the deck description (deck/credits.py, ADR 0016), so a closed page loses nothing.
 const WHAT_YOULL_SEE = [
   "Look at the photo or listen, think of the name, then tap ", bold("Show Answer"), ". Tap ", bold("Good"),
-  " if you knew it and ", bold("Again"), " if you didn't. Anki shows you ", bold("20 new birds a day"),
-  " so you're never swamped. The rest arrive over the next few days. That's normal, not broken.",
+  " if you knew it and ", bold("Again"), " if you didn't. Anki starts you on ", bold("20 new cards a day"),
+  " so you're never swamped. The rest arrive day by day. That's normal, not broken.",
 ];
 
 function fill(parent, pieces) {
@@ -121,7 +128,7 @@ function stepList(steps) {
 }
 
 function buildPanel(id, platform) {
-  const { intro, paths, steps } = PANELS[platform];
+  const { intro, paths, steps, note } = PANELS[platform];
   const panel = el("div", {
     className: "steps",
     attrs: { role: "tabpanel", id: `${id}-panel-${platform}`, "aria-labelledby": `${id}-tab-${platform}`, tabindex: "0" },
@@ -130,6 +137,7 @@ function buildPanel(id, platform) {
   panel.hidden = true;
   if (intro) panel.append(el("p", { pieces: intro }));
   if (steps) panel.append(stepList(steps));
+  if (note) panel.append(el("p", { className: "hint", pieces: note }));
   paths?.forEach((path, i) => {
     const headingId = `${id}-${platform}-path-${i + 1}`;
     const box = el("section", { className: "path", attrs: { "aria-labelledby": headingId } });
@@ -155,7 +163,7 @@ function buildPanel(id, platform) {
 export function renderStudyGuide(container, platform, { id, heading }) {
   const first = TABS.some((t) => t.platform === platform) ? platform : DESKTOP;
   const title = el("h3", { text: heading, attrs: { id: `${id}-title`, tabindex: "-1" } });
-  const hint = el("p", { className: "hint", text: "Your deck is one AviAnki file. Choose your device to see how to open it." });
+  const hint = el("p", { className: "hint", text: "Choose your device to see the steps." });
   const list = el("div", { className: "tabs", attrs: { role: "tablist", "aria-label": "Your device" } });
   const tabs = new Map();
   const panels = new Map();

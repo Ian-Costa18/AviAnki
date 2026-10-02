@@ -16,8 +16,8 @@ from avianki.catalog.format import DatasetCredit, Manifest, MediaRef
 STUDY_GUIDANCE: Final[tuple[str, ...]] = (
     "Look at the photo or listen, think of the name, then tap Show Answer.",
     "Tap Good if you knew it and Again if you didn't.",
-    "Anki shows you 20 new birds a day so you're never swamped. "
-    "The rest arrive over the next few days. That's normal, not broken.",
+    "Anki starts you on 20 new cards a day so you're never swamped. "
+    "The rest arrive day by day. That's normal, not broken.",
 )
 
 # ADR 0012, verbatim.

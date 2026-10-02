@@ -56,26 +56,27 @@
   <!-- Screen 1: Pick -->
   <section id="screen-pick" aria-labelledby="pick-title">
     <h2 id="pick-title" class="pitch" tabindex="-1">Learn the birds where you live, by sight and sound.</h2>
+    <p class="lede">Pick a place, and we'll make you a deck of flashcards of its birds, with photos and sounds.</p>
 
     <form id="form" novalidate>
       <div class="field">
         <label for="region">Where do you go birding?</label>
         <select id="region" name="region" required disabled aria-describedby="not-listed">
-          <option value="">Loading the list&hellip;</option>
+          <option value="">Loading places&hellip;</option>
         </select>
         <p id="region-problem" class="problem" hidden>Pick your state or province, and we'll find your birds.</p>
       </div>
-      <p id="not-listed" class="hint">Not in the list? The website covers the US and Canada for now.
-        <a href="https://github.com/Ian-Costa18/AviAnki#readme">The command-line tool works anywhere.</a></p>
+      <p id="not-listed" class="hint">Not in the list? The website covers the US and Canada for now, and
+        <a href="https://github.com/Ian-Costa18/AviAnki#readme">the command-line version</a> works anywhere.</p>
 
       <button type="submit" id="build" class="primary" disabled>Build my deck</button>
-      <p class="hint" id="anki-line">You'll study your deck in <strong>Anki</strong>, a flashcard app that's free on computers and Android.
-        <a href="#study-pick" id="study-link">See how studying works</a></p>
+      <p class="hint" id="anki-line">You'll study it in <strong>Anki</strong>, a flashcard app that's free on computers,
+        Android and the web. <a href="#study-pick" id="study-link">See how studying works</a></p>
       <p id="parts-hint" class="hint" aria-live="polite" hidden></p>
 
       <section id="customize" class="customize" aria-labelledby="customize-title">
         <h3 id="customize-title">Customize your cards</h3>
-        <p class="hint">Choose a look for your cards. The preview below shows how they'll turn out.</p>
+        <p class="hint">Pick a look. The preview shows how your cards will turn out.</p>
 
         <div class="field">
           <label for="theme">Theme</label>
@@ -86,7 +87,7 @@
         </div>
 
         <label class="choice"><input type="checkbox" id="name-on-photo" name="name_on_photo">
-          <span><strong>Name on the photo:</strong> show the bird's name over the bottom of the picture on the answer</span></label>
+          <span><strong>Name on the photo:</strong> show the bird's name across the bottom of the photo on the answer</span></label>
 
         <fieldset id="custom" class="custom" hidden>
           <legend>Your custom theme</legend>
@@ -94,16 +95,16 @@
             <label for="custom-from">Start from</label>
             <select id="custom-from"></select>
           </div>
-          <div id="swatches" class="swatches" role="group" aria-label="Colours"></div>
+          <div id="swatches" class="swatches" role="group" aria-label="Colors"></div>
           <div id="custom-choices" class="choices"></div>
           <button type="button" id="copy-theme" class="secondary">Copy theme</button>
           <p id="copy-status" class="hint" role="status" aria-live="polite"></p>
           <textarea id="theme-text" class="theme-text" rows="14" readonly hidden aria-label="Theme file text"></textarea>
         </fieldset>
 
-        <p id="theme-note" class="hint">Anki keeps one look for all your cards. If you import a deck with a different
-          theme, the AviAnki cards you already have change to match, and any styling you edited yourself is replaced.
-          Your look is saved in the page address, so you can bookmark it or send it to a friend.</p>
+        <p id="theme-note" class="hint">Anki uses one look for all your AviAnki cards, so a deck with a new theme
+          restyles the ones you already have and replaces any styling you changed yourself. Your look is saved in
+          the page address, so you can bookmark it or share it.</p>
 
         <div class="preview" id="preview">
           <div class="preview-bar">
@@ -129,7 +130,7 @@
       </section>
 
       <details id="advanced">
-        <summary>Advanced</summary>
+        <summary>More options</summary>
 
         <fieldset>
           <legend>How many birds?</legend>
@@ -166,11 +167,11 @@
             <span><strong>Audio:</strong> hear a bird and name it</span></label>
           <label class="choice"><input type="checkbox" name="cards" value="photo_audio">
             <span><strong>Photo and audio:</strong> see and hear a bird together</span></label>
-          <p id="cards-problem" class="problem" hidden>Choose at least one kind of card to make.</p>
+          <p id="cards-problem" class="problem" hidden>Choose at least one kind of card.</p>
         </fieldset>
 
         <label class="choice"><input type="checkbox" id="subdeck" name="subdeck">
-          <span>Put these birds in a subdeck named after the region</span></label>
+          <span>Give this place its own deck inside AviAnki, which helps if you make more than one</span></label>
       </details>
     </form>
 
@@ -184,6 +185,7 @@
     <p id="parts-announce" class="notice" hidden></p>
     <p id="progress" class="progress-text"></p>
     <progress id="bar" max="100" value="0" aria-label="Deck progress"></progress>
+    <p class="hint">Please keep this page open until your deck is ready.</p>
     <p id="announce" class="sr-only" role="status" aria-live="polite"></p>
   </section>
 
@@ -195,7 +197,7 @@
 
     <section id="study-done" class="study" aria-labelledby="study-done-title"></section>
 
-    <button type="button" id="again" class="primary">Add another region</button>
+    <button type="button" id="again" class="primary">Add another place</button>
   </section>
 </main>
 

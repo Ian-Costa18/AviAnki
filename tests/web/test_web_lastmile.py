@@ -170,6 +170,7 @@ def test_android_emulation_preselects_the_android_tab(new_context, base_url) -> 
     assert guide["shown"] == ["android"]
     assert "AnkiDroid" in guide["text"]
     assert "play.google.com" in _hosts(guide["links"])
+    assert "tap Add" in guide["text"]  # AnkiDroid's import dialog
     page.click("#study-pick-tab-ios")  # the others are one tap away
     assert _guide(page)["selected"] == ["ios"]
 
@@ -178,10 +179,14 @@ def test_iphone_emulation_preselects_ios_and_shows_two_equal_paths_free_first(ne
     page = open_app(new_context("webkit", device="iPhone 14"), base_url)
     guide = _guide(page)
     assert guide["selected"] == ["ios"]
-    assert guide["paths"] == ["Free, needs a computer once", "Paid app, phone only"]  # free first, both headed alike
+    assert guide["paths"] == ["Free: study on AnkiWeb", "Paid: the AnkiMobile app"]  # free first, both headed alike
     assert "US$24.99" in guide["text"]
-    assert "supports Anki's development" in guide["text"]
+    assert "helps fund Anki's development" in guide["text"]  # apps.ankiweb.net's own words
     assert "AnkiWeb" in guide["text"]
+    # Anki's first sync to an empty AnkiWeb account asks this, with Yes and No (ADR 0030). There is no
+    # "Upload" button on that dialog, and the one that has it would overwrite an account that has cards.
+    assert "\u201cReplace it with local collection?\u201d, click Yes" in guide["text"]
+    assert "Upload" not in guide["text"]
     assert "apps.apple.com" in _hosts(guide["links"])
     assert any(href.rstrip("/") == "https://ankiweb.net" for href in guide["links"])
     # equal weight: the two paths are siblings with the same styling, neither inside the other
@@ -208,6 +213,7 @@ def test_desktop_preselects_the_computer_tab(new_context, engine_name, base_url)
     assert guide["selected"] == ["desktop"]
     assert "apps.ankiweb.net" in _hosts(guide["links"])
     assert "Study Now" in guide["text"]
+    assert "then click Import" in guide["text"]  # Anki's import screen
 
 
 @pytest.mark.parametrize("engine_name", ["chromium", "webkit"])
@@ -248,7 +254,7 @@ def test_the_done_screen_shows_the_same_guide(new_context, base_url, tmp_path) -
     html = """(id) => [...document.querySelectorAll('#study-' + id + ' [role=tabpanel], #study-' + id + ' .what-youll-see')]
         .map((e) => e.innerHTML.replaceAll(id === 'pick' ? 'study-pick' : 'study-done', 'study')).join('|')"""
     assert page.evaluate(html, "pick") == page.evaluate(html, "done")
-    assert page.locator("#study-done h3").inner_text() == "Now, open it in Anki"
+    assert page.locator("#study-done h3").inner_text() == "Next, open it in Anki"
     page.click("#study-done-tab-ios")  # the guides are independent: the Pick screen's choice is unchanged
     assert _guide(page, "pick")["selected"] == ["android"]
 

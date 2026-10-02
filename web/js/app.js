@@ -68,8 +68,8 @@ function showError(err, retry, { retryLabel = "Try again" } = {}) {
   const format = err instanceof CatalogError && err.kind === "format";
   let text;
   if (err instanceof CatalogError) text = err.message;
-  else if (isOutOfMemory(err)) text = "Your device ran out of memory. Closing other tabs, or choosing the Standard size, usually helps.";
-  else text = "Sorry, something went wrong while building your deck. Please try again.";
+  else if (isOutOfMemory(err)) text = "Your device ran out of memory. Closing other tabs, or choosing Standard under More options, usually helps.";
+  else text = "Sorry, something went wrong while making your deck. Please try again.";
   if (!(err instanceof CatalogError)) console.error(err);
   $("error-text").textContent = text;
   const action = $("error-action");
@@ -161,7 +161,7 @@ function refreshPartsHint() {
   const big = ref && tier !== TIER_STANDARD && ref.species_count > partSize;
   if (big && (constrained || forceParts)) {
     const files = month === null ? `${Math.ceil(ref.species_count / partSize)} smaller files` : "several smaller files";
-    hint.textContent = `That's a big deck, so your device will get it as ${files} of up to ${plural(partSize, "bird")} each.`;
+    hint.textContent = `That's a big deck, so it will come as ${files} of up to ${plural(partSize, "bird")} each.`;
     hint.hidden = false;
   } else {
     hint.hidden = true;
@@ -224,8 +224,8 @@ async function buildOnce(settings) {
     }
     if (parts.length > 1) {
       const why = forceParts && !constrained ? "Your device ran out of memory, so" : "This is a big deck, so";
-      $("parts-announce").textContent = `${why} we'll build it as ${parts.length} smaller files. ` +
-        "Your browser will save each one as it's ready; open them all in Anki, in any order.";
+      $("parts-announce").textContent = `${why} it will come as ${parts.length} smaller files. ` +
+        "Your browser saves each one when it's ready. Open them all in Anki, in any order.";
       $("parts-announce").hidden = false;
       $("announce").textContent = $("parts-announce").textContent;
     }
@@ -388,7 +388,7 @@ $("again").addEventListener("click", () => show("pick"));
 
 // The study guide is one component in two places: before anyone builds anything, and on Done.
 renderStudyGuide($("study-pick"), platform, { id: "study-pick", heading: "How to study your deck" });
-renderStudyGuide($("study-done"), platform, { id: "study-done", heading: "Now, open it in Anki" });
+renderStudyGuide($("study-done"), platform, { id: "study-done", heading: "Next, open it in Anki" });
 // A plain link would put "#study-pick" in the page address, which holds the card look (#theme=...).
 $("study-link").addEventListener("click", (event) => {
   event.preventDefault();
