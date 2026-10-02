@@ -121,3 +121,26 @@ note = "Tropical Parula: the bird is a small speck in a large bush (1.0.0 contac
 exclude = ["inaturalist:P38998088:61907549"]
 note = "Western Cattle Egret: a blurred white egret through a window; doesn't show the species (1.0.1 review)"
 
+
+# Audio review for 1.0.0 (2026-10-02, ADR 0031): clips the scoring didn't rate good, heard and replaced.
+# The next build tries another recording, or the bird has no audio card.
+
+[acridotheres-cristatellus]
+exclude = ["inaturalist:S304420901:1596203"]
+note = "Crested Myna: the bird is quiet and hard to hear under background noise (audio review)"
+
+[calidris-fuscicollis]
+exclude = ["inaturalist:S120646807:464264"]
+note = "White-rumped Sandpiper: other birds are louder than the sandpiper (audio review)"
+
+[calidris-melanotos]
+exclude = ["inaturalist:S117292561:440663"]
+note = "Pectoral Sandpiper: gulls drown the sandpiper out (audio review)"
+
+[egretta-caerulea]
+exclude = ["inaturalist:S335119080:1743716"]
+note = "Little Blue Heron: the heron can't be heard at all (audio review)"
+
+[euptilotis-neoxenus]
+exclude = ["inaturalist:S194543089:863117"]
+note = "Eared Quetzal: two different birds, and it isn't clear which is the quetzal (audio review)"
