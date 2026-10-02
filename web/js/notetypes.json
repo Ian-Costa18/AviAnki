@@ -431,7 +431,7 @@
     "themes": [
       {
         "name": "default",
-        "description": "Photo first, the phone's own font, a black name.",
+        "description": "Photo first, the system font of whatever you study on, a black name.",
         "generate": false,
         "tokens": {
           "font": "sans",

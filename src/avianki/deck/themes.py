@@ -147,7 +147,7 @@ DEFAULT_TOKENS: Final = Tokens(
 )
 
 _THEME_LIST: Final[tuple[Theme, ...]] = (
-    Theme("default", "Photo first, the phone's own font, a black name.", DEFAULT_TOKENS, generate=False),
+    Theme("default", "Photo first, the system font of whatever you study on, a black name.", DEFAULT_TOKENS, generate=False),
     Theme(
         "serif",
         "A green serif name over the usual layout.",

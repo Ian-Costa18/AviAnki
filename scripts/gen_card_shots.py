@@ -58,7 +58,9 @@ if TYPE_CHECKING:  # pragma: no cover - typing only
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT_DIR = ROOT / "docs" / "examples"
-RAW = "https://raw.githubusercontent.com/Ian-Costa18/AviAnki/readme-rework/docs/examples"
+# Absolute, and pinned to the default branch: README.md is also the PyPI long description, and
+# PyPI does not resolve repo-relative paths. A branch name here would break once it is deleted.
+RAW = "https://raw.githubusercontent.com/Ian-Costa18/AviAnki/main/docs/examples"
 
 # Widespread birds a reader is likely to recognise, in order of preference. Any species with
 # both a photo and a recording stands in when none of these is in the region.
@@ -895,7 +897,7 @@ def build_hero(studio: CardStudio, shooter: Shooter, out: Path) -> None:
             body,
             "AviAnki",
             "<i>Free. No account, no API key.<br>Openly licensed media, rebuilt every month.</i>"
-            "<code>pip install avianki</code>"
+            "<code>uvx avianki us-ma</code>"
             "<em>ian-costa18.github.io/AviAnki</em>",
         ),
         1600,
