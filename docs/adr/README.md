@@ -28,7 +28,7 @@ An accepted ADR is not edited to change its decision. To change it, write a new 
 | [0020](0020-integration-monitoring.md) | The weekly check fails loudly and watches the real sources | #26 |
 | [0021](0021-contract-field-additions.md) | Four fields beyond the §5.1 record: `licence_version_assumed` and three ranking hints (amends 0007) | #40 |
 | [0022](0022-plausibility-threshold.md) | The plausibility threshold is 0.02%, not 5%, and compares like with like (amends 0008) | #41 |
-| [0023](0023-audio-first-pass.md) | Audio: first candidate that passes BirdNET wins, analysing only the first minute (amends 0011) | #41 |
+| [0023](0023-audio-first-pass.md) | ~~Audio: first candidate that passes BirdNET wins, analysing only the first minute~~ (superseded by 0031) | #41 |
 | [0024](0024-species-names-from-ebird-verbatim.md) | A GBIF backbone key takes the name eBird itself gives its records (amends 0004) | #56 |
 | [0025](0025-card-design.md) | Card design: photo first, the phone's own font, night mode, and an IOC tag (amends 0012) | #68 |
 | [0026](0026-north-american-common-names.md) | Cards use eBird's English names; IOC stays the taxonomy (amends 0004, 0008) | — |
@@ -36,3 +36,4 @@ An accepted ADR is not edited to change its decision. To change it, write a new 
 | [0028](0028-card-themes.md) | Card themes, name on the photo and custom themes: CSS only, defined once in Python (amends 0025) | #67 |
 | [0029](0029-versioned-web-assets.md) | The website's own files are versioned per deploy (`v/<sha>/`), with a reload-once fallback for a stale page | #79 |
 | [0030](0030-friendly-copy-and-device-tabs.md) | Friendlier wording, device tabs, and a study guide you can read before building (amends 0016) | #80 |
+| [0031](0031-audio-quality-selection.md) | Audio: score each clip for presence and competing birds, look at up to 10, cut on the bird; xeno-canto metadata orders Commons (supersedes 0023) | #83 |

@@ -33,7 +33,7 @@ A free, static website where a bird watcher picks their state or province, taps 
 | US and Canada, one region per state, province and territory | Mexico and the rest of North America | Worldwide catalog (the CLI's `--ebird` covers it) |
 | Photo→Name and Audio→Name (default), Photo+Audio→Name (optional) | Description→Name; second photo and second clip; song/call labels | Scheduling, custom reviewer, accounts, servers |
 | Standard (100) and Everything (400) tiers; month filter; subdeck option | Radius or hotspot regions | allaboutbirds and Macaulay as sources |
-| Automatic selection with BirdNET-verified audio; pins by PR | xeno-canto API | Community voting backend |
+| Automatic selection with BirdNET-verified audio; pins by PR | xeno-canto audio (its metadata orders candidates, ADR 0031) | Community voting backend |
 
 ## 3. Data identity
 
@@ -53,7 +53,7 @@ It runs as `avianki-catalog build` in `.github/workflows/catalog.yml`.
 3. **Select, per species and role** ([ADR 0011](adr/0011-media-selection.md)):
    1. Apply pins from `pins.toml`.
    2. Keep sticky assets that are still valid ([ADR 0014](adr/0014-catalog-rebuilds.md)).
-   3. Fill what's still missing with ordered fill over the registered sources ([ADR 0007](adr/0007-source-contract.md)), with licence gate → generic rejects → download → measure → BirdNET (audio, first minute only; the first candidate that passes wins, [ADR 0023](adr/0023-audio-first-pass.md)) → rank (photos).
+   3. Fill what's still missing with ordered fill over the registered sources ([ADR 0007](adr/0007-source-contract.md)), with licence gate → generic rejects → download → measure → BirdNET (audio, first minute only; each clip is scored for presence and competing birds and cut to start on the bird, the first good candidate of up to 10 wins, [ADR 0031](adr/0031-audio-quality-selection.md)) → rank (photos).
    4. A source error keeps the previous entry and is logged. Absence is recorded as absence.
 4. **Process.** Images become WebP at 800 px on the long side, q80, capped at 150 KB. Audio becomes a 10 s window with high-pass and loudnorm, as MP3. Each step appends to the asset's `modifications`.
 5. **Assemble.** Write the content-addressed media, `species.<hash>.json`, `regions/<slug>.<hash>.json`, `provenance.<hash>.json` and `manifest.json`. Also generate `credits.html`, `contact-sheet.html` and `build-report.md`.

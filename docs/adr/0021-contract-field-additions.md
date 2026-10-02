@@ -1,6 +1,6 @@
 # 0021 — Four fields beyond the §5.1 record: one licence flag and three ranking hints
 
-**Status:** Accepted, 2026-09-28 · **Amends:** [0007](0007-source-contract.md) · **Ticket:** [#40](https://github.com/Ian-Costa18/AviAnki/issues/40)
+**Status:** Accepted, 2026-09-28; two more hints added by [0031](0031-audio-quality-selection.md) · **Amends:** [0007](0007-source-contract.md) · **Ticket:** [#40](https://github.com/Ian-Costa18/AviAnki/issues/40)
 
 ## Context
 

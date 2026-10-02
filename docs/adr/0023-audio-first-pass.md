@@ -1,6 +1,6 @@
 # 0023 — Audio: take the first candidate that passes BirdNET, and analyse only its first minute
 
-**Status:** Accepted, 2026-09-28 · **Amends:** [0011](0011-media-selection.md) · **Ticket:** [#41](https://github.com/Ian-Costa18/AviAnki/issues/41)
+**Status:** Superseded by [0031](0031-audio-quality-selection.md) (accepted 2026-09-28) · **Amends:** [0011](0011-media-selection.md) · **Ticket:** [#41](https://github.com/Ian-Costa18/AviAnki/issues/41)
 
 ## Context
 

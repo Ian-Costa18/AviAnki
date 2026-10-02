@@ -1,6 +1,6 @@
 # 0014 — Monthly incremental rebuilds, sticky selections, a validation gate
 
-**Status:** Accepted, 2026-09-28 · **Ticket:** [#24](https://github.com/Ian-Costa18/AviAnki/issues/24)
+**Status:** Accepted, 2026-09-28; amended by [0031](0031-audio-quality-selection.md) (audio re-selected once under `audio_rule` 2) · **Ticket:** [#24](https://github.com/Ian-Costa18/AviAnki/issues/24)
 
 ## Decision
 

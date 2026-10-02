@@ -1,6 +1,6 @@
 # 0005 — Commons and iNaturalist supply the media; no Wikipedia or xeno-canto at v1
 
-**Status:** Accepted, 2026-09-28 · **Tickets:** [#13](https://github.com/Ian-Costa18/AviAnki/issues/13), [#14](https://github.com/Ian-Costa18/AviAnki/issues/14), [#15](https://github.com/Ian-Costa18/AviAnki/issues/15), [#31](https://github.com/Ian-Costa18/AviAnki/issues/31) · **Evidence:** branches `research/photo-sources`, `research/inaturalist-audio`, `research/identification-descriptions`
+**Status:** Accepted, 2026-09-28; xeno-canto API amended by [0031](0031-audio-quality-selection.md) (metadata only) · **Tickets:** [#13](https://github.com/Ian-Costa18/AviAnki/issues/13), [#14](https://github.com/Ian-Costa18/AviAnki/issues/14), [#15](https://github.com/Ian-Costa18/AviAnki/issues/15), [#31](https://github.com/Ian-Costa18/AviAnki/issues/31) · **Evidence:** branches `research/photo-sources`, `research/inaturalist-audio`, `research/identification-descriptions`
 
 ## Context
 
