@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Website
+
+- **A deploy no longer mixes new and cached files.** The site's scripts, styles and data are served from a folder named for the deploy, so a page always loads the files that belong to it. Right after an update, returning visitors could see the new page with old files (for example only the Default theme) until a hard refresh. A page cached from before an update reloads itself once to recover.
+
 ### Card themes
 
 - **Ten themes** for the cards: `default` (the current look), `serif`, `field-guide`, `nord`, `slate`, `forest`, `plate`, `minimal`, `midnight` and `high-contrast`. Pick one with `--theme NAME`, or on the website under **Customize your cards**. All use your phone's own fonts and follow night mode, and the credits are always on the answer.

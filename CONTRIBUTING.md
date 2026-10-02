@@ -90,7 +90,7 @@ The [publish workflow](.github/workflows/publish.yml) checks out the tag and fai
 - `src/avianki/sources/allaboutbirds/` — the 0.9 scraper, dormant and deliberately not registered (ADR 0002)
 - `src/avianki/catalog_cli.py` — `avianki-catalog`, the maintainer-only catalog build (`build`, or `build --species-only`); a dev run is `uv run avianki-catalog build --regions us-ri,us-dc --max-species 30 --out build --cache-dir .cache/http`, and the audio check needs the `verify` extra (or pass `--no-verify`). `src/avianki/data/pins.toml` holds reviewer pins and exclusions
 - `.github/workflows/catalog.yml` — the monthly (and on-demand) catalog build: it restores the previous release as state, runs `avianki-catalog build --update-species-csv`, uploads a `build-review` artifact (report, contact sheet, log, species.csv), then releases `catalog-YYYY-MM-DD` and deploys Pages. Run it from the Actions tab with `publish` off to build and validate without releasing. `.github/workflows/pages.yml` redeploys Pages from the newest release when only `web/` changes
-- `scripts/assemble_site.py` (the Pages tree from a catalog and `web/`, with the 900 MB guard) and `scripts/fetch_latest_catalog.sh` (download the newest `catalog-*` release) — used by those workflows, and both have tests under `tests/scripts/`
+- `scripts/assemble_site.py` (the Pages tree from a catalog and `web/`, with the 900 MB guard; the app's own files go under `v/<commit sha>/` so a deploy never mixes with cached files, ADR 0029) and `scripts/fetch_latest_catalog.sh` (download the newest `catalog-*` release) — used by those workflows, and both have tests under `tests/scripts/`
 
 See [CLAUDE.md](CLAUDE.md) for a deeper walkthrough of the data flow and key constraints.
 

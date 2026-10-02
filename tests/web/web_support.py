@@ -2,7 +2,7 @@
 a driver that builds a deck in the page, and the same build through the Python writer.
 
 The server answers ``/catalog/...`` from ``tests/fixtures/catalog`` (or another directory) and
-everything else from ``web/``, which is the layout ``scripts/assemble_site.py`` publishes. The
+everything else from ``web/`` (or an assembled site, see ``serve(web_dir=...)``). The
 manifest it serves has its ``base_url`` rewritten to point back at the server, because the
 fixture's is a placeholder and the app resolves every catalog path against it (ADR 0013).
 
@@ -57,7 +57,7 @@ class _Handler(http.server.SimpleHTTPRequestHandler):
         if path.startswith("/catalog/"):
             root, rel = self.server.catalog_dir, path[len("/catalog/") :]  # type: ignore[attr-defined]
         else:
-            root, rel = WEB_DIR, path.lstrip("/")
+            root, rel = self.server.web_dir, path.lstrip("/")  # type: ignore[attr-defined]
         return str((root / rel).resolve())
 
     def end_headers(self) -> None:
@@ -108,13 +108,15 @@ class _Server(http.server.ThreadingHTTPServer):
 
 
 @contextmanager
-def serve(catalog_dir: Path = CATALOG_DIR) -> Iterator[str]:
-    """Serve ``web/`` and a catalog (the fixture's by default) on 127.0.0.1, a secure context.
+def serve(catalog_dir: Path = CATALOG_DIR, web_dir: Path = WEB_DIR) -> Iterator[str]:
+    """Serve ``web/`` (or ``web_dir``, such as an assembled site) and a catalog (the fixture's by default)
+    on 127.0.0.1, a secure context.
 
     Secure, so WebCrypto and Cache Storage work as they do on the deployed site.
     """
     server = _Server(("127.0.0.1", 0), partial(_Handler))
     server.catalog_dir = catalog_dir  # type: ignore[attr-defined]
+    server.web_dir = web_dir  # type: ignore[attr-defined]
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
