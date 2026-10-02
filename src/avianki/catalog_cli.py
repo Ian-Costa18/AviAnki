@@ -18,12 +18,14 @@ import dataclasses
 import hashlib
 import json
 import logging
+import os
 import shutil
 import sys
 from pathlib import Path
 from typing import Any
 
 import requests
+from dotenv import find_dotenv, load_dotenv
 
 # The build needs the `catalog` extra (Pillow, jsonschema, tomli). Without it these imports fail
 # deep inside the pipeline, so this is the one place that turns that into a plain message; the
@@ -39,6 +41,8 @@ try:
     from avianki.core.log import setup_logging, teardown_logging
     from avianki.core.text import use_utf8_output
     from avianki.media.verify import VerifyUnavailable, default_analyzer
+    from avianki.sources.commons.xenocanto import SECRET as XC_KEY_VAR
+    from avianki.sources.commons.xenocanto import XenoCantoLookup
     from avianki.sources.contract import Region
     from avianki.sources.gbif import GbifSpeciesSource
     from avianki.sources.registry import Registry
@@ -68,8 +72,12 @@ def new_session() -> requests.Session:
 
 
 def new_registry(client: HttpClient, species: SpeciesTable, expected_counts: Any) -> Registry:
-    """The real asset sources (Commons, iNaturalist), sharing ``client``."""
-    return make_registry(client, species, expected_counts)
+    """The real asset sources (Commons, iNaturalist), sharing ``client``.
+
+    Commons orders its audio by xeno-canto metadata (ADR 0031) when ``XC_API_KEY`` is set.
+    """
+    xc = XenoCantoLookup(client, os.environ.get(XC_KEY_VAR))
+    return make_registry(client, species, expected_counts, xc)
 
 
 def new_analyzer() -> Any:
@@ -122,6 +130,7 @@ def _parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     use_utf8_output()
+    load_dotenv(find_dotenv(usecwd=True))  # lets a .env file supply XC_API_KEY (ADR 0031)
     parser = _parser()
     args = parser.parse_args(argv)
     if args.top_n < 1:
