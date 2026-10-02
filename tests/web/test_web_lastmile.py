@@ -169,7 +169,7 @@ def test_android_emulation_preselects_the_android_tab(new_context, base_url) -> 
     assert guide["selected"] == ["android"]
     assert guide["shown"] == ["android"]
     assert "AnkiDroid" in guide["text"]
-    assert "play.google.com" in _hosts(guide["links"])
+    assert {"play.google.com"} <= _hosts(guide["links"])
     assert "tap Add" in guide["text"]  # AnkiDroid's import dialog
     page.click("#study-pick-tab-ios")  # the others are one tap away
     assert _guide(page)["selected"] == ["ios"]
@@ -187,7 +187,7 @@ def test_iphone_emulation_preselects_ios_and_shows_two_equal_paths_free_first(ne
     # "Upload" button on that dialog, and the one that has it would overwrite an account that has cards.
     assert "\u201cReplace it with local collection?\u201d, click Yes" in guide["text"]
     assert "Upload" not in guide["text"]
-    assert "apps.apple.com" in _hosts(guide["links"])
+    assert {"apps.apple.com"} <= _hosts(guide["links"])
     assert any(href.rstrip("/") == "https://ankiweb.net" for href in guide["links"])
     # equal weight: the two paths are siblings with the same styling, neither inside the other
     sizes = page.eval_on_selector_all("#study-pick section.path", "els => els.map(e => e.className)")
@@ -211,7 +211,7 @@ def test_desktop_preselects_the_computer_tab(new_context, engine_name, base_url)
     page = open_app(new_context(engine_name), base_url)
     guide = _guide(page)
     assert guide["selected"] == ["desktop"]
-    assert "apps.ankiweb.net" in _hosts(guide["links"])
+    assert {"apps.ankiweb.net"} <= _hosts(guide["links"])
     assert "Study Now" in guide["text"]
     assert "then click Import" in guide["text"]  # Anki's import screen
 
