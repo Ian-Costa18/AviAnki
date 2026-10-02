@@ -317,3 +317,50 @@ def test_the_month_select_lines_up_with_the_other_indented_fields(new_context, b
     assert edges["select"] == edges["fieldset"] == edges["label"]
     assert edges["select"][0] > edges["details"][0]  # indented, not flush with the box
     assert edges["select"][1] < edges["details"][1]
+
+
+# ---------------------------------------------------------------------------------------
+# A WebAssembly trap inside sql.js is retried once
+# ---------------------------------------------------------------------------------------
+
+# Make the first `SQL.Database.run` throw what WebKit has been seen to throw intermittently inside the
+# sql.js wasm ("access to a null reference"), then behave normally. `__sqlInits` counts how many sql.js
+# instances the page created, so the test can see the retry used a fresh one.
+TRAP_SQL_ONCE = """
+(() => {
+  let real;
+  window.__trapped = false;
+  window.__sqlInits = 0;
+  Object.defineProperty(window, "initSqlJs", {
+    configurable: true,
+    get: () => real && ((...args) => {
+      window.__sqlInits += 1;
+      return real(...args).then((SQL) => {
+        const run = SQL.Database.prototype.run;
+        SQL.Database.prototype.run = function (...a) {
+          if (!window.__trapped) {
+            window.__trapped = true;
+            throw new WebAssembly.RuntimeError("access to a null reference");
+          }
+          return run.apply(this, a);
+        };
+        return SQL;
+      });
+    }),
+    set: (value) => { real = value; },
+  });
+})();
+"""
+
+
+def test_a_wasm_trap_in_sql_js_is_retried_on_a_fresh_instance(new_context, engine, base_url, tmp_path) -> None:
+    context = new_context(engine)
+    context.add_init_script(TRAP_SQL_ONCE)
+    page = open_app(context, base_url)
+
+    files = build(page, tmp_path, region="Massachusetts")
+
+    assert [f.name for f in files] == ["AviAnki-us-ma.apkg"]
+    assert page.evaluate("window.__trapped") is True
+    assert page.evaluate("window.__sqlInits") == 2  # the trapped instance was dropped, not reused
+    assert page.get_attribute("#error", "hidden") is not None
