@@ -116,7 +116,7 @@ Each card type is its own `genanki.Model` in `src/avianki/deck/notetypes.py` wit
 **Styles:**
 
 - Edit `src/avianki/deck/card.css` for layout changes. All models share it at build time.
-- After changing a template, the CSS or a theme, refresh the README's images: `uv run --extra catalog python scripts/gen_card_shots.py` (needs `uv run playwright install chromium`). They are rendered from the shipped templates, so a stale image is a wrong image. The same run rewrites the README's generated tables (the `<!-- gen:... -->` blocks) from `THEMES` and `CARD_TYPES`, so adding a theme or a card type needs no hand edit; `--no-readme` leaves them alone.
+- After changing a template, the CSS or a theme, refresh the README's images: `uv run --extra catalog python scripts/gen_card_shots.py` (needs `uv run playwright install chromium`). They are rendered from the shipped templates, so a stale image is a wrong image. The audio frames draw the real amplitude envelope of the recording on the card, decoded with `soundfile` (a dev dependency; its libsndfile reads MP3 without ffmpeg) and falling back to a synthetic shape if that fails. The same run rewrites the README's generated tables (the `<!-- gen:... -->` blocks) from `THEMES` and `CARD_TYPES`, so adding a theme or a card type needs no hand edit; `--no-readme` leaves them alone.
 
 **Model IDs and GUIDs:**
 

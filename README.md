@@ -10,8 +10,7 @@ Anki flashcard decks for the birds of your state or province, by sight and by so
 [**Build a deck**](https://ian-costa18.github.io/AviAnki/) &middot; [**Command line**](#command-line) &middot; [**Themes**](#themes) &middot; [**Changelog**](https://github.com/Ian-Costa18/AviAnki/blob/main/CHANGELOG.md) &middot; [**Contributing**](https://github.com/Ian-Costa18/AviAnki/blob/main/CONTRIBUTING.md)
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Ian-Costa18/AviAnki/readme-rework/docs/examples/cards.gif" alt="One American Robin asked three ways: a photo, a recording, then both, each flipping to an answer with the bird's name, scientific name, recording and credits" width="424">
-  <br><i>One bird, three kinds of card, question then answer.</i>
+  <img src="https://raw.githubusercontent.com/Ian-Costa18/AviAnki/readme-rework/docs/examples/hero.gif" alt="AviAnki: a photo card of an American Robin flipping to its answer, an audio card drawn with the real waveform of the recording it plays, then the same card restyled through every built-in theme" width="600">
 </p>
 
 Pick where you go birding and AviAnki builds an [Anki](https://apps.ankiweb.net/) deck for its birds, most common species first: a photo or a recording on the front, the name on the answer. The media comes from a catalog rebuilt every month from freely licensed photos and recordings, so a build is a download. There is no account to make and no API key to get.

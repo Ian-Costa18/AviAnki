@@ -82,5 +82,6 @@ dev = [
     "pytest-cov>=7.1.0",
     "python-dotenv[cli]>=1.2.2",
     "ruff>=0.15.11",
+    "soundfile>=0.13.1",
     "ty>=0.0.31",
 ]

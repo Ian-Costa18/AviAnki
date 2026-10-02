@@ -26,7 +26,9 @@ Usage:
     uv run --extra catalog python scripts/gen_card_shots.py --only themes
 
 Writes into ``docs/examples/``:
-    card-<type>-<side>.png, cards.gif    every card type, question and answer
+    hero.gif                 the trailer: title, a card asked and answered, the recording as its
+                             own waveform, every theme in turn, then where to get it
+    card-<type>-<side>.png   a still of every card type, question and answer
     theme-<name>.png, themes.gif         every built-in theme, day beside night
 
 Needs the ``catalog`` extra and Playwright's Chromium (``uv run playwright install chromium``).
@@ -49,7 +51,7 @@ from avianki.catalog.client import CatalogClient
 from avianki.catalog.format import MediaRef, SpeciesEntry
 from avianki.deck.credits import credits_field
 from avianki.deck.notetypes import CARD_TYPES, models_for
-from avianki.deck.themes import THEMES, compose_css
+from avianki.deck.themes import COLOUR_KEYS, THEMES, compose_css
 
 if TYPE_CHECKING:  # pragma: no cover - typing only
     from PIL.Image import Image as PilImage
@@ -184,6 +186,7 @@ class RenderedCard:
     size: tuple[int, int]  # as drawn, in CSS px
     label: str  # the template's own name, e.g. "Photo → Name"
     theme_label: str  # the theme's own one-line description
+    palette: tuple[str, ...]  # the theme's own day colours, for swatches drawn beside the card
     has_photo: bool
     has_audio: bool
 
@@ -202,6 +205,14 @@ class RenderedCard:
     @property
     def key(self) -> str:
         return f"{self.spec.card_type.replace('_', '-')}-{self.spec.side}"
+
+
+def _palette(theme: str) -> tuple[str, ...]:
+    """A theme's own day colours, in the order it declares them."""
+    if theme not in THEMES:
+        return ()
+    light = THEMES[theme].tokens.light
+    return tuple(getattr(light, key) for key in COLOUR_KEYS)
 
 
 class CardStudio:
@@ -232,6 +243,7 @@ class CardStudio:
         entry: SpeciesEntry = self._client.species()[sid]
         photo_ref: MediaRef = entry.photo[0]
         audio_ref: MediaRef = entry.audio[0]
+        self._audio = self._client.media(audio_ref.file)
         path = self._client.media(photo_ref.file)
         mime = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
         uri = f"data:{mime};base64,{base64.b64encode(path.read_bytes()).decode()}"
@@ -251,6 +263,41 @@ class CardStudio:
     @property
     def species(self) -> str:
         return self._answer["Name"]
+
+    def envelope(self, buckets: int) -> tuple[tuple[float, ...], bool]:
+        """The amplitude envelope of the very recording on the card, in ``buckets`` time slices.
+
+        Peak per slice, not RMS: a bird's call is short and sharp, and RMS flattens it into
+        nothing at this resolution. The values are raised to a power so a quiet call still shows
+        beside a loud one, the way a level meter is not linear either, and scaled so the loudest
+        slice is 1. Returns ``(values, True)``.
+
+        ``soundfile`` is a dev dependency and its libsndfile reads MP3 directly -- no ffmpeg. If
+        it is missing, or the clip will not decode, this FALLS BACK to a synthetic shape and
+        returns ``(values, False)``, and the caller must not then claim the bars are real.
+        """
+        try:
+            import numpy as np
+            import soundfile as sf
+
+            data, _ = sf.read(str(self._audio))
+            mono = data.mean(axis=1) if data.ndim > 1 else data
+            sliced = np.array_split(np.abs(np.asarray(mono, dtype="float64")), buckets)
+            peaks = np.array([float(s.max()) if s.size else 0.0 for s in sliced])
+            if not peaks.max():
+                raise ValueError("silent clip")
+            shaped = (peaks / peaks.max()) ** 0.6
+            return tuple(float(v) for v in shaped), True
+        except Exception as exc:  # noqa: BLE001 - any decode failure falls back, never crashes
+            print(f"  (no waveform: {type(exc).__name__}: {exc}; drawing a synthetic one)")
+            return (
+                tuple(
+                    max(0.04, math.exp(-2.4 * ((i - (buckets - 1) / 2) / (buckets / 2)) ** 2))
+                    * (0.45 + 0.55 * abs(math.sin(i * 2.1 + 1.3)))
+                    for i in range(buckets)
+                ),
+                False,
+            )
 
     # -- the templates -------------------------------------------------------------------
     @staticmethod
@@ -309,6 +356,7 @@ class CardStudio:
             size=size,
             label=str(template["name"]),
             theme_label=THEMES[spec.theme].description if spec.theme in THEMES else "",
+            palette=_palette(spec.theme),
             has_photo="{{Photo}}" in source,
             has_audio="{{Audio}}" in source,
         )
@@ -362,6 +410,34 @@ html, body {{ margin:0; padding:0; background:{STAGE_BOTTOM}; }}
 .bar i {{ display:block; height:100%; background:{ACCENT}; }}
 .mode {{ position:absolute; font:600 10px/1 {SANS}; letter-spacing:.22em; text-transform:uppercase;
   color:{DIM}; z-index:3; }}
+.lede {{ position:absolute; top:0; bottom:0; display:flex; flex-direction:column;
+  justify-content:center; text-align:center; z-index:3; }}
+.lede b {{ display:block; font:800 50px/1 {SANS}; letter-spacing:-.035em; color:{INK}; }}
+.lede u {{ display:block; width:54px; height:3px; border-radius:2px; background:{ACCENT};
+  margin:0 auto 22px; text-decoration:none; }}
+.lede i {{ display:block; font:400 15.5px/1.5 {SANS}; font-style:normal; color:{DIM};
+  margin-top:14px; }}
+.lede code {{ display:inline-block; font:600 13px/1 ui-monospace, Menlo, Consolas, monospace;
+  color:{INK}; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.12);
+  border-radius:7px; padding:9px 13px; margin-top:20px; }}
+.lede em {{ display:block; font-style:normal; font:600 14px/1 {SANS}; color:{ACCENT};
+  letter-spacing:.01em; margin-top:16px; }}
+.cap {{ position:absolute; text-align:center; z-index:3; }}
+.cap b {{ display:block; font:600 14.5px/1.35 {SANS}; color:{INK}; }}
+.cap i {{ display:block; font:400 12.5px/1.45 {SANS}; font-style:normal; color:{DIM};
+  margin-top:5px; }}
+.list {{ position:absolute; z-index:3; }}
+.list b {{ display:block; font:600 11px/1 {SANS}; color:rgba(255,255,255,.26);
+  padding:5px 0 5px 10px; border-left:2px solid transparent; letter-spacing:.01em; }}
+.list b.on {{ color:{INK}; border-left-color:{ACCENT}; }}
+.sw {{ position:absolute; z-index:3; border-radius:6px; overflow:hidden;
+  box-shadow:0 0 0 1px rgba(255,255,255,.12); }}
+.sw s {{ display:block; height:21px; }}
+.wave {{ position:absolute; display:flex; align-items:center; justify-content:space-between;
+  z-index:1; }}
+.wave b {{ display:block; border-radius:2px; }}
+.base {{ position:absolute; height:1px; background:rgba(146,164,186,.22); z-index:2; }}
+.base i {{ display:block; height:100%; background:{ACCENT}; }}
 """
 
 
@@ -395,22 +471,6 @@ class Stage:
         )
 
 
-def equaliser(width: int, height: int, top: int, left: int, phase: float, gap: int = 6) -> str:
-    """Sound made visible *behind* the card: our decoration, never part of the card."""
-    count = max(6, (width + gap) // (5 + gap))
-    bars = []
-    for i in range(count):
-        x = (i - (count - 1) / 2) / max(1.0, count / 2)
-        envelope = math.exp(-2.4 * x * x)  # loudest in the middle, fading out to the edges
-        beat = 0.5 + 0.5 * math.sin(phase * math.tau * 2 + i * 0.8) * math.sin(i * 2.1 + 1.3)
-        h = max(4.0, height * envelope * (0.18 + 0.82 * beat))
-        bars.append(f'<b style="height:{h:.1f}px"></b>')
-    return (
-        f'<div class="eq" style="top:{top}px;left:{left}px;width:{width}px;height:{height}px">'
-        f'{"".join(bars)}</div>'
-    )
-
-
 # -- the timeline -------------------------------------------------------------------------
 
 
@@ -440,7 +500,8 @@ def sweep(a: PilImage, b: PilImage, steps: int = 8, edge: str = "#e6a452") -> li
 
     out = []
     for i in range(1, steps + 1):
-        x = round(a.width * i / (steps + 1))
+        u = i / (steps + 1)
+        x = round(a.width * u * u * (3 - 2 * u))
         img = a.copy()
         img.paste(b.crop((0, 0, x, b.height)), (0, 0))
         ImageDraw.Draw(img).rectangle([x - 2, 0, x, img.height], fill=edge)
@@ -478,8 +539,8 @@ def _bayer(size: tuple[int, int], amplitude: int):
     return _MASKS[key]
 
 
-def write_gif(timeline: list[tuple[PilImage, int]], out: Path, width: int, colors: int = 180,
-              amplitude: int = 4) -> None:
+def write_gif(timeline: list[tuple[PilImage, int]], out: Path, width: int, colors: int = 230,
+              amplitude: int = 6) -> None:
     """One animated GIF. Every frame is ordered-dithered and quantised to one shared palette, so
     the encoder can store just the pixels that changed -- which is what keeps a loop small."""
     from PIL import Image, ImageChops
@@ -521,26 +582,22 @@ def write_gif(timeline: list[tuple[PilImage, int]], out: Path, width: int, color
 CARD_W = 352
 CARD_VIEWPORT = 600
 CARD_PAD, CARD_TOP, CARD_FOOT = 36, 56, 58
+CARD_WAVE_BARS = 52
 
 # The themes loop: a short window, so the photo is a band and the typography is the subject.
 THEME_W = 330
 THEME_PAD, THEME_GAP, THEME_HEAD, THEME_LABEL, THEME_FOOT = 32, 20, 104, 20, 30
 
 
-def _cards_stage(card: RenderedCard, index: int, total: int, state: str, phase: float | None,
+def _cards_stage(card: RenderedCard, index: int, total: int, state: str, wave: str,
                  body: int) -> Stage:
     width = CARD_W + 2 * CARD_PAD
     stage = Stage(width, CARD_TOP + body + CARD_FOOT)
-    stage.text("eyebrow", card.label.replace("→", "&rarr;"), top=22, left=CARD_PAD)
+    stage.text("eyebrow", card.label.replace("\u2192", "&rarr;"), top=22, left=CARD_PAD)
     pips = "".join(f'<s class="{"on" if i == index else ""}"></s>' for i in range(total))
     stage.add(f'<div class="pips" style="top:19px;right:{CARD_PAD}px">{pips}</div>')
-    if phase is not None:
-        # The equaliser fills the air beneath a question that plays a recording: our drawing,
-        # outside the card, saying a sound is what is being asked.
-        top = CARD_TOP + card.height + 36
-        room = CARD_TOP + body - top - 6
-        if room > 40:
-            stage.add(equaliser(width - 36, room, top, 18, phase))
+    if wave:
+        stage.add(wave)
     # Two paper edges peeking out below: a card is one of a deck.
     for inset, drop in ((11, 9), (24, 17)):
         stage.add(
@@ -583,7 +640,7 @@ def _save(img: PilImage, path: Path) -> None:
 
 
 def build_cards(studio: CardStudio, shooter: Shooter, out: Path) -> None:
-    """Every card type: the question held, then the answer wiping in beneath the photo."""
+    """A still of every card type, question and answer, for the README's gallery."""
     types = list(CARD_TYPES)
     cards = {
         (card_type, side): studio.render(CardSpec("default", card_type, side, CARD_W, CARD_VIEWPORT))
@@ -591,41 +648,21 @@ def build_cards(studio: CardStudio, shooter: Shooter, out: Path) -> None:
         for side in ("front", "back")
     }
     body = max(c.height for c in cards.values())  # one stage height for every card type
-    width = CARD_W + 2 * CARD_PAD
-
-    timeline: list[tuple[PilImage, int]] = []
-    previous: PilImage | None = None
+    values, _ = studio.envelope(CARD_WAVE_BARS)
     for index, card_type in enumerate(types):
-        question, answer = cards[card_type, "front"], cards[card_type, "back"]
-        sings = question.has_audio
-        quiet = sings and not question.has_photo  # a play button alone: the equaliser carries it
-        phases = [i / 8 for i in range(8)] if sings else [None]
-
-        asked = [
-            _image(shooter.shoot(
-                _cards_stage(question, index, len(types), "Question", p, body).html(),
-                CARD_VIEWPORT, scale=1,
-            ))
-            for p in phases
-        ]
-        told = _image(shooter.shoot(
-            _cards_stage(answer, index, len(types), "Answer", None, body).html(),
-            CARD_VIEWPORT, scale=1,
-        ))
-
-        _save(asked[0], out / f"card-{question.key}.png")
-        _save(told, out / f"card-{answer.key}.png")
-
-        if previous is not None:
-            timeline += [(f, 55) for f in sweep(previous, asked[0])]
-        timeline += [(f, 135) for f in asked * (2 if quiet else 1)]
-        if not quiet:
-            timeline[-1] = (timeline[-1][0], 1700 - 135 * (len(asked) - 1))
-        timeline += [(f, 50) for f in reveal(asked[-1], told)]
-        timeline.append((told, 2200))
-        previous = told
-
-    write_gif(timeline, out / "cards.gif", width)
+        for side, state in (("front", "Question"), ("back", "Answer")):
+            card = cards[card_type, side]
+            # A question that plays a recording gets its waveform; an answer never does.
+            top = CARD_TOP + card.height + 36
+            room = CARD_TOP + body - top - 6
+            wave = ""
+            if side == "front" and card.has_audio and room > 40:
+                wave = waveform(values, 18, CARD_W + 2 * CARD_PAD - 36, top, room, 1.0)
+            stage = _cards_stage(card, index, len(types), state, wave, body)
+            _save(
+                _image(shooter.shoot(stage.html(), CARD_VIEWPORT, scale=1)),
+                out / f"card-{card.key}.png",
+            )
 
 
 def build_themes(studio: CardStudio, shooter: Shooter, out: Path) -> None:
@@ -656,9 +693,216 @@ def build_themes(studio: CardStudio, shooter: Shooter, out: Path) -> None:
     timeline: list[tuple[PilImage, int]] = []
     for i, img in enumerate(stills):
         timeline += [(f, 70) for f in sweep(stills[i - 1], img, steps=4)]
-        timeline.append((img, 1150))
+        timeline.append((img, 950))
     timeline = timeline[4:] + timeline[:4]  # land on a held frame, not mid-sweep
     write_gif(timeline, out / "themes.gif", width)
+
+
+# =============================================================================================
+#  The hero: a short trailer. Title, a card asked and answered, the real recording, the themes,
+#  then where to get it. Every act is the same stage, so one sweep carries you between them.
+# =============================================================================================
+
+HERO_W = 600
+HERO_CARD_W = 352
+HERO_TOP, HERO_FOOT = 58, 78
+HERO_VIEWPORT = 600
+WAVE_BARS = 68
+
+
+def _hero(body: int) -> Stage:
+    return Stage(HERO_W, HERO_TOP + body + HERO_FOOT)
+
+
+def _caption(stage: Stage, body: int, title: str, note: str) -> None:
+    stage.add(
+        f'<div class="cap" style="top:{HERO_TOP + body + 22}px;left:40px;width:{HERO_W - 80}px">'
+        f"<b>{title}</b><i>{note}</i></div>"
+    )
+
+
+def _title_stage(body: int, title: str, lines: str) -> Stage:
+    stage = _hero(body)
+    stage.add(
+        f'<div class="lede" style="left:50px;width:{HERO_W - 100}px">'
+        f"<u></u><b>{title}</b>{lines}</div>"
+    )
+    return stage
+
+
+def waveform(values: tuple[float, ...], left: int, width: int, top: int, height: int,
+             cursor: float) -> str:
+    """The recording's own envelope, drawn on the stage under the card, mirrored about a baseline.
+
+    ``cursor`` is how far through the clip the lit part has reached, so a run of frames reads as
+    the clip playing; 1 lights the whole thing for a still. The bars are the stage's decoration
+    and never touch the card -- but they are that card's recording, not an invented shape.
+    """
+    bars = []
+    last = max(1, len(values) - 1)
+    for i, v in enumerate(values):
+        lit = i / last <= cursor
+        head = lit and cursor < 1 and (i + 1) / last > cursor
+        colour = "#f8cd91" if head else (ACCENT if lit else "rgba(146,164,186,.28)")
+        glow = ";box-shadow:0 0 12px rgba(248,205,145,.6)" if head else ""
+        bars.append(
+            f'<b style="height:{max(3.0, height * v):.1f}px;width:4px;background:{colour}{glow}">'
+            "</b>"
+        )
+    return (
+        f'<div class="wave" style="top:{top}px;left:{left}px;width:{width}px;height:{height}px">'
+        + "".join(bars)
+        + "</div>"
+        f'<div class="base" style="top:{top + height // 2}px;left:{left}px;width:{width}px">'
+        f'<i style="width:{cursor * 100:.1f}%"></i></div>'
+    )
+
+
+def _hero_card_stage(card: RenderedCard, body: int, title: str, note: str, wave: str = "") -> Stage:
+    stage = _hero(body)
+    left = (HERO_W - HERO_CARD_W) // 2
+    stage.text("eyebrow", card.label.replace("\u2192", "&rarr;"), top=24, left=left)
+    if wave:
+        stage.add(wave)
+    for inset, drop in ((11, 9), (24, 17)):
+        stage.add(
+            f'<div class="stack" style="top:{HERO_TOP + card.height - 24}px;'
+            f"left:{left + inset}px;width:{HERO_CARD_W - 2 * inset}px;height:{24 + drop}px;"
+            f'background:rgba(255,255,255,{0.26 - inset * 0.006:.2f})"></div>'
+        )
+    stage.card(card, HERO_TOP, left)
+    _caption(stage, body, title, note)
+    return stage
+
+
+def _hero_theme_stage(card: RenderedCard, names: list[str], index: int, body: int) -> Stage:
+    """The climax: one card restyling itself, with every theme's name listed beside it and the
+    theme's own colours as swatches. Both are laid out from ``THEMES``, so the list grows."""
+    stage = _hero(body)
+    left = (HERO_W - HERO_CARD_W) // 2
+    rows = "".join(f'<b class="{"on" if i == index else ""}">{n}</b>' for i, n in enumerate(names))
+    span = 21 * len(card.palette)
+    stage.add(f'<div class="list" style="top:{HERO_TOP + 2}px;left:12px;width:{left - 26}px">{rows}</div>')
+    stage.text(
+        "mode", "Palette", top=HERO_TOP + (body - span) // 2 - 20, left=left + HERO_CARD_W + 22
+    )
+    stage.add(
+        f'<div class="sw" style="top:{HERO_TOP + (body - span) // 2}px;'
+        f'left:{left + HERO_CARD_W + 22}px;width:44px">'
+        + "".join(f'<s style="background:{c}"></s>' for c in card.palette)
+        + "</div>"
+    )
+    stage.text("eyebrow", f"Theme {index + 1:02d} / {len(names):02d}", top=24, left=left)
+    stage.card(card, HERO_TOP, left)
+    _caption(stage, body, f"--theme {card.spec.theme}", card.theme_label)
+    return stage
+
+
+def build_hero(studio: CardStudio, shooter: Shooter, out: Path) -> None:
+    """The README's hero: five acts on one stage, joined by sweeps."""
+    types = list(CARD_TYPES)
+    themes = list(THEMES)
+
+    def shot(stage: Stage) -> PilImage:
+        return _image(shooter.shoot(stage.html(), HERO_VIEWPORT, scale=1))
+
+    cards = {
+        (ct, side): studio.render(CardSpec("default", ct, side, HERO_CARD_W, HERO_VIEWPORT))
+        for ct in types
+        for side in ("front", "back")
+    }
+    body = max(c.height for c in cards.values())
+
+    opening = shot(
+        _title_stage(
+            body,
+            "AviAnki",
+            "<i>Anki flashcard decks for the birds of your state or province,<br>"
+            "by sight and by sound.</i>",
+        )
+    )
+    timeline: list[tuple[PilImage, int]] = [(opening, 1200)]
+
+    def act(stage: Stage, hold: int, steps: int = 7, ms: int = 48) -> PilImage:
+        img = shot(stage)
+        timeline.extend((f, ms) for f in sweep(timeline[-1][0], img, steps=steps))
+        timeline.append((img, hold))
+        return img
+
+    # Act two: a photo asked, then answered. The photo stays put and the answer wipes in below it.
+    photo = types[0]
+    asked = act(
+        _hero_card_stage(
+            cards[photo, "front"],
+            body,
+            "A photo on the front.",
+            "The commonest birds of your region first.",
+        ),
+        1200,
+    )
+    told = shot(
+        _hero_card_stage(
+            cards[photo, "back"],
+            body,
+            "The name on the back.",
+            "With the scientific name, the recording, and a credit for every asset.",
+        )
+    )
+    timeline.extend((f, 48) for f in reveal(asked, told, steps=7))
+    timeline.append((told, 1500))
+
+    # Act three: the recording, drawn as its own waveform with a cursor running through it.
+    values, real = studio.envelope(WAVE_BARS)
+    sung = [ct for ct in types if cards[ct, "front"].has_audio and not cards[ct, "front"].has_photo]
+    if sung:
+        card = cards[sung[0], "front"]
+        top = HERO_TOP + card.height + 46
+        height = body - card.height - 66
+        note = (
+            "The bars are that clip's own waveform, read off the mp3."
+            if real
+            else "Audio cards play a recording of the bird."
+        )
+        # Every bar is the whole clip; the playhead simply runs faster than real time, so the
+        # beat lasts a few seconds instead of the recording's ten.
+        steps, step_ms = 22, 145
+        stages = [
+            _hero_card_stage(
+                card, body, "A recording on the front.", note,
+                waveform(values, 28, HERO_W - 56, top, height, i / (steps - 1)),
+            )
+            for i in range(steps)
+        ]
+        act(stages[0], step_ms)
+        for stage in stages[1:]:
+            timeline.append((shot(stage), step_ms))
+        answer = shot(
+            _hero_card_stage(
+                cards[sung[0], "back"], body, "Then the bird.", "Every card type shares one answer."
+            )
+        )
+        timeline.extend((f, 48) for f in reveal(timeline[-1][0], answer, steps=7))
+        timeline.append((answer, 1300))
+
+    # Act four, the climax: one card walking through every theme, the photo never moving.
+    for index, theme in enumerate(themes):
+        card = studio.render(CardSpec(theme, photo, "back", HERO_CARD_W, HERO_VIEWPORT, body))
+        act(_hero_theme_stage(card, themes, index, body), 460, steps=4, ms=52)
+
+    # Act five: where to get it, and round to the title again.
+    act(
+        _title_stage(
+            body,
+            "AviAnki",
+            "<i>Free. No account, no API key.<br>Openly licensed media, rebuilt every month.</i>"
+            "<code>pip install avianki</code>"
+            "<em>ian-costa18.github.io/AviAnki</em>",
+        ),
+        1600,
+    )
+    timeline.extend((f, 48) for f in sweep(timeline[-1][0], opening, steps=7))
+
+    write_gif(timeline, out / "hero.gif", HERO_W)
 
 
 # =============================================================================================
@@ -717,7 +961,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--catalog-url", default=None, help="a URL or a local catalog directory")
     parser.add_argument("--out", type=Path, default=OUT_DIR, help="where the images go")
     parser.add_argument(
-        "--only", choices=("cards", "themes"), help="only one loop (default: both)"
+        "--only",
+        choices=("hero", "cards", "themes"),
+        help="only the hero, the card stills or the themes (default: all three)",
     )
     parser.add_argument("--scale", type=float, default=2, help="device scale factor (default: 2)")
     parser.add_argument(
@@ -731,9 +977,11 @@ def main(argv: list[str] | None = None) -> int:
     with Shooter(args.scale) as shooter:
         studio = CardStudio(client, args.region, shooter)
         print(f"using {studio.species}")
-        if args.only != "themes":
+        if args.only in (None, "hero"):
+            build_hero(studio, shooter, args.out)
+        if args.only in (None, "cards"):
             build_cards(studio, shooter, args.out)
-        if args.only != "cards":
+        if args.only in (None, "themes"):
             build_themes(studio, shooter, args.out)
     if not args.no_readme:
         sync_readme(ROOT / "README.md")

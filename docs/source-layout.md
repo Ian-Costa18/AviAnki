@@ -126,7 +126,8 @@ scripts/
   gen_web_notetypes.py     dumps deck/'s note types and description strings to web/js/notetypes.json; `--check` for drift
   weekly_summary.py        reads the weekly run's JUnit report: writes the job summary, fails on any skip but eBird's
   gen_card_shots.py        two stages: a card studio renders deck/'s templates and themes with live catalog media in
-                           Chromium, then a compositor animates those pixels → docs/examples/ and the README's gen: blocks
+                           Chromium, then a compositor stages those pixels → docs/examples/hero.gif (the trailer),
+                           themes.gif, the card and theme stills, and the README's gen: blocks
 
 .github/workflows/
   ci.yml                 lint, types, unit tests, layout test, browser tests (installs Chromium and WebKit); vulture, deptry and a 1% jscpd threshold
