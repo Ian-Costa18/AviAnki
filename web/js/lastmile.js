@@ -1,6 +1,8 @@
-// The last mile (ADR 0016): which device is this, and what does it do with the downloaded file?
-// `detectPlatform` is pure so the tests can feed it sample user agents; `renderLastMile` shows the
-// detected platform's steps first and the others under a collapsed "On a different device?".
+// Studying the deck (ADR 0016, amended by ADR 0030): which device is this, and how does the deck get
+// onto it? `detectPlatform` is pure so the tests can feed it sample user agents. `renderStudyGuide`
+// is the one component behind both the Pick screen (before anyone builds anything) and the Done
+// screen: ARIA tabs for iPhone & iPad, Android and Computer, the detected device's tab selected, then
+// the "What you'll see" box.
 
 const ANDROID = "android";
 const IOS = "ios";
@@ -22,40 +24,76 @@ export function detectPlatform({ userAgent = "", platform = "", maxTouchPoints =
 const link = (text, href) => ({ text, href });
 const bold = (text) => ({ text, bold: true });
 
-// A step is a list of pieces: plain strings, bold pieces and links.
-const STEPS = {
-  [ANDROID]: {
-    title: "On your Android phone or tablet",
-    steps: [
-      ["Install ", link("AnkiDroid", "https://play.google.com/store/apps/details?id=com.ichi2.anki"),
-        " from the Play Store. It is free."],
-      ["Tap the file you just downloaded (or use ", bold("Share → AnkiDroid"), ")."],
-      ["Tap ", bold("AviAnki"), ", then ", bold("Study"), "."],
+const ANKIDROID = "https://play.google.com/store/apps/details?id=com.ichi2.anki";
+const ANKIMOBILE = "https://apps.apple.com/app/ankimobile-flashcards/id373493387";
+const ANKI_DESKTOP = "https://apps.ankiweb.net";
+const ANKIWEB = "https://ankiweb.net";
+
+const TABS = [
+  { platform: IOS, label: "iPhone & iPad" },
+  { platform: ANDROID, label: "Android" },
+  { platform: DESKTOP, label: "Computer" },
+];
+
+// Text is a list of pieces: plain strings, bold pieces and links. The copy follows ADR 0030: friendly,
+// one action per step, button names exactly as the apps show them, and never an assumption that
+// anyone will pay. "Deck file" is the one name for the download, everywhere.
+const IMPORT_STEP = ["Double-click your deck file, then click ", bold("Import"), "."];
+const PANELS = {
+  [IOS]: {
+    intro: ["There are two good ways to study on iPhone and iPad. Pick whichever suits you."],
+    paths: [
+      {
+        title: "Free: study on AnkiWeb",
+        lead: ["AnkiWeb is Anki's free website. It can't open a deck file by itself, so you'll set it up once on a computer."],
+        steps: [
+          ["On a computer, get ", link("Anki", ANKI_DESKTOP), ". It's free."],
+          ["On that computer, make your deck on this page."],
+          IMPORT_STEP,
+          ["Click ", bold("Sync"), " and sign in to ", link("AnkiWeb", ANKIWEB), ", or sign up there for free."],
+          ["If Anki asks “Replace it with local collection?”, click ", bold("Yes"), ". This only comes up the first time."],
+          ["On your iPhone or iPad, go to ", link("ankiweb.net", ANKIWEB), " in Safari and sign in."],
+          ["Tap ", bold("AviAnki"), " to start studying."],
+        ],
+        note: ["AnkiWeb is a website, so you'll need to be online to study."],
+      },
+      {
+        title: "Paid: the AnkiMobile app",
+        lead: [link("AnkiMobile", ANKIMOBILE), " is Anki's official app for iPhone and iPad. It costs US$24.99, paid once, and helps fund Anki's development. No computer needed."],
+        steps: [
+          ["Get ", link("AnkiMobile", ANKIMOBILE), " from the App Store."],
+          ["In the ", bold("Files"), " app, open ", bold("Downloads"), " and tap your deck file."],
+          ["Tap the ", bold("Share"), " button, then choose ", bold("AnkiMobile"), "."],
+          ["Tap ", bold("AviAnki"), " to start studying."],
+        ],
+      },
     ],
   },
-  [IOS]: {
-    title: "On your iPhone or iPad",
+  [ANDROID]: {
     steps: [
-      [link("AnkiMobile", "https://apps.apple.com/app/ankimobile-flashcards/id373493387"),
-        " costs US$24.99, and the money funds Anki's development. Install it."],
-      ["Tap ", bold("Share → AnkiMobile"), " (or open the file from Files)."],
-      ["Tap ", bold("AviAnki"), "."],
+      ["Get ", link("AnkiDroid", ANKIDROID), " from the Play Store. It's free."],
+      ["Open your deck file from your downloads. If your phone asks which app to use, choose ", bold("AnkiDroid"), "."],
+      ["When AnkiDroid asks to add it to your collection, tap ", bold("Add"), "."],
+      ["Tap ", bold("AviAnki"), " to start studying."],
     ],
-    after: ["Free alternative: build the deck on a computer, import it into ",
-      link("Anki Desktop", "https://apps.ankiweb.net"), ", sync it to a free ",
-      link("AnkiWeb", "https://ankiweb.net"), " account, and study at ankiweb.net in Safari."],
   },
   [DESKTOP]: {
-    title: "On Windows, macOS or Linux",
     steps: [
-      ["Install ", link("Anki", "https://apps.ankiweb.net"), ". It is free."],
-      ["Double-click the file you just downloaded."],
+      ["Get ", link("Anki", ANKI_DESKTOP), " for Windows, Mac or Linux. It's free."],
+      IMPORT_STEP,
       ["Click ", bold("AviAnki"), ", then ", bold("Study Now"), "."],
     ],
+    note: ["Want your birds on your phone too? Click ", bold("Sync"), " to save them to a free ",
+      link("AnkiWeb", ANKIWEB), " account, then sign in to the same account on your phone."],
   },
 };
 
-const ORDER = [ANDROID, IOS, DESKTOP];
+// The same words as the deck description (deck/credits.py, ADR 0016), so a closed page loses nothing.
+const WHAT_YOULL_SEE = [
+  "Look at the photo or listen, think of the name, then tap ", bold("Show Answer"), ". Tap ", bold("Good"),
+  " if you knew it and ", bold("Again"), " if you didn't. Anki starts you on ", bold("20 new cards a day"),
+  " so you're never swamped. The rest arrive day by day. That's normal, not broken.",
+];
 
 function fill(parent, pieces) {
   for (const piece of pieces) {
@@ -74,34 +112,106 @@ function fill(parent, pieces) {
   }
 }
 
-function section(platform, level) {
-  const { title, steps, after } = STEPS[platform];
-  const el = document.createElement("section");
-  el.dataset.platform = platform;
-  el.className = "steps";
-  const heading = document.createElement(level);
-  heading.textContent = title;
-  const list = document.createElement("ol");
-  for (const pieces of steps) {
-    const li = document.createElement("li");
-    fill(li, pieces);
-    list.append(li);
-  }
-  el.append(heading, list);
-  if (after) {
-    const p = document.createElement("p");
-    fill(p, after);
-    el.append(p);
-  }
-  return el;
+function el(tag, { className, text, pieces, attrs } = {}) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  if (pieces) fill(node, pieces);
+  for (const [name, value] of Object.entries(attrs ?? {})) node.setAttribute(name, value);
+  return node;
 }
 
-/** Fill `container` with the detected platform's steps, then the rest under "On a different device?". */
-export function renderLastMile(container, platform) {
-  const first = ORDER.includes(platform) ? platform : DESKTOP;
-  const details = document.createElement("details");
-  const summary = document.createElement("summary");
-  summary.textContent = "On a different device?";
-  details.append(summary, ...ORDER.filter((p) => p !== first).map((p) => section(p, "h4")));
-  container.replaceChildren(section(first, "h3"), details);
+function stepList(steps) {
+  const list = el("ol");
+  for (const pieces of steps) list.append(el("li", { pieces }));
+  return list;
+}
+
+function buildPanel(id, platform) {
+  const { intro, paths, steps, note } = PANELS[platform];
+  const panel = el("div", {
+    className: "steps",
+    attrs: { role: "tabpanel", id: `${id}-panel-${platform}`, "aria-labelledby": `${id}-tab-${platform}`, tabindex: "0" },
+  });
+  panel.dataset.platform = platform;
+  panel.hidden = true;
+  if (intro) panel.append(el("p", { pieces: intro }));
+  if (steps) panel.append(stepList(steps));
+  if (note) panel.append(el("p", { className: "hint", pieces: note }));
+  paths?.forEach((path, i) => {
+    const headingId = `${id}-${platform}-path-${i + 1}`;
+    const box = el("section", { className: "path", attrs: { "aria-labelledby": headingId } });
+    box.append(el("h4", { text: path.title, attrs: { id: headingId } }));
+    box.append(el("p", { pieces: path.lead }), stepList(path.steps));
+    if (path.note) box.append(el("p", { className: "hint", pieces: path.note }));
+    panel.append(box);
+  });
+  return panel;
+}
+
+/**
+ * Fill `container` with the study guide: a heading, a tablist (iPhone & iPad, Android, Computer) with
+ * the detected device's tab selected, and the "What you'll see" box. Any other platform falls back
+ * to Computer, so there is never an empty box. Tabs follow the WAI-ARIA tabs pattern: Left and Right
+ * (wrapping), Home and End move and select; only the selected tab is in the Tab order.
+ *
+ * @param {HTMLElement} container
+ * @param {string} platform what `detectPlatform` returned
+ * @param {{id: string, heading: string}} options `id` prefixes every element id, so two guides can share a page
+ * @returns {{select: (platform: string) => void}}
+ */
+export function renderStudyGuide(container, platform, { id, heading }) {
+  const first = TABS.some((t) => t.platform === platform) ? platform : DESKTOP;
+  const title = el("h3", { text: heading, attrs: { id: `${id}-title`, tabindex: "-1" } });
+  const hint = el("p", { className: "hint", text: "Choose your device to see the steps." });
+  const list = el("div", { className: "tabs", attrs: { role: "tablist", "aria-label": "Your device" } });
+  const tabs = new Map();
+  const panels = new Map();
+  for (const { platform: p, label } of TABS) {
+    const tab = el("button", {
+      text: label,
+      attrs: { type: "button", role: "tab", id: `${id}-tab-${p}`, "aria-controls": `${id}-panel-${p}` },
+    });
+    tab.dataset.platform = p;
+    tabs.set(p, tab);
+    panels.set(p, buildPanel(id, p));
+    list.append(tab);
+  }
+
+  function select(p, { focus = false } = {}) {
+    for (const [name, tab] of tabs) {
+      const on = name === p;
+      tab.setAttribute("aria-selected", String(on));
+      tab.tabIndex = on ? 0 : -1;
+      panels.get(name).hidden = !on;
+    }
+    if (focus) tabs.get(p).focus();
+  }
+
+  const order = TABS.map((t) => t.platform);
+  list.addEventListener("keydown", (event) => {
+    const at = order.indexOf(event.target.dataset?.platform);
+    if (at < 0 || event.altKey || event.ctrlKey || event.metaKey) return;
+    const to = {
+      ArrowRight: (at + 1) % order.length,
+      ArrowLeft: (at + order.length - 1) % order.length,
+      Home: 0,
+      End: order.length - 1,
+    }[event.key];
+    if (to === undefined) return;
+    event.preventDefault();
+    select(order[to], { focus: true });
+  });
+  list.addEventListener("click", (event) => {
+    const tab = event.target.closest?.('[role="tab"]');
+    if (tab) select(tab.dataset.platform);
+  });
+
+  const see = el("aside", { className: "box what-youll-see", attrs: { "aria-labelledby": `${id}-see` } });
+  see.append(el("h4", { text: "What you'll see", attrs: { id: `${id}-see` } }), el("p", { pieces: WHAT_YOULL_SEE }));
+
+  container.replaceChildren(title, hint, list, ...panels.values(), see);
+  container.setAttribute("aria-labelledby", `${id}-title`);
+  select(first);
+  return { select };
 }

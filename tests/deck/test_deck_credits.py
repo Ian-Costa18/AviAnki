@@ -40,7 +40,7 @@ def test_credits_field_is_empty_when_nothing_is_used() -> None:
 
 def test_description_has_guidance_then_dataset_credit_then_notice() -> None:
     d = deck_description(manifest(), ebird=False)
-    assert "Show Answer" in d and "20 new birds a day" in d
+    assert "Show Answer" in d and "20 new cards a day" in d
     assert d.count("<br>") == 2  # three guidance lines
     credit = "eBird Observation Dataset, Cornell Lab of Ornithology, via GBIF"
     assert credit in d and "CC-BY-4.0" in d

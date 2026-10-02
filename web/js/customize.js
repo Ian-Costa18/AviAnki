@@ -128,7 +128,7 @@ export function setupCustomize({ notetypes, cards, store, onChange = () => {} })
       fromSelect.value = lastBuiltin;
     }
     $("theme-desc").textContent = state.theme === "custom"
-      ? "Your own colours and type, below."
+      ? "Your own colors and fonts, set below."
       : builtinTheme(look, state.theme)?.description ?? "";
   }
 
@@ -188,11 +188,11 @@ export function setupCustomize({ notetypes, cards, store, onChange = () => {} })
     try {
       await navigator.clipboard.writeText(text);
       area.hidden = true;
-      $("copy-status").textContent = "Copied. Save it in a file such as my-theme.toml and build with: avianki REGION --theme-file my-theme.toml";
+      $("copy-status").textContent = "Copied. To use it with the command-line version, save it as my-theme.toml and run: avianki REGION --theme-file my-theme.toml";
     } catch {
       area.hidden = false;
       area.select();
-      $("copy-status").textContent = "Copy this text into a file such as my-theme.toml, then build with: avianki REGION --theme-file my-theme.toml";
+      $("copy-status").textContent = "Your browser didn't let us copy it, so here it is to copy yourself. Save it as my-theme.toml and run: avianki REGION --theme-file my-theme.toml";
     }
   });
 

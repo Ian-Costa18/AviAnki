@@ -71,7 +71,7 @@ web/                     imports no Python; depends only on catalog/format.py's 
     themes.js            ADR 0028: token validation, the CSS template filled by the same rule as deck/themes.py, TOML, the page-address form of a look
     preview.js           the live card preview: a small mustache renderer, sandboxed iframes, the replay-button lookalike, the placeholder card
     customize.js         the "Customize your cards" section: theme picker, name-on-photo, custom editor, Copy theme, address and localStorage
-    lastmile.js          `detectPlatform` (pure, unit-tested with sample user agents) and the per-platform steps, detected device first
+    lastmile.js          `detectPlatform` (pure, unit-tested with sample user agents) and `renderStudyGuide`, the device tabs (ARIA tabs, detected device selected) shown on the first screen and on Done
     parts.js             ADR 0006: `planParts` (150 species per package on a constrained device), file names, the `?partSize=` test hook, out-of-memory detection, the bird counter for progress  (a module of its own so the rule is testable without the page)
     apkg/                the .apkg writer, reproducing genanki 0.13.1's output
       writer.js          SQLite via sql.js, then a streamed store-mode zip (fflate) into Blob parts
@@ -109,7 +109,7 @@ tests/                   mirrors src/avianki/
     test_web_vendor.py            web/vendor hashes match its README
     test_web_app_e2e.py           the page in both engines: Massachusetts, advanced options, Québec, errors, Cache Storage, `?catalog=`, accessibility
     test_web_parts.py             `parts.js` units, and constrained-device builds in parts (three packages equal the single package, out-of-memory fallback)
-    test_web_lastmile.py          platform detection, detected device's steps first (Android, iOS, iPadOS, desktop), Share only when `canShare` says so
+    test_web_lastmile.py          platform detection, the device tabs (roles, keyboard, detected tab, readable before building, same on Done), Share only when `canShare` says so
     test_web_catalog_url.py       `?catalog=` honoured on localhost only, never on the public site
     test_web_cache_busting.py     an assembled site (assemble_site.py) builds a deck from v/<sha>/ files only; a stale index.html reloads once and recovers, never loops
     test_web_shell_budget.py      html + css + js + vendored js under 150 KB gzipped (only the wasm excluded)

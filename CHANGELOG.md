@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### The website: friendlier wording and a study guide you can read first
+
+- **How to study, before you build.** The steps for opening your deck are now on the first screen, under the form, and the line under **Build my deck** links to them. The Done screen shows the same guide.
+- **Device tabs.** Pick **iPhone & iPad**, **Android** or **Computer**. The tab for your device is selected for you, and the tabs work with the keyboard and screen readers.
+- **Two ways on iPhone and iPad.** Free: Anki on a computer, sync to AnkiWeb, then study at ankiweb.net in Safari. Paid: AnkiMobile (US$24.99, which helps fund Anki's development) straight on the phone. AnkiWeb can't open a deck file on its own, so the free way needs a computer once. See [ADR 0030](docs/adr/0030-friendly-copy-and-device-tabs.md).
+- **Steps that match the apps.** Every button the steps name is the one the app shows: **Import** when Anki opens a deck file, **Add** in AnkiDroid, and **Yes** when Anki's first sync asks *"Replace it with local collection?"*.
+- **Plainer, kinder wording** across the page: a line under the headline that says what you'll get, headings, hints, buttons and error messages. *Advanced* is now *More options*.
+- **"20 new cards a day", not "20 new birds".** Anki's daily limit counts cards, and a bird can have more than one. The deck description says the same.
+
 ### Website
 
 - **A deploy no longer mixes new and cached files.** The site's scripts, styles and data are served from a folder named for the deploy, so a page always loads the files that belong to it. Right after an update, returning visitors could see the new page with old files (for example only the Default theme) until a hard refresh. A page cached from before an update reloads itself once to recover.
