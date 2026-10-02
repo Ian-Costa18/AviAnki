@@ -72,7 +72,7 @@ class XenoCantoLookup:
         self._key = api_key or None
         self._known: dict[str, XcInfo] = {}
         self._asked: set[str] = set()  # numbers sent, found or not: never asked twice
-        self._off: str | None = None if self._key else f"{SECRET} is not set"
+        self._off: str | None = None if self._key else "XC_API_KEY is not set"
         self._warned = False
         self.requests = 0
 
