@@ -245,3 +245,14 @@ def test_the_default_registry_has_both_real_sources_and_the_default_pins_file_sh
     assert [s.name for s in registry.asset_sources(PHOTO)] == ["commons", "inaturalist"]
     assert [s.name for s in registry.asset_sources(AUDIO)] == ["commons", "inaturalist"]
     assert catalog_cli.PINS_TOML.is_file()
+
+
+@pytest.mark.parametrize("key", ["k-123", None])
+def test_the_registry_gives_commons_the_xeno_canto_key_from_the_environment(monkeypatch, key):
+    if key is None:
+        monkeypatch.delenv("XC_API_KEY", raising=False)
+    else:
+        monkeypatch.setenv("XC_API_KEY", key)
+    client = HttpClient(cache_dir=None, session=RoutingSession({}), sleep=lambda _s: None)
+    commons = catalog_cli.new_registry(client, SpeciesTable([]), None).asset_sources(AUDIO)[0]
+    assert commons._xc is not None and commons._xc._key == key  # type: ignore[attr-defined]

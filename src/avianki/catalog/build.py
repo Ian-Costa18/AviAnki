@@ -111,6 +111,7 @@ from avianki.media.verify import (
     load_labels,
 )
 from avianki.sources.commons.source import CommonsSource
+from avianki.sources.commons.xenocanto import XenoCantoLookup
 from avianki.sources.contract import AssetKind, AssetSource, Candidate, FetchedAsset, Region, SpeciesSource
 from avianki.sources.inaturalist.source import INaturalistSource
 from avianki.sources.registry import Registry
@@ -145,14 +146,17 @@ def make_registry(
     client: HttpClient,
     species_table: SpeciesTable,
     expected_counts: Mapping[str, int] | None = None,
+    xc: XenoCantoLookup | None = None,
 ) -> Registry:
     """A fresh registry with the real asset sources, all sharing ``client``.
 
     ``expected_counts`` (species id -> EOD North American record count) turns on
-    iNaturalist's plausibility check (ADR 0022). Order and kinds come from `registry.ORDER`.
+    iNaturalist's plausibility check (ADR 0022). ``xc`` lets Commons order its audio by
+    xeno-canto metadata (ADR 0031); None leaves the order alone. Order and kinds come from
+    `registry.ORDER`.
     """
     registry = Registry()
-    registry.register(CommonsSource(client, species_table))
+    registry.register(CommonsSource(client, species_table, xc))
     registry.register(INaturalistSource(client, species_table, expected_counts=expected_counts, today=client.today))
     return registry
 
@@ -424,6 +428,8 @@ class _Builder:
         self._ranked_photos()
         self._ranked_audio()
         self._plausibility()
+        for source in self.registry.asset_sources(AssetKind.AUDIO):
+            self.report.notes.extend(source.notes())
         result = self._assemble()
         self.report.elapsed_s = self.clock() - started
         return result

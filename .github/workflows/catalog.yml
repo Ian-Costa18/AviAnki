@@ -120,6 +120,9 @@ jobs:
           MAX_SPECIES: ${{ inputs.max_species }}
           ALLOW_SHRINK: ${{ inputs.allow_shrink }}
           REFRESH_SPECIES: ${{ inputs.refresh_species }}
+          # xeno-canto metadata orders the Commons audio candidates (ADR 0031). Optional: without
+          # it the build keeps the default order and says so in its report.
+          XC_API_KEY: ${{ secrets.XC_API_KEY }}
         run: |
           args=(build --out build --cache-dir .cache/http --time-budget-minutes 300 --update-species-csv)
           if [ "$FOUND_PREVIOUS" = "true" ]; then

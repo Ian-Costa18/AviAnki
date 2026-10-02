@@ -17,13 +17,14 @@ import json
 import logging
 import re
 import time
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Collection, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Any, Protocol
+from urllib.parse import quote, quote_plus
 
 import requests
 
@@ -157,20 +158,25 @@ class HttpClient:
         *,
         cache: bool = True,
         headers: Mapping[str, str] | None = None,
+        secret_params: Collection[str] = (),
     ) -> Response:
         """GET ``url`` on behalf of ``source``. Returns a 2xx response or raises `SourceError`.
 
         ``headers`` are sent besides the User-Agent (eBird's API token goes here). Like
         ``params`` they are never written to the cache, and they are not part of the cache key.
+
+        ``secret_params`` names the entries of ``params`` that are credentials in the URL
+        (xeno-canto's ``key``). They are sent, but left out of the cache key, and their values
+        are scrubbed from every error message this client raises.
         """
         if not _SOURCE_NAME.match(source):
             raise ValueError(f"invalid source name: {source!r}")
-        key = _cache_key(source, "GET", url, params)
+        key = _cache_key(source, "GET", url, _public(params, secret_params))
         if cache:
             hit = self._cache_read(source, key)
             if hit is not None:
                 return hit
-        resp = self._send_with_retry(source, limits, url, params, headers)
+        resp = self._send_with_retry(source, limits, url, params, headers, _secrets(params, secret_params))
         if cache:
             self._cache_write(source, key, resp)
         return resp
@@ -184,6 +190,7 @@ class HttpClient:
         *,
         cache: bool = True,
         headers: Mapping[str, str] | None = None,
+        secret_params: Collection[str] = (),
     ) -> Any:
         """`get` then parse JSON. A malformed body raises and is evicted from the cache.
 
@@ -191,10 +198,10 @@ class HttpClient:
         retried after ``Retry-After`` like a 429 and never left in the cache; if the lag
         outlasts the retries the last body is returned for the caller to treat as a failure.
         """
-        key = _cache_key(source, "GET", url, params)
+        key = _cache_key(source, "GET", url, _public(params, secret_params))
         attempt = 0
         while True:
-            resp = self.get(source, limits, url, params, cache=cache, headers=headers)
+            resp = self.get(source, limits, url, params, cache=cache, headers=headers, secret_params=secret_params)
             try:
                 payload = resp.json()
             except SourceError:
@@ -221,12 +228,14 @@ class HttpClient:
         url: str,
         params: Mapping[str, Any] | None,
         headers: Mapping[str, str] | None = None,
+        secrets: tuple[str, ...] = (),
     ) -> Response:
         attempt = 0
         while True:
             self._spend_budget(source, limits)
             self._throttle(source, limits)
             log.debug("GET %s %s (source=%s, attempt %d)", url, sorted(params or {}), source, attempt + 1)
+            failure: SourceError | None = None
             try:
                 raw = self._session.get(
                     url,
@@ -236,20 +245,30 @@ class HttpClient:
                 )
             except requests.RequestException as e:
                 if attempt >= self.max_retries:
-                    raise SourceError(f"{source}: request to {url} failed after {attempt + 1} attempts: {e}") from e
-                wait = self._backoff(attempt)
-                log.warning("%s: %s on %s; retry %d/%d in %.1fs", source, type(e).__name__, url,
-                            attempt + 1, self.max_retries, wait)
-                self._sleep(wait)
-                attempt += 1
-                continue
+                    failure = SourceError(
+                        _scrub(f"{source}: request to {url} failed after {attempt + 1} attempts: {e}", secrets)
+                    )
+                    if not secrets:
+                        failure.__cause__ = e
+                else:
+                    wait = self._backoff(attempt)
+                    log.warning("%s: %s on %s; retry %d/%d in %.1fs", source, type(e).__name__, url,
+                                attempt + 1, self.max_retries, wait)
+                    self._sleep(wait)
+                    attempt += 1
+                    continue
+            if failure is not None:
+                # Raised outside the handler, so no context or cause carries the original: requests
+                # puts the full URL, query string and all, in its messages, and a traceback would
+                # print it.
+                raise failure
 
             status = int(raw.status_code)
             reply_headers = {str(k): str(v) for k, v in dict(raw.headers or {}).items()}
             if 200 <= status < 300:
                 return Response(status=status, url=url, content=bytes(raw.content), headers=reply_headers)
             if status not in _RETRY_STATUSES:
-                raise HttpError(status, url, _snippet(raw.content))
+                raise HttpError(status, url, _scrub(_snippet(raw.content), secrets))
             if attempt >= self.max_retries:
                 raise HttpError(status, url, f"gave up after {attempt + 1} attempts")
             wait = self._backoff(attempt)
@@ -379,6 +398,25 @@ def _cache_key(source: str, method: str, url: str, params: Mapping[str, Any] | N
     items = sorted((str(k), _param_value(v)) for k, v in (params or {}).items())
     blob = json.dumps([source, method, url, items], separators=(",", ":"))
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()
+
+
+def _public(params: Mapping[str, Any] | None, secret_params: Collection[str]) -> Mapping[str, Any] | None:
+    """``params`` without the credentials, for the cache key."""
+    if not params or not secret_params:
+        return params
+    return {k: v for k, v in params.items() if k not in secret_params}
+
+
+def _secrets(params: Mapping[str, Any] | None, secret_params: Collection[str]) -> tuple[str, ...]:
+    return tuple(str(v) for k, v in (params or {}).items() if k in secret_params and str(v))
+
+
+def _scrub(text: str, secrets: Collection[str]) -> str:
+    """``text`` with every secret, raw or URL-encoded, replaced."""
+    for secret in secrets:
+        for form in dict.fromkeys((secret, quote(secret, safe=""), quote_plus(secret))):
+            text = text.replace(form, "<redacted>")
+    return text
 
 
 def _param_value(v: Any) -> Any:
