@@ -125,6 +125,7 @@ scripts/
   fetch_latest_catalog.sh  downloads and extracts the newest catalog-* release; shared by catalog.yml and pages.yml
   gen_web_notetypes.py     dumps deck/'s note types and description strings to web/js/notetypes.json; `--check` for drift
   weekly_summary.py        reads the weekly run's JUnit report: writes the job summary, fails on any skip but eBird's
+  gen_card_shots.py        renders deck/'s templates and themes with live catalog media in Chromium → docs/examples/ (the README's card and theme images)
 
 .github/workflows/
   ci.yml                 lint, types, unit tests, layout test, browser tests (installs Chromium and WebKit); vulture, deptry and a 1% jscpd threshold

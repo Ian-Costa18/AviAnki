@@ -116,6 +116,7 @@ Each card type is its own `genanki.Model` in `src/avianki/deck/notetypes.py` wit
 **Styles:**
 
 - Edit `src/avianki/deck/card.css` for layout changes. All models share it at build time.
+- After changing a template, the CSS or a theme, refresh the README's images: `uv run --extra catalog python scripts/gen_card_shots.py` (needs `uv run playwright install chromium`). They are rendered from the shipped templates, so a stale image is a wrong image.
 
 **Model IDs and GUIDs:**
 

@@ -39,8 +39,10 @@ avianki = "avianki.cli:main"
 avianki-catalog = "avianki.catalog_cli:main"
 
 [project.urls]
+Homepage = "https://ian-costa18.github.io/AviAnki/"
 Repository = "https://github.com/Ian-Costa18/avianki"
 Issues = "https://github.com/Ian-Costa18/avianki/issues"
+Changelog = "https://github.com/Ian-Costa18/AviAnki/blob/main/CHANGELOG.md"
 
 [build-system]
 requires = ["uv_build>=0.11.7,<0.13"]
