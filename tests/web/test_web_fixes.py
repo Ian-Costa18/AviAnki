@@ -285,11 +285,15 @@ def test_every_link_and_button_is_44px_tall_on_a_phone(new_context, base_url, tm
 
     page.click("#advanced > summary")
     assert _short(page) == []
+    for tab in ("ios", "android", "desktop"):  # every device's steps, with their store links
+        page.click(f"#study-pick-tab-{tab}")
+        assert _short(page) == [], tab
 
     build(page, tmp_path, region="Arizona")
-    page.click("#lastmile details > summary")  # the other devices' steps, with their store links
     assert page.evaluate(TARGETS)  # something was measured
-    assert _short(page) == []
+    for tab in ("ios", "android", "desktop"):
+        page.click(f"#study-done-tab-{tab}")
+        assert _short(page) == [], tab
 
 
 # ---------------------------------------------------------------------------------------

@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### The website: friendlier wording and a study guide you can read first
+
+- **How to study, before you build.** The steps for opening your deck are now on the first screen, under the form, and the line under **Build my deck** links to them. The Done screen shows the same guide.
+- **Device tabs.** Pick **iPhone & iPad**, **Android** or **Computer**. The tab for your device is selected for you, and the tabs work with the keyboard and screen readers.
+- **Two ways on iPhone and iPad.** Free: Anki on a computer, sync to AnkiWeb, then study at ankiweb.net in Safari. Paid: AnkiMobile (US$24.99, which supports Anki's development) straight on the phone. AnkiWeb can't open a deck file on its own, so the free way needs a computer once. See [ADR 0029](docs/adr/0029-friendly-copy-and-device-tabs.md).
+- **Plainer, kinder wording** across the page: headings, hints, buttons and error messages.
+
 ### Card themes
 
 - **Ten themes** for the cards: `default` (the current look), `serif`, `field-guide`, `nord`, `slate`, `forest`, `plate`, `minimal`, `midnight` and `high-contrast`. Pick one with `--theme NAME`, or on the website under **Customize your cards**. All use your phone's own fonts and follow night mode, and the credits are always on the answer.

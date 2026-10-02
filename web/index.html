@@ -10,6 +10,7 @@
 <script type="module" src="js/app.js"></script>
 </head>
 <body>
+<noscript><p class="notice noscript">AviAnki builds your deck in your browser, so it needs JavaScript. Please turn it on and reload the page.</p></noscript>
 <header class="site">
   <h1>AviAnki</h1>
 </header>
@@ -22,7 +23,7 @@
 
   <!-- Screen 1: Pick -->
   <section id="screen-pick" aria-labelledby="pick-title">
-    <h2 id="pick-title" class="pitch" tabindex="-1">Learn to recognise the birds where you live, by sight and sound.</h2>
+    <h2 id="pick-title" class="pitch" tabindex="-1">Learn the birds where you live, by sight and sound.</h2>
 
     <form id="form" novalidate>
       <div class="field">
@@ -30,18 +31,19 @@
         <select id="region" name="region" required disabled aria-describedby="not-listed">
           <option value="">Loading the list&hellip;</option>
         </select>
-        <p id="region-problem" class="problem" hidden>Choose your state or province first.</p>
+        <p id="region-problem" class="problem" hidden>Pick your state or province, and we'll find your birds.</p>
       </div>
-      <p id="not-listed" class="hint">Not in the list? AviAnki's website covers the US and Canada.
+      <p id="not-listed" class="hint">Not in the list? The website covers the US and Canada for now.
         <a href="https://github.com/Ian-Costa18/AviAnki#readme">The command-line tool works anywhere.</a></p>
 
       <button type="submit" id="build" class="primary" disabled>Build my deck</button>
-      <p class="hint" id="anki-line">You'll study these in <strong>Anki</strong>, a free flashcard app. We'll show you how once your deck is ready.</p>
+      <p class="hint" id="anki-line">You'll study your deck in <strong>Anki</strong>, a flashcard app that's free on computers and Android.
+        <a href="#study-pick" id="study-link">See how studying works</a></p>
       <p id="parts-hint" class="hint" aria-live="polite" hidden></p>
 
       <section id="customize" class="customize" aria-labelledby="customize-title">
         <h3 id="customize-title">Customize your cards</h3>
-        <p class="hint">Pick how your cards look. Every card in your deck will look like this Rock Pigeon.</p>
+        <p class="hint">Choose a look for your cards. The preview below shows how they'll turn out.</p>
 
         <div class="field">
           <label for="theme">Theme</label>
@@ -52,7 +54,7 @@
         </div>
 
         <label class="choice"><input type="checkbox" id="name-on-photo" name="name_on_photo">
-          <span><strong>Name on the photo:</strong> the answer shows the name over the bottom of the picture</span></label>
+          <span><strong>Name on the photo:</strong> show the bird's name over the bottom of the picture on the answer</span></label>
 
         <fieldset id="custom" class="custom" hidden>
           <legend>Your custom theme</legend>
@@ -67,9 +69,9 @@
           <textarea id="theme-text" class="theme-text" rows="14" readonly hidden aria-label="Theme file text"></textarea>
         </fieldset>
 
-        <p id="theme-note" class="hint">Anki keeps one look for all your cards, so importing a deck with another
-          theme restyles the cards you already have (and replaces any styling you edited yourself).
-          The page address remembers your look, so you can bookmark or share it.</p>
+        <p id="theme-note" class="hint">Anki keeps one look for all your cards. If you import a deck with a different
+          theme, the AviAnki cards you already have change to match, and any styling you edited yourself is replaced.
+          Your look is saved in the page address, so you can bookmark it or send it to a friend.</p>
 
         <div class="preview" id="preview">
           <div class="preview-bar">
@@ -100,9 +102,9 @@
         <fieldset>
           <legend>How many birds?</legend>
           <label class="choice"><input type="radio" name="tier" value="standard" checked>
-            <span><strong>Standard:</strong> the 100 birds seen most here</span></label>
+            <span><strong>Standard:</strong> the 100 birds seen most often here</span></label>
           <label class="choice"><input type="radio" name="tier" value="everything">
-            <span><strong>Everything:</strong> every bird in the catalog for this place, up to 400</span></label>
+            <span><strong>Everything:</strong> all the birds we have for this place, up to 400</span></label>
         </fieldset>
 
         <div class="field">
@@ -125,20 +127,23 @@
         </div>
 
         <fieldset>
-          <legend>Cards to make</legend>
+          <legend>Which cards would you like?</legend>
           <label class="choice"><input type="checkbox" name="cards" value="photo" checked>
-            <span><strong>Photo:</strong> see the bird, name it</span></label>
+            <span><strong>Photo:</strong> see a bird and name it</span></label>
           <label class="choice"><input type="checkbox" name="cards" value="audio" checked>
-            <span><strong>Audio:</strong> hear the bird, name it</span></label>
+            <span><strong>Audio:</strong> hear a bird and name it</span></label>
           <label class="choice"><input type="checkbox" name="cards" value="photo_audio">
-            <span><strong>Photo and audio:</strong> see and hear it together</span></label>
-          <p id="cards-problem" class="problem" hidden>Pick at least one kind of card.</p>
+            <span><strong>Photo and audio:</strong> see and hear a bird together</span></label>
+          <p id="cards-problem" class="problem" hidden>Choose at least one kind of card to make.</p>
         </fieldset>
 
         <label class="choice"><input type="checkbox" id="subdeck" name="subdeck">
-          <span>Put these in a subdeck named after the region</span></label>
+          <span>Put these birds in a subdeck named after the region</span></label>
       </details>
     </form>
+
+    <!-- The study guide (ADR 0029): readable before anything is built, and the same component as on Done. -->
+    <section id="study-pick" class="study" aria-labelledby="study-pick-title"></section>
   </section>
 
   <!-- Screen 2: Building -->
@@ -156,15 +161,7 @@
     <p id="done-summary"></p>
     <ul id="downloads" class="downloads"></ul>
 
-    <div id="lastmile"></div>
-
-    <aside class="box" aria-labelledby="see-title">
-      <h3 id="see-title">What you'll see</h3>
-      <p id="what-youll-see">Look at the photo or listen, think of the name, then tap <strong>Show Answer</strong>.
-        Tap <strong>Good</strong> if you knew it and <strong>Again</strong> if you didn't.
-        Anki shows you <strong>20 new birds a day</strong> so you're never swamped.
-        The rest arrive over the next few days. That's normal, not broken.</p>
-    </aside>
+    <section id="study-done" class="study" aria-labelledby="study-done-title"></section>
 
     <button type="button" id="again" class="primary">Add another region</button>
   </section>

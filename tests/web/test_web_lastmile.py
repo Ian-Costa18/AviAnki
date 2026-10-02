@@ -1,11 +1,13 @@
-"""The last mile (ADR 0016): the detected device's steps come first, and the Share button appears
-only where the browser can share a file.
+"""The study guide (ADRs 0016 and 0029): accessible device tabs with the detected device selected, readable
+before anything is built and the same on the Done screen, and the Share button only where the browser can
+share a file.
 """
 
 from __future__ import annotations
 
 import pytest
 from app_support import build, open_app
+from web_support import REPO
 
 ANDROID_CHROME = (
     "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -62,78 +64,126 @@ def test_detect_platform_with_no_arguments_is_desktop(page) -> None:
     assert got == "desktop"
 
 
-def test_render_puts_the_detected_platform_first_and_the_rest_in_a_collapsed_section(page) -> None:
-    got = page.evaluate(
+
+RENDER = """async (platform) => {
+  const { renderStudyGuide } = await import('/js/lastmile.js');
+  const box = document.createElement('div');
+  document.body.append(box);
+  renderStudyGuide(box, platform, { id: 'unit', heading: 'Studying' });
+  const tabs = [...box.querySelectorAll('[role=tab]')];
+  const panels = [...box.querySelectorAll('[role=tabpanel]')];
+  return {
+    heading: box.querySelector('h3').textContent,
+    list: box.querySelector('[role=tablist]').getAttribute('aria-label'),
+    labels: tabs.map((t) => t.textContent),
+    selected: tabs.filter((t) => t.getAttribute('aria-selected') === 'true').map((t) => t.dataset.platform),
+    tabbable: tabs.filter((t) => t.tabIndex === 0).map((t) => t.dataset.platform),
+    shown: panels.filter((p) => !p.hidden).map((p) => p.dataset.platform),
+    wired: tabs.every((t) => {
+      const panel = document.getElementById(t.getAttribute('aria-controls'));
+      return panel && panel.getAttribute('role') === 'tabpanel' && panel.getAttribute('aria-labelledby') === t.id;
+    }),
+    seeBox: !!box.querySelector('.what-youll-see'),
+  };
+}"""
+
+
+def test_render_study_guide_selects_the_detected_devices_tab(page) -> None:
+    for platform, selected in [("android", "android"), ("ios", "ios"), ("desktop", "desktop"), ("nonsense", "desktop"),
+                               (None, "desktop")]:
+        got = page.evaluate(RENDER, platform)
+        assert got["labels"] == ["iPhone & iPad", "Android", "Computer"]
+        assert got["selected"] == [selected], platform  # never a blank box, whatever was detected
+        assert got["tabbable"] == [selected]  # roving tabindex: only the selected tab is in the Tab order
+        assert got["shown"] == [selected]
+        assert got["wired"] is True
+        assert got["list"] == "Your device"
+        assert got["heading"] == "Studying"
+        assert got["seeBox"] is True
+
+
+def test_two_guides_on_one_page_do_not_share_ids(page) -> None:
+    ids = page.evaluate(
         """async () => {
-          const { renderLastMile } = await import('/js/lastmile.js');
-          const out = {};
-          for (const p of ['android', 'ios', 'desktop', 'nonsense']) {
+          const { renderStudyGuide } = await import('/js/lastmile.js');
+          for (const id of ['one', 'two']) {
             const box = document.createElement('div');
-            renderLastMile(box, p);
-            const details = box.querySelector(':scope > details');
-            out[p] = {
-              first: box.firstElementChild.dataset.platform,
-              heading: box.firstElementChild.firstElementChild.tagName,
-              others: [...details.querySelectorAll('section')].map((s) => s.dataset.platform),
-              summary: details.querySelector('summary').textContent,
-              open: details.open,
-            };
+            document.body.append(box);
+            renderStudyGuide(box, 'ios', { id, heading: id });
           }
-          return out;
+          const all = [...document.querySelectorAll('[id]')].map((e) => e.id);
+          return { all: all.length, unique: new Set(all).size };
         }"""
     )
-    assert got["android"]["first"] == "android"
-    assert got["android"]["others"] == ["ios", "desktop"]
-    assert got["ios"]["first"] == "ios"
-    assert got["ios"]["others"] == ["android", "desktop"]
-    assert got["desktop"]["first"] == "desktop"
-    assert got["desktop"]["others"] == ["android", "ios"]
-    assert got["nonsense"]["first"] == "desktop"  # never a blank box
-    for out in got.values():
-        assert out["summary"] == "On a different device?"
-        assert out["open"] is False
-        assert out["heading"] == "H3"
+    assert ids["all"] == ids["unique"]
 
 
 # ---------------------------------------------------------------------------------------
 # In the app, on emulated devices
 # ---------------------------------------------------------------------------------------
 
+TABS = "#study-pick [role=tab]"
 
-def _steps(page) -> dict:
+
+def _guide(page, where: str = "pick") -> dict:
     return page.evaluate(
-        """() => {
-          const box = document.getElementById('lastmile');
-          const details = box.querySelector(':scope > details');
+        """(where) => {
+          const box = document.getElementById('study-' + where);
+          const tabs = [...box.querySelectorAll('[role=tab]')];
+          const shown = [...box.querySelectorAll('[role=tabpanel]')].filter((p) => !p.hidden);
           return {
-            first: box.querySelector(':scope > section').dataset.platform,
-            firstText: box.querySelector(':scope > section').textContent,
-            others: [...details.querySelectorAll('section')].map((s) => s.dataset.platform),
-            open: details.open,
-            firstLinks: [...box.querySelectorAll(':scope > section a')].map((a) => a.href),
+            selected: tabs.filter((t) => t.getAttribute('aria-selected') === 'true').map((t) => t.dataset.platform),
+            shown: shown.map((p) => p.dataset.platform),
+            text: shown.map((p) => p.innerText).join('\\n'),
+            links: shown.flatMap((p) => [...p.querySelectorAll('a')].map((a) => a.href)),
+            paths: shown.flatMap((p) => [...p.querySelectorAll('section.path h4')].map((h) => h.innerText)),
           };
-        }"""
+        }""",
+        where,
     )
 
 
-def test_android_emulation_shows_ankidroid_first(new_context, base_url) -> None:
+def test_the_guide_is_readable_on_the_first_screen_before_anything_is_built(new_context, engine, base_url) -> None:
+    page = open_app(new_context(engine), base_url)
+    assert page.is_visible("#screen-pick")
+    assert page.get_by_role("tablist", name="Your device").is_visible()
+    assert [t.inner_text() for t in page.get_by_role("tab").all()] == ["iPhone & iPad", "Android", "Computer"]
+    assert page.get_by_role("tabpanel").is_visible()
+    assert page.locator("#study-pick .what-youll-see").is_visible()
+    assert not page.is_visible("#screen-done")  # nothing was built, and nothing was downloaded
+    # "See how studying works" goes to the guide and puts focus on its heading, without touching the address
+    page.get_by_role("link", name="See how studying works").click()
+    assert page.evaluate("document.activeElement.id") == "study-pick-title"
+    assert page.evaluate("location.hash") == ""
+
+
+def test_android_emulation_preselects_the_android_tab(new_context, base_url) -> None:
     page = open_app(new_context("chromium", device="Pixel 7"), base_url)
-    steps = _steps(page)
-    assert steps["first"] == "android"
-    assert steps["others"] == ["ios", "desktop"]
-    assert steps["open"] is False
-    assert "AnkiDroid" in steps["firstText"]
-    assert any("play.google.com" in href for href in steps["firstLinks"])
+    guide = _guide(page)
+    assert guide["selected"] == ["android"]
+    assert guide["shown"] == ["android"]
+    assert "AnkiDroid" in guide["text"]
+    assert any("play.google.com" in href for href in guide["links"])
+    page.click("#study-pick-tab-ios")  # the others are one tap away
+    assert _guide(page)["selected"] == ["ios"]
 
 
-def test_iphone_emulation_shows_ankimobile_first_with_the_price_and_the_free_route(new_context, base_url) -> None:
+def test_iphone_emulation_preselects_ios_and_shows_two_equal_paths_free_first(new_context, base_url) -> None:
     page = open_app(new_context("webkit", device="iPhone 14"), base_url)
-    steps = _steps(page)
-    assert steps["first"] == "ios"
-    assert steps["others"] == ["android", "desktop"]
-    assert "US$24.99" in steps["firstText"]
-    assert "AnkiWeb" in steps["firstText"]
-    assert any("apps.apple.com" in href for href in steps["firstLinks"])
+    guide = _guide(page)
+    assert guide["selected"] == ["ios"]
+    assert guide["paths"] == ["Free, needs a computer once", "Paid app, phone only"]  # free first, both headed alike
+    assert "US$24.99" in guide["text"]
+    assert "supports Anki's development" in guide["text"]
+    assert "AnkiWeb" in guide["text"]
+    assert any("apps.apple.com" in href for href in guide["links"])
+    assert any(href.rstrip("/") == "https://ankiweb.net" for href in guide["links"])
+    # equal weight: the two paths are siblings with the same styling, neither inside the other
+    sizes = page.eval_on_selector_all("#study-pick section.path", "els => els.map(e => e.className)")
+    assert sizes == ["path", "path"]
+    # nothing demands payment: the free path never mentions the price
+    free = page.locator("#study-pick section.path").first.inner_text()
+    assert "US$" not in free
 
 
 def test_ipad_that_reports_a_mac_is_still_an_ios_device(new_context, base_url) -> None:
@@ -142,15 +192,65 @@ def test_ipad_that_reports_a_mac_is_still_an_ios_device(new_context, base_url) -
         "Object.defineProperty(navigator, 'maxTouchPoints', { value: 5, configurable: true });"
         "Object.defineProperty(navigator, 'platform', { value: 'MacIntel', configurable: true });"
     )
-    assert _steps(open_app(context, base_url))["first"] == "ios"
+    assert _guide(open_app(context, base_url))["selected"] == ["ios"]
 
 
-@pytest.mark.parametrize("engine", ["chromium", "webkit"])
-def test_desktop_shows_anki_first(new_context, engine, base_url) -> None:
-    steps = _steps(open_app(new_context(engine), base_url))
-    assert steps["first"] == "desktop"
-    assert steps["others"] == ["android", "ios"]
-    assert "apps.ankiweb.net" in "".join(steps["firstLinks"])
+@pytest.mark.parametrize("engine_name", ["chromium", "webkit"])
+def test_desktop_preselects_the_computer_tab(new_context, engine_name, base_url) -> None:
+    page = open_app(new_context(engine_name), base_url)
+    guide = _guide(page)
+    assert guide["selected"] == ["desktop"]
+    assert any("apps.ankiweb.net" in href for href in guide["links"])
+    assert "Study Now" in guide["text"]
+
+
+@pytest.mark.parametrize("engine_name", ["chromium", "webkit"])
+def test_tabs_work_with_the_keyboard(new_context, engine_name, base_url) -> None:
+    page = open_app(new_context(engine_name), base_url)  # a desktop: Computer is selected
+    page.focus("#study-pick-tab-desktop")
+
+    def state() -> tuple[str, list[str]]:
+        return page.evaluate("document.activeElement.dataset.platform"), _guide(page)["selected"]
+
+    page.keyboard.press("ArrowRight")  # wraps from the last tab to the first
+    assert state() == ("ios", ["ios"])
+    page.keyboard.press("ArrowRight")
+    assert state() == ("android", ["android"])
+    page.keyboard.press("ArrowLeft")
+    assert state() == ("ios", ["ios"])
+    page.keyboard.press("ArrowLeft")  # wraps from the first to the last
+    assert state() == ("desktop", ["desktop"])
+    page.keyboard.press("Home")
+    assert state() == ("ios", ["ios"])
+    page.keyboard.press("End")
+    assert state() == ("desktop", ["desktop"])
+    # only the selected tab is a Tab stop, and the panel follows it
+    assert page.eval_on_selector_all(TABS, "els => els.filter(e => e.tabIndex === 0).map(e => e.dataset.platform)") == ["desktop"]
+    page.keyboard.press("Tab")
+    assert page.evaluate("document.activeElement.getAttribute('role')") == "tabpanel"
+    # clicking works as well, and sets aria-selected
+    page.click("#study-pick-tab-android")
+    assert page.get_attribute("#study-pick-tab-android", "aria-selected") == "true"
+    assert page.get_attribute("#study-pick-tab-desktop", "aria-selected") == "false"
+
+
+def test_the_done_screen_shows_the_same_guide(new_context, base_url, tmp_path) -> None:
+    page = open_app(new_context("chromium", device="Pixel 7"), base_url)
+    build(page, tmp_path, region="Arizona")
+    assert _guide(page, "done")["selected"] == ["android"]
+    # Both guides come from one component, so their markup is the same apart from the ids and the heading.
+    html = """(id) => [...document.querySelectorAll('#study-' + id + ' [role=tabpanel], #study-' + id + ' .what-youll-see')]
+        .map((e) => e.innerHTML.replaceAll(id === 'pick' ? 'study-pick' : 'study-done', 'study')).join('|')"""
+    assert page.evaluate(html, "pick") == page.evaluate(html, "done")
+    assert page.locator("#study-done h3").inner_text() == "Now, open it in Anki"
+    page.click("#study-done-tab-ios")  # the guides are independent: the Pick screen's choice is unchanged
+    assert _guide(page, "pick")["selected"] == ["android"]
+
+
+def test_a_page_without_javascript_says_why() -> None:
+    html = (REPO / "web" / "index.html").read_text(encoding="utf-8")
+    assert "<noscript>" in html
+    assert "needs JavaScript" in html.split("<noscript>")[1].split("</noscript>")[0]
 
 
 # ---------------------------------------------------------------------------------------

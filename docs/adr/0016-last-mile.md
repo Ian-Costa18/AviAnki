@@ -1,6 +1,6 @@
 # 0016 — Explain Anki before the build and give per-platform steps after it
 
-**Status:** Accepted, 2026-09-28 · **Ticket:** [#36](https://github.com/Ian-Costa18/AviAnki/issues/36) · **Amends:** PRD §9
+**Status:** Accepted, 2026-09-28 · **Ticket:** [#36](https://github.com/Ian-Costa18/AviAnki/issues/36) · **Amends:** PRD §9 · **Amended by:** [0029](0029-friendly-copy-and-device-tabs.md) (the steps are now device tabs, readable before the build, and the iPhone tab has two equal paths; the wording there replaces the quotes below)
 
 ## Decision
 

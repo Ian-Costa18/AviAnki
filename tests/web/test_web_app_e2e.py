@@ -110,7 +110,8 @@ def test_pick_screen_content_and_defaults(new_context, engine, base_url) -> None
     assert not [o for o in options if o.startswith(("us-", "ca-", "US-", "CA-"))]
 
     # ADR 0016: the line under the button, and ADR 0015: the "Not in the list?" line.
-    assert "free flashcard app" in visible_text(page, "#anki-line")
+    assert "flashcard app" in visible_text(page, "#anki-line")
+    assert page.get_by_role("link", name="See how studying works").is_visible()
     not_listed = page.locator("#not-listed")
     assert "Not in the list?" in not_listed.inner_text()
     assert "readme" in not_listed.locator("a").first.get_attribute("href").lower()
@@ -141,8 +142,9 @@ def test_footer_carries_credits_and_the_licence_notice(new_context, engine, base
 
 def test_what_youll_see_matches_the_study_guidance(new_context, engine, base_url) -> None:
     page = open_app(new_context(engine), base_url)
-    text = page.locator("#what-youll-see").evaluate("el => el.textContent.split(/\\s+/).join(' ')")
-    assert text == " ".join(NOTETYPES["description"]["study_guidance"])
+    for where in ("pick", "done"):  # one component, so both copies say the same
+        text = page.locator(f"#study-{where} .what-youll-see p").evaluate("el => el.textContent.split(/\\s+/).join(' ')")
+        assert text == " ".join(NOTETYPES["description"]["study_guidance"])
 
 
 def test_missing_card_type_or_region_stops_before_building(new_context, engine, base_url) -> None:

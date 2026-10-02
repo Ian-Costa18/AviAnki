@@ -188,11 +188,11 @@ export function setupCustomize({ notetypes, cards, store, onChange = () => {} })
     try {
       await navigator.clipboard.writeText(text);
       area.hidden = true;
-      $("copy-status").textContent = "Copied. Save it in a file such as my-theme.toml and build with: avianki REGION --theme-file my-theme.toml";
+      $("copy-status").textContent = "Copied! Save it in a file such as my-theme.toml, then build with: avianki REGION --theme-file my-theme.toml";
     } catch {
       area.hidden = false;
       area.select();
-      $("copy-status").textContent = "Copy this text into a file such as my-theme.toml, then build with: avianki REGION --theme-file my-theme.toml";
+      $("copy-status").textContent = "Your browser wouldn't copy it, so here it is. Save it in a file such as my-theme.toml, then build with: avianki REGION --theme-file my-theme.toml";
     }
   });
 
