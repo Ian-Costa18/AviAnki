@@ -53,14 +53,15 @@ def test_layout_with_web_dir(tmp_path: Path) -> None:
     web = make_web(tmp_path)
     site = tmp_path / "_site"
 
-    count, total = assemble_site.assemble(catalog, site, web)
+    count, total = assemble_site.assemble(catalog, site, web, version="abc1234")
 
     assert (site / "catalog" / "manifest.json").is_file()
     assert (site / "catalog" / "regions" / "us-ri.abc.json").is_file()
     assert (site / "catalog" / "media" / "0123456789abcdef.webp").read_bytes() == b"x" * 100
     assert (site / "catalog" / "credits.html").is_file()
     assert "real app" in (site / "index.html").read_text(encoding="utf-8")
-    assert (site / "js" / "app.js").is_file()
+    assert (site / "v" / "abc1234" / "js" / "app.js").is_file()
+    assert not (site / "js").exists()  # the app's files are only under the version (ADR 0029)
     assert (site / ".nojekyll").read_bytes() == b""
     files = [p for p in site.rglob("*") if p.is_file()]
     assert count == len(files)
