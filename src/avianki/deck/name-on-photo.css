@@ -1,0 +1,12 @@
+/* Layout "name on the photo" (ADR 0028): on the back the tag, name and scientific name sit on a dark
+   gradient over the bottom of the picture. The photo is sized by the picture itself on both sides so
+   the gradient never overhangs a tall photo and the photo stays put when the card flips (ADR 0025).
+   A very wide picture is cropped to a minimum height so the names always fit on it. */
+.av .photo { position:relative; width:fit-content; max-width:100%; margin:0 auto; }
+.av .photo img { width:auto; height:auto; max-width:100%; max-height:46vh; min-height:130px; object-fit:cover; }
+.av .photo .names { position:absolute; left:0; right:0; bottom:0; margin:0; padding:22px 14px 12px; box-sizing:border-box;
+  --ink:#fff; --sub:#e9ecef; --name:#fff; --accent:#fff; border:0; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,.55);
+  background:linear-gradient(to top, rgba(0,0,0,.84) 0%, rgba(0,0,0,.68) 62%, rgba(0,0,0,0) 100%);
+  border-radius:0 0 var(--radius,10px) var(--radius,10px); }
+.av .photo .names .name { font-size:1.45em; }
+.av .photo .names .ioc-tag { background:rgba(0,0,0,.35); }

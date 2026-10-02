@@ -10,6 +10,7 @@ import {
   loadSpeciesFile, manifestUrl,
 } from "./catalog.js";
 import { detectPlatform, renderLastMile } from "./lastmile.js";
+import { setupCustomize } from "./customize.js";
 import {
   birdCounter, downloadWhat, fileName, isConstrained, isOutOfMemory, partSizeOverride, planParts, plural,
 } from "./parts.js";
@@ -44,6 +45,8 @@ let manifest = null;
 let forceParts = session.get(BUILDING_KEY) !== null;
 session.remove(BUILDING_KEY);
 addEventListener("pagehide", () => session.remove(BUILDING_KEY));
+let customize = null; // the "Customize your cards" section, once notetypes.json has loaded
+let previewDataStarted = false;
 let building = false; // one build at a time: a second submit while one runs is ignored
 let saved = []; // {name, url, blob} of the last build, for "Save again"
 
@@ -142,6 +145,7 @@ function readSettings() {
     month: Number.isInteger(month) ? month : null,
     cards,
     subdeck: $("subdeck").checked,
+    ...(customize?.settings() ?? { theme: "default", nameOnPhoto: false }),
   };
 }
 
@@ -239,6 +243,7 @@ async function buildOnce(settings) {
       const overall = (fraction) => (part.index - 1 + fraction) / part.count;
       const { blob, summary } = await buildDeck({
         manifest: current, speciesFile, notes: part.notes, subdeck, media: feed,
+        theme: settings.theme, nameOnPhoto: settings.nameOnPhoto,
         onProgress({ stage, done = 0, total = 0 }) {
           if (stage === "media" && done < total) {
             setProgress(`${label}Downloading ${what} (${birds.done(done)} of ${birds.total})…`,
@@ -334,6 +339,21 @@ async function init() {
   populateRegions();
   renderFooter();
   refreshPartsHint();
+  customize?.setManifest(manifest);
+  startPreviewData();
+}
+
+/** Once the catalog and the card section are both ready, fetch the species file (when idle) for the preview's real bird. */
+function startPreviewData() {
+  if (previewDataStarted || !customize || !manifest) return;
+  previewDataStarted = true;
+  const current = manifest;
+  const idle = globalThis.requestIdleCallback ?? ((fn) => setTimeout(fn, 200));
+  idle(async () => {
+    try {
+      customize.setCatalog(current, await loadSpeciesFile(current));
+    } catch { /* the preview keeps its placeholder card */ }
+  });
 }
 
 function syncProblems() {
@@ -359,12 +379,23 @@ $("form").addEventListener("submit", (event) => {
 for (const id of ["region", "month"]) $(id).addEventListener("change", refreshPartsHint);
 // A validation message goes as soon as its input is fixed, not on the next submit.
 $("region").addEventListener("change", syncProblems);
-for (const el of document.querySelectorAll('input[name="cards"]')) el.addEventListener("change", syncProblems);
+for (const el of document.querySelectorAll('input[name="cards"]')) {
+  el.addEventListener("change", syncProblems);
+  el.addEventListener("change", () => customize?.cardsChanged());
+}
 for (const el of document.querySelectorAll('input[name="tier"]')) el.addEventListener("change", refreshPartsHint);
 $("again").addEventListener("click", () => show("pick"));
 
 renderLastMile($("lastmile"), platform);
 loadNotetypes()
-  .then((nt) => { $("licence-notice").textContent = nt.description.licence_notice; })
-  .catch(() => { /* the credits page carries the same notice */ });
+  .then((nt) => {
+    $("licence-notice").textContent = nt.description.licence_notice;
+    customize = setupCustomize({
+      notetypes: nt, store: remembered,
+      cards: () => readSettings().cards,
+    });
+    if (manifest) customize.setManifest(manifest);
+    startPreviewData();
+  })
+  .catch((err) => { console.error(err); /* the credits page carries the same licence notice */ });
 init();

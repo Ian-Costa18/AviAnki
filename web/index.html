@@ -39,6 +39,61 @@
       <p class="hint" id="anki-line">You'll study these in <strong>Anki</strong>, a free flashcard app. We'll show you how once your deck is ready.</p>
       <p id="parts-hint" class="hint" aria-live="polite" hidden></p>
 
+      <section id="customize" class="customize" aria-labelledby="customize-title">
+        <h3 id="customize-title">Customize your cards</h3>
+        <p class="hint">Pick how your cards look. Every card in your deck will look like this Rock Pigeon.</p>
+
+        <div class="field">
+          <label for="theme">Theme</label>
+          <select id="theme" name="theme" aria-describedby="theme-desc theme-note">
+            <option value="default">Default</option>
+          </select>
+          <p id="theme-desc" class="hint"></p>
+        </div>
+
+        <label class="choice"><input type="checkbox" id="name-on-photo" name="name_on_photo">
+          <span><strong>Name on the photo:</strong> the answer shows the name over the bottom of the picture</span></label>
+
+        <fieldset id="custom" class="custom" hidden>
+          <legend>Your custom theme</legend>
+          <div class="field">
+            <label for="custom-from">Start from</label>
+            <select id="custom-from"></select>
+          </div>
+          <div id="swatches" class="swatches" role="group" aria-label="Colours"></div>
+          <div id="custom-choices" class="choices"></div>
+          <button type="button" id="copy-theme" class="secondary">Copy theme</button>
+          <p id="copy-status" class="hint" role="status" aria-live="polite"></p>
+          <textarea id="theme-text" class="theme-text" rows="14" readonly hidden aria-label="Theme file text"></textarea>
+        </fieldset>
+
+        <p id="theme-note" class="hint">Anki keeps one look for all your cards, so importing a deck with another
+          theme restyles the cards you already have (and replaces any styling you edited yourself).
+          The page address remembers your look, so you can bookmark or share it.</p>
+
+        <div class="preview" id="preview">
+          <div class="preview-bar">
+            <label class="choice"><input type="checkbox" id="preview-dark"><span>Dark mode</span></label>
+            <div id="preview-card-wrap" class="inline-field" hidden>
+              <label for="preview-card">Question card</label>
+              <select id="preview-card"></select>
+            </div>
+          </div>
+          <div class="preview-grid">
+            <figure class="preview-side">
+              <figcaption>Question</figcaption>
+              <iframe id="preview-question" class="preview-frame" title="Question side of a sample card"
+                sandbox="allow-same-origin"></iframe>
+            </figure>
+            <figure class="preview-side">
+              <figcaption>Answer</figcaption>
+              <iframe id="preview-answer" class="preview-frame" title="Answer side of a sample card"
+                sandbox="allow-same-origin"></iframe>
+            </figure>
+          </div>
+        </div>
+      </section>
+
       <details id="advanced">
         <summary>Advanced</summary>
 

@@ -11,6 +11,8 @@
  *       notes,         // planNotes(...) output, in the order to write them
  *       subdeck,       // e.g. the region's name -> "AviAnki::Massachusetts", or null
  *       ebird,         // true adds the not-for-redistribution notice to the description
+ *       theme,         // a built-in theme's name (default "default") or custom tokens (ADR 0028)
+ *       nameOnPhoto,   // true: the answer's names sit on the photo (ADR 0028); default false
  *       timestamp,     // seconds since the epoch; default now. Fix it to compare with genanki
  *       media,         // the media feed, below
  *       notetypes,     // optional: a parsed notetypes.json (default: fetched next to this file)
@@ -42,6 +44,7 @@ import { stableId } from "./apkg/md5.js";
 import { guidFor } from "./apkg/guid.js";
 import { writeApkg } from "./apkg/writer.js";
 import { CARD_TYPES } from "./select.js";
+import { modelsFor } from "./themes.js";
 
 const DECK_NAME = "AviAnki"; // frozen (ADR 0009)
 const MEDIA_PREFIX = "avianki_";
@@ -93,7 +96,7 @@ function creditsField(photo, audio) {
 }
 
 /** The note's field values in the note type's order (`fieldNames` from notetypes.json). */
-function noteFields(note, entry, fieldNames) {
+export function noteFields(note, entry, fieldNames) {
   const values = {
     SpeciesId: escapeText(note.speciesId),
     Name: escapeText(entry.name),
@@ -176,7 +179,7 @@ async function* packageFeed(feed, files) {
  *           bytes: number, noteCount: number, deckName: string}}>}
  */
 export async function buildDeck({
-  manifest, speciesFile, notes, subdeck = null, ebird = false,
+  manifest, speciesFile, notes, subdeck = null, ebird = false, theme, nameOnPhoto = false,
   timestamp = Date.now() / 1000, media, notetypes, onProgress,
 }) {
   const nt = notetypes ?? (await loadNotetypes());
@@ -206,7 +209,7 @@ export async function buildDeck({
     deckId: deckId(name),
     deckName: name,
     deckDescription: deckDescription(manifest, { ebird, notetypes: nt }),
-    models: Object.values(nt.models).map((m) => m.json), // json.id is the string form genanki writes
+    models: modelsFor(nt, theme, nameOnPhoto), // json.id is the string form genanki writes
     notes: rows,
     mediaNames: files.map(packageMediaName),
     media: feed,

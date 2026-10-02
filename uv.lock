@@ -95,6 +95,7 @@ dependencies = [
     { name = "genanki" },
     { name = "python-dotenv" },
     { name = "requests" },
+    { name = "tomli", marker = "python_full_version < '3.11'" },
     { name = "tqdm" },
 ]
 
@@ -128,6 +129,7 @@ requires-dist = [
     { name = "pillow", marker = "extra == 'catalog'", specifier = ">=10" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "requests", specifier = ">=2.28.0" },
+    { name = "tomli", marker = "python_full_version < '3.11'", specifier = ">=2" },
     { name = "tomli", marker = "python_full_version < '3.11' and extra == 'catalog'", specifier = ">=2" },
     { name = "tqdm", specifier = ">=4.64.0" },
 ]

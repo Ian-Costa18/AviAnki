@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Card themes
+
+- **Ten themes** for the cards: `default` (the current look), `serif`, `field-guide`, `nord`, `slate`, `forest`, `plate`, `minimal`, `midnight` and `high-contrast`. Pick one with `--theme NAME`, or on the website under **Customize your cards**. All use your phone's own fonts and follow night mode, and the credits are always on the answer.
+- **Name on the photo.** `--name-on-photo` (or the website checkbox) puts the name over the bottom of the photo on the answer. It works with every theme.
+- **Make your own.** On the website, choose **Custom…**, set the colours (day and night), font, name style, weight and corners, and watch the preview change. **Copy theme** gives a small TOML file that `--theme-file my-theme.toml` reads. The page address remembers your look, so you can bookmark or share it.
+- **A live preview** on the website: a sample card, question and answer, light or dark, drawn with the real card templates before you build.
+- **One look per Anki collection.** Anki keeps styling per note type, so importing a deck with another theme restyles the AviAnki cards you already have (and replaces styling you edited by hand). Your review history is kept, and the default look is unchanged if you pick no theme.
+
 ## 0.10.0
 
 AviAnki 0.10 builds decks from a ready-made catalog of freely licensed photos and recordings, instead of scraping allaboutbirds.org on your machine. There's also a website that builds the same deck in your browser: https://ian-costa18.github.io/AviAnki/

@@ -20,7 +20,8 @@ import genanki
 
 from avianki.catalog.format import Manifest, MediaRef, RegionFile, SpeciesEntry, SpeciesFile
 from avianki.deck.credits import credits_field, deck_description
-from avianki.deck.notetypes import CARD_TYPES, FIELDS, MODELS, stable_id
+from avianki.deck.notetypes import CARD_TYPES, FIELDS, models_for, stable_id
+from avianki.deck.themes import Tokens
 
 log = logging.getLogger("bird_deck")
 
@@ -236,8 +237,13 @@ def write_deck(
     subdeck: str | None = None,
     ebird: bool = False,
     timestamp: float | None = None,
+    theme: str | Tokens = "default",
+    name_on_photo: bool = False,
 ) -> DeckSummary:
     """Write ``notes`` (in the order given) as a .apkg at ``out``.
+
+    ``theme`` (a built-in theme's name or custom ``Tokens``) and ``name_on_photo`` pick the look
+    of the cards (ADR 0028); they change the note types' CSS and back template, never their identity.
 
     ``media(catalog_file)`` returns the local path of a catalog media file such as
     ``media/1a2b.webp``. Inside the package each file is named ``avianki_<basename>``, so
@@ -251,12 +257,13 @@ def write_deck(
     name = full_deck_name(deck_name, subdeck)
     deck = genanki.Deck(deck_id(name), name, description=deck_description(manifest, ebird=ebird))
 
+    models = models_for(theme, name_on_photo)
     by_type = dict.fromkeys(CARD_TYPES, 0)
     staged: dict[str, str] = {}  # package name -> catalog file, in first-use order
     for note in notes:
         deck.add_note(
             genanki.Note(
-                model=MODELS[note.card_type],
+                model=models[note.card_type],
                 fields=_note_fields(note, species),
                 guid=note_guid(note.species_id, note.card_type),
             )

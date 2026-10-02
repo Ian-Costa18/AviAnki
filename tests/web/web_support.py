@@ -136,6 +136,8 @@ class Spec:
     subdeck: str | None = None
     ebird: bool = False
     timestamp: float = TIMESTAMP
+    theme: Any = "default"  # a built-in theme's name, or a custom token set (a dict as in a theme file)
+    name_on_photo: bool = False
 
     def js(self) -> dict[str, Any]:
         return {
@@ -146,6 +148,8 @@ class Spec:
             "subdeck": self.subdeck,
             "ebird": self.ebird,
             "timestamp": self.timestamp,
+            "theme": self.theme,
+            "nameOnPhoto": self.name_on_photo,
         }
 
 
@@ -170,6 +174,7 @@ async (spec) => {
   const { blob, summary } = await buildDeck({
     manifest, speciesFile, notes,
     subdeck: spec.subdeck, ebird: spec.ebird, timestamp: spec.timestamp,
+    theme: spec.theme, nameOnPhoto: spec.nameOnPhoto,
     media: (files) => orderedPrefetch(files, fetchBytes),
   });
   const after = performance.memory ? performance.memory.usedJSHeapSize : null;
@@ -212,6 +217,7 @@ def build_with_python(spec: Spec, out: Path) -> dict[str, Any]:
     """The same deck through ``avianki.deck.build.write_deck`` (genanki), from the same files."""
     from avianki.catalog.format import load_catalog
     from avianki.deck.build import plan_notes, select_species, write_deck
+    from avianki.deck.themes import tokens_from_mapping
 
     catalog = load_catalog(CATALOG_DIR)
     ids = select_species(catalog.regions[spec.region], catalog.species, spec.cards, tier=spec.tier, month=spec.month)
@@ -225,6 +231,8 @@ def build_with_python(spec: Spec, out: Path) -> dict[str, Any]:
         subdeck=spec.subdeck,
         ebird=spec.ebird,
         timestamp=spec.timestamp,
+        theme=tokens_from_mapping(spec.theme) if isinstance(spec.theme, dict) else spec.theme,
+        name_on_photo=spec.name_on_photo,
     )
     return {"notes_by_type": summary.notes_by_type, "media_count": summary.media_count}
 
