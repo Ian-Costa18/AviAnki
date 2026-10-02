@@ -7,23 +7,25 @@
 
 *Build Flashcards with Birds Near You*
 
-Pick a region and AviAnki builds an Anki deck for learning its birds by photo and by sound, with the most common species first. The photos and recordings come from a ready-made catalog that is rebuilt every month from freely licensed sources, so making a deck is a quick download: no scraping, no API key and no ffmpeg on your machine.
+Pick a region and AviAnki builds an Anki deck for learning its birds by photo and by sound, with the most common species first. The photos and recordings come from a ready-made catalog that is rebuilt every month from freely licensed sources.
 
-## Quick start
+**[Make a deck on the website →](https://ian-costa18.github.io/AviAnki/)** Nothing to install.
 
-```bash
-uvx avianki us-ma
-```
+## The website
 
-An `.apkg` file (`AviAnki-us-ma.apkg`) is written to the current directory. Open it in Anki by double-clicking it or with **File > Import**.
+<a href="https://ian-costa18.github.io/AviAnki/"><img src="https://raw.githubusercontent.com/Ian-Costa18/AviAnki/main/docs/images/website.png" alt="The AviAnki website: pick your state or province, then press Build my deck" width="640"></a>
 
-You need [uv](https://docs.astral.sh/uv/). Without it, `pip install avianki` and then `avianki us-ma` does the same thing.
+Open **[ian-costa18.github.io/AviAnki/](https://ian-costa18.github.io/AviAnki/)**, pick your state or province and press **Build my deck**. The deck is built in your browser and saved as an `.apkg` file; the page then walks you through opening it in Anki on an iPhone, an Android phone or a computer.
 
-`REGION` is a catalog region: its slug (`us-ma`, `ca-qc`) or its display name (`Massachusetts`). If the name is not in the catalog, the error lists the closest matches.
+- **Customize your cards** before you build: pick a theme, put the name on the photo, or make a theme of your own, with a live preview of the question and answer in light and dark mode.
+- **More options** chooses the card types, the 100 most common birds or everything up to 400, a month of the year and a subdeck, like the command line's flags.
+- The website covers the US and Canada. For anywhere else, use the [command line](#command-line) with `--ebird`.
 
-## Cards
+## The cards
 
-Every deck is built from three kinds of card; you choose which with `--cards`.
+<img src="https://raw.githubusercontent.com/Ian-Costa18/AviAnki/main/docs/images/themes.gif" alt="A Northern Cardinal card in each of the ten built-in themes: the question, the answer, and the answer in night mode" width="960">
+
+Every deck is built from three kinds of card; you choose which on the website under **More options**, or with `--cards`.
 
 | Card type     | `--cards` value | Front                       |
 | ------------- | --------------- | --------------------------- |
@@ -35,7 +37,27 @@ Every back is the same: the name and scientific name, the photo, the recording, 
 
 The default is `photo,audio`. A species with no photo (or no recording) simply gets no photo (or audio) card, and the run says so: the summary adds a line such as "3 of the 100 birds have no recording, so they have photo cards only." for each kind that some species lack. Fronts never show the bird's name. Every answer credits the author and licence of each asset on the card.
 
-## Options
+The slideshow above cycles through the ten built-in [themes](#themes). **Name on the photo** (`--name-on-photo`) lays the name over the bottom of the photo instead, in any theme:
+
+<img src="https://raw.githubusercontent.com/Ian-Costa18/AviAnki/main/docs/images/name-on-photo.png" alt="The default theme with the name on the photo: the question, the answer, and the answer in night mode" width="720">
+
+## Command line
+
+The command line builds the same decks as the website, and it also works for any [eBird region](#any-ebird-region), not just the US and Canada.
+
+### Quick start
+
+```bash
+uvx avianki us-ma
+```
+
+An `.apkg` file (`AviAnki-us-ma.apkg`) is written to the current directory. Open it in Anki by double-clicking it or with **File > Import**.
+
+You need [uv](https://docs.astral.sh/uv/). Without it, `pip install avianki` and then `avianki us-ma` does the same thing. Building from the catalog needs no API key and no ffmpeg.
+
+`REGION` is a catalog region: its slug (`us-ma`, `ca-qc`) or its display name (`Massachusetts`). If the name is not in the catalog, the error lists the closest matches.
+
+### Options
 
 | Flag                       | Short | Description                                                                                         |
 | -------------------------- | ----- | --------------------------------------------------------------------------------------------------- |
@@ -62,7 +84,7 @@ Changing `--deck-name` puts the notes into a different deck in Anki, so a later 
 
 `--subdeck` only affects birds that are not in your collection yet. Anki leaves a bird you already have in the deck it is in, so importing with `--subdeck` into a collection that already holds those birds moves nothing. To reorganise existing cards, move them in Anki's card browser (select them, then Change Deck).
 
-### Examples
+#### Examples
 
 ```bash
 # The 100 most common birds of Massachusetts, photo and audio cards

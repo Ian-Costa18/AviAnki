@@ -82,11 +82,14 @@ def test_the_sanity_tests_install_what_ci_installs() -> None:
 
 
 def test_nothing_generates_or_commits_examples_any_more() -> None:
+    # The README's pictures come from scripts/gen_readme_images.py, which a maintainer runs by
+    # hand: it needs the live catalog and website, so no workflow may depend on it.
     workflow = load("publish.yml")
     assert "update-examples" not in workflow["jobs"]
     for path in WORKFLOWS.glob("*.yml"):
         text = path.read_text(encoding="utf-8")
         assert "gen_examples" not in text, path.name
+        assert "gen_readme_images" not in text, path.name
         assert "examples/" not in text, path.name
     assert not (ROOT / "scripts" / "gen_examples.py").exists()
     assert not (ROOT / "examples").exists()

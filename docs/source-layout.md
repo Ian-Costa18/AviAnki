@@ -123,6 +123,7 @@ tests/                   mirrors src/avianki/
 scripts/
   assemble_site.py         stdlib-only: catalog dir + web/ (or a stub index) → the Pages tree (index.html at the root, the app's own files under v/<sha>/, ADR 0029), .nojekyll, 900 MB guard
   fetch_latest_catalog.sh  downloads and extracts the newest catalog-* release; shared by catalog.yml and pages.yml
+  gen_readme_images.py     the README's pictures (docs/images/): builds a deck from the live catalog, renders every theme through Anki's backend and screenshots it, plus the website; maintainer-run, needs the network and Chromium
   gen_web_notetypes.py     dumps deck/'s note types and description strings to web/js/notetypes.json; `--check` for drift
   weekly_summary.py        reads the weekly run's JUnit report: writes the job summary, fails on any skip but eBird's
 

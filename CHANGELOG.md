@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### README
+
+- **The website comes first.** The README opens with the website and a screenshot of it, then the cards, then the command line.
+- **Pictures of the cards are back**, drawn from the 1.0 cards: a slideshow of a Northern Cardinal card in all ten themes (question, answer and night mode), and the name-on-photo layout. `scripts/gen_readme_images.py` regenerates them by rendering a real deck with Anki's own backend.
+
 ### The website: friendlier wording and a study guide you can read first
 
 - **How to study, before you build.** The steps for opening your deck are now on the first screen, under the form, and the line under **Build my deck** links to them. The Done screen shows the same guide.
