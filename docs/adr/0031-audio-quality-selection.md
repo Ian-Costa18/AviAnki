@@ -36,10 +36,10 @@ BirdNET runs over the first 60 s ([0023](0023-audio-first-pass.md)'s bound stand
      - BirdNET's non-bird noise labels (human voice, engine, dog and similar).
 
      Labels in the target's own genus are ignored, because they are BirdNET confusions, not second birds.
-   - **prominence**: how far the loudest tenth of the clip's frames sits above its noise floor, in decibels, measured in a band around the target's energy. This is the audio-engineering measure for "faint, distant bird under crickets". It is **kept only if calibration shows it separates clips beyond what presence and competitor already do**. Otherwise it is dropped, and this ADR is amended to say so.
-4. **Rank.** A candidate is **good** when presence ≥ 0.6 and competitor < 0.5 (plus the prominence floor, if calibration keeps it). Each candidate also gets a single **quality** score for ranking: mean target confidence over the clip, minus the competitor's excess over 0.3. The 0.5 gate from 0011 still decides whether a candidate is usable at all.
+   - **prominence**: how far the loudest tenth of the clip's frames sits above its noise floor, in decibels, measured in a band around the target's energy. **Dropped after calibration** (see *Calibrated values*): it did not separate clips beyond what presence and competitor already do.
+4. **Rank.** A candidate is **good** when presence ≥ 0.6 and competitor < 0.5. Each candidate also gets a single **quality** score for ranking: mean target confidence over the clip, minus the competitor's excess over 0.3. The 0.5 gate from 0011 still decides whether a candidate is usable at all.
 
-The numbers above are starting values. The implementation calibrates them against the 697-clip survey: the Nuthatch must come out good, and the shipped Blue Jay and Mourning Dove clips must not. The values it settles on are written back into this ADR when it merges. All thresholds live in one place, beside `MIN_CONFIDENCE`.
+The numbers above were starting values. They were calibrated against the clip survey: the Nuthatch must come out good, and the shipped Blue Jay and Mourning Dove clips must not. The settled values are under *Calibrated values* below. All thresholds live in one place, beside `MIN_CONFIDENCE` in `media/verify.py`.
 
 ### 2. Look further, stop early
 
@@ -101,3 +101,49 @@ Choosing better recordings fixes the root cause.
   - the xeno-canto lookup count.
 - A missing `XC_API_KEY` secret makes the ordering slightly worse, never a failure.
 - Audio coverage should stay about the same, because the 0.5 gate is unchanged. What changes is which recording wins and where it is cut.
+
+## Calibrated values
+
+Calibrated on 2026-10-02 against the 702 clips then published (10 s, 48 kHz mono), scored with BirdNET v2.4 at a 1 s step over the shipped clip as it stands. The scoring is `ClipAnalysis.choose` in `src/avianki/media/verify.py`; the constants are beside `MIN_CONFIDENCE`.
+
+| Constant | Value | Meaning |
+|---|---|---|
+| `OVERLAP_S` | 2.0 | a 3 s window every second |
+| `MIN_CONFIDENCE` | 0.5 | unchanged: the usability gate, and the per-step "present" test |
+| `PRESENCE_MIN` | 0.6 | share of the clip's steps with the target at 0.5 or more |
+| `COMPETITOR_MAX` | 0.5 | a counted label at this or above makes the clip not good |
+| `COMPETITOR_FREE` | 0.3 | quality ignores a competitor up to here |
+| `OTHER_FLOOR` | 0.05 | other labels below this are not kept per window (memory only) |
+| prominence | dropped | see below |
+
+The starting values held. Presence 0.6 and competitor 0.5 are what the survey supports, and they classify the three examples as the ear does:
+
+| Species | Presence | Competitor | Quality | Verdict |
+|---|---|---|---|---|
+| `sitta-carolinensis` (Nuthatch) | 0.875 | 0.07 (Black-capped Chickadee) | 0.80 | good |
+| `cyanocitta-cristata` (Blue Jay) | 0.25 | 0.50 (Loggerhead Shrike) | 0.13 | not good |
+| `zenaida-macroura` (Mourning Dove) | 0.625 | 0.54 (Gray Catbird) | 0.34 | not good (competitor only) |
+
+Clips marked good among the 702 (680 pass the 0.5 gate on the clip as shipped):
+
+| Presence | Competitor | Good |
+|---|---|---|
+| 0.5 | < 0.5 | 439 |
+| **0.6** | **< 0.5** | **350** |
+| 0.7 | < 0.5 | 274 |
+| 0.8 | < 0.5 | 209 |
+| 0.6 | < 0.4 | 334 |
+| 0.6 | < 0.3 | 312 |
+
+The Dove is the borderline case that decides the bar: it fails only on its competitor (0.541), and it would pass at competitor < 0.6, so that limit cannot move up. Its presence of 0.625 clears 0.6 with little to spare, so presence cannot move up much either. 38 of the 350 good clips carry a counted background label between 0.3 and 0.5: a faint distant bird behind the target is tolerated, which is what the 0.5 limit and the free zone up to 0.3 are for. Borderline ids to listen to when tuning: `megaceryle-alcyon` (present throughout, but an Eastern Phoebe at 0.51), `tyrannus-forficatus` (good, with a Least Tern at 0.47), `cistothorus-palustris` (good at presence 0.625, a Swamp Sparrow at 0.30), `podiceps-grisegena`, `cyrtonyx-montezumae`.
+
+Decisions the calibration made, and corrections to this ADR's context:
+
+- **Prominence is dropped.** Nine variants (band width 1, 2 and 4 kHz; top-tenth energy over the 10th, 25th percentile or median of the band) separate good from not-good clips with an area under the curve of only 0.58 to 0.59, hardly better than chance. They also call the Blue Jay clip prominent (35 dB). The target's presence and the competitor already carry the signal. There is no prominence field and no extra dependency.
+- **The Blue Jay's competitor is 0.50, not 0.58.** The Gray Catbird at 0.58 in the context table came from windows padded past the end of the clip. Measured on the exact clip, the strongest other label is a Loggerhead Shrike at 0.50. It still fails the competitor limit (at or above 0.5), and its presence of 0.25 fails on its own. The context table's "another label at 0.5 or more: 28%" includes such padded-window readings.
+- **Padded windows never count.** BirdNET pads the last windows past the end of the audio. They are excluded from every clip metric, and the whole-recording search ignores a window that is not entirely inside the stretch.
+- **The competitor set.** Counted: the labels of `species.csv` species, plus the BirdNET labels `Dog`, `Engine`, `Fireworks`, `Gun`, `Human non-vocal`, `Human vocal`, `Human whistle`, `Power tools` and `Siren`. Not counted: `Insecta`, `Environmental` (wind, rain) and `Noise`, which are the natural background wanted. Adding `Environmental` and `Noise` to the set changes nothing among the 702 (350 good either way). Counting every label, the European false positives included, would lower the good count to 330, so those stay out.
+- **Anchored stretch (refinement).** The ADR picks the 10 s stretch with the highest summed target confidence, then moves its start to the first step at 0.5. A stretch with a high sum made only of steps below 0.5 could win and then fail the gate. The choice is therefore limited to stretches that contain a step at 0.5 or more, whenever the recording has one, so the shipped clip always passes the gate when the recording does.
+- **The gate is on the shipped clip.** A candidate is usable when a step at 0.5 or more lies inside the clip that would ship, not merely anywhere in the first minute.
+- **Re-selection that cannot run keeps the old clip.** When audio from before rule 2 is invalidated but the sources fail or the budget runs out before a replacement is chosen, the previous clip stays published (it has no scores, so the next build tries again). This is the same fallback a failed pin gets.
+- **The build report** counts, under *Audio quality*, the clips ranked, how many are good and how many settled for a non-good one, the quartiles of presence, competitor and quality, and how many recordings were analysed for how many species. The contact sheet shows each clip's scores beside its player.

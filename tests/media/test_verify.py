@@ -13,11 +13,13 @@ from avianki.media import verify
 from avianki.media.verify import (
     BirdNetAnalyzer,
     ClipAnalysis,
+    ClipChoice,
     UnreadableAudio,
     VerifyUnavailable,
     WindowScore,
     analyse,
     birdnet_label,
+    competitor_labels,
 )
 
 ROBIN = "Turdus migratorius_American Robin"
@@ -124,6 +126,124 @@ def test_overlapping_windows_are_handled():
     a = ClipAnalysis(windows, duration_s=13.5)
     start, end = a.best_window()
     assert start <= 4.5 and end >= 7.5  # both strong windows sit inside the stretch
+
+
+# -- choosing the clip and measuring it (ADR 0031) ----------------------------------------------
+
+SHRIKE = "Lanius ludovicianus_Loggerhead Shrike"
+JAY = "Cyanocitta cristata_Blue Jay"
+STELLERS = "Cyanocitta stelleri_Steller's Jay"
+DOG = "Dog_Dog"
+CRICKET = "Insecta_Insecta"
+
+
+def grid(confidences: list[float], others: dict[int, dict[str, float]] | None = None, *, tail: int = 2, **kw):
+    """A 1 s step grid: one 3 s window per second, then ``tail`` windows padded past the end."""
+    others = others or {}
+    n = len(confidences)
+    wins = [WindowScore(float(i), i + 3.0, c, others.get(i, {})) for i, c in enumerate(confidences)]
+    # BirdNET pads the final windows past the end; they must never count.
+    wins += [WindowScore(float(n + j), n + j + 3.0, 0.0, {"Pad_Pad": 0.99}) for j in range(tail)]
+    return ClipAnalysis(wins, duration_s=n + 2.0, **kw)
+
+
+def test_the_clip_opens_on_the_first_step_where_the_target_reaches_the_gate():
+    # 20 s of audio (18 steps): quiet, then the bird from step 4 to 13.
+    conf = [0.0, 0.1, 0.1, 0.1] + [0.8] * 10 + [0.1] * 4
+    got = grid(conf).choose()
+    assert got.start_s == 4.0 and got.end_s == 14.0
+    assert got.presence == 1.0 and got.usable
+
+
+def test_the_start_is_pulled_back_so_the_clip_keeps_its_length():
+    # The only hit is the last step: the clip is 10 s ending flush with the audio.
+    conf = [0.1] * 17 + [0.9]
+    got = grid(conf).choose()
+    assert got.end_s - got.start_s == 10.0
+    assert got.end_s == 20.0 and got.start_s == 10.0
+    assert got.best_confidence == 0.9 and got.usable
+
+
+def test_a_recording_no_longer_than_the_clip_is_used_whole():
+    got = grid([0.2, 0.7, 0.7, 0.2]).choose()  # 6 s
+    assert (got.start_s, got.end_s) == (0.0, 6.0)
+    assert got.presence == 0.5
+
+
+def test_metrics_are_taken_on_the_exact_final_clip_not_the_whole_recording():
+    # A loud shrike sits before the bird; it is outside the clip, so it must not count.
+    conf = [0.0] * 4 + [0.9] * 14
+    early = grid(conf, {1: {SHRIKE: 0.95}}, label=JAY).choose(counted={SHRIKE})
+    assert early.start_s == 4.0 and early.competitor == 0.0
+    inside = grid(conf, {6: {SHRIKE: 0.7}}, label=JAY).choose(counted={SHRIKE})
+    assert (inside.competitor, inside.competitor_label) == (0.7, SHRIKE)
+
+
+def test_padded_final_windows_never_count_as_steps_or_competitors():
+    got = grid([0.9] * 8, tail=2).choose()  # 10 s: 8 whole steps, 2 padded ones
+    assert got.presence == 1.0 and got.competitor == 0.0
+
+
+def test_presence_is_the_share_of_steps_at_the_gate():
+    conf = [0.9] * 6 + [0.1] * 4 + [0.0] * 4  # 14 steps; the 10 s clip holds the first 8
+    got = grid(conf).choose()
+    assert got.start_s == 0.0
+    assert got.presence == pytest.approx(6 / 8)
+    assert got.mean_target == pytest.approx((0.9 * 6 + 0.1 * 2) / 8)
+
+
+def test_only_counted_labels_compete():
+    others = {i: {SHRIKE: 0.4, "Strix aluco_Tawny Owl": 0.9, CRICKET: 0.8} for i in range(8)}
+    a = grid([0.9] * 8, others, label=JAY)
+    assert a.choose(counted={SHRIKE, DOG}).competitor == 0.4
+    assert a.choose(counted=set()).competitor == 0.0
+    assert a.choose().competitor == 0.9  # None counts every label
+
+
+def test_noise_labels_count_and_the_own_genus_does_not():
+    got = grid([0.9] * 8, {2: {DOG: 0.6, STELLERS: 0.95}}, label=JAY).choose(counted={DOG, STELLERS})
+    assert (got.competitor, got.competitor_label) == (0.6, DOG)  # Steller's Jay shares the genus
+    assert grid([0.9] * 8, {2: {STELLERS: 0.95}}, label=JAY).choose(counted={STELLERS}).competitor == 0.0
+
+
+def test_the_competitor_label_set_is_our_species_plus_noise():
+    labels = [JAY, SHRIKE, "Strix aluco_Tawny Owl", DOG, CRICKET, "Noise_Noise", "Siren_Siren"]
+    got = competitor_labels(["Cyanocitta cristata", "Lanius ludovicianus"], labels)
+    assert got == {JAY, SHRIKE, DOG, "Siren_Siren"}
+
+
+def test_a_faint_background_bird_is_tolerated_but_a_strong_one_is_not():
+    faint = grid([0.9] * 8, {3: {SHRIKE: 0.3}}).choose(counted={SHRIKE})
+    assert faint.good and faint.quality == pytest.approx(0.9)  # up to 0.3 costs nothing
+    loud = grid([0.9] * 8, {3: {SHRIKE: 0.5}}).choose(counted={SHRIKE})
+    assert not loud.good and loud.quality == pytest.approx(0.9 - 0.2)
+    assert loud.usable  # it still passes the gate; it only ranks lower
+
+
+@pytest.mark.parametrize(
+    ("presence", "competitor", "best", "good", "usable"),
+    [
+        (0.6, 0.49, 0.9, True, True),
+        (0.59, 0.0, 0.9, False, True),
+        (0.9, 0.5, 0.9, False, True),
+        (0.9, 0.0, 0.49, False, False),
+    ],
+)
+def test_good_and_usable_thresholds(presence, competitor, best, good, usable):
+    c = ClipChoice(0.0, 10.0, presence, competitor, "", 0.5, best)
+    assert (c.good, c.usable) == (good, usable)
+
+
+def test_a_clip_that_never_reaches_the_gate_is_unusable_but_still_measured():
+    got = grid([0.3] * 14).choose()
+    assert not got.usable and got.presence == 0.0 and got.mean_target == pytest.approx(0.3)
+
+
+def test_the_chosen_clip_still_passes_when_a_denser_stretch_has_no_step_at_the_gate():
+    # Steps 0-7 are all 0.45 (sum 3.6, the densest stretch) but below the gate; the one real hit is later.
+    conf = [0.45] * 8 + [0.0] * 4 + [0.9] + [0.0] * 5
+    got = grid(conf).choose()
+    assert got.usable and got.best_confidence == 0.9
 
 
 # -- birdnet_label -----------------------------------------------------------------------------

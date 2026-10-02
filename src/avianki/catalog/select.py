@@ -1,10 +1,11 @@
-"""Pure decision logic for asset selection (ADR 0011, 0014, 0023).
+"""Pure decision logic for asset selection (ADR 0011, 0014, 0031).
 
 Nothing here touches the network, the disk or a clock. `catalog.build` does the I/O and
 asks this module the questions that have a rule for an answer:
 
 * is a previous catalog's asset still good, or must it be rebuilt (`sticky_problem`)?
 * which candidates may be tried, in what order, how many (`screen_candidates`, `slots_left`)?
+* which audio candidate wins (`audio_verdict`, `keep_best`, `pick_audio`, ADR 0031)?
 * what do the provenance entry and the stored credit for a chosen asset look like
   (`provenance_entry`, `media_ref`, `reused_media_ref`, `reused_provenance`)?
 * in what order do species rank overall (`overall_order`)?
@@ -17,13 +18,23 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, replace
+from typing import Literal, Protocol, TypeVar
 
 from avianki.catalog.credit import render_credit
-from avianki.catalog.format import Kind, MediaRef, ProvenanceEntry, ProvenanceFile, SpeciesFile, Verified
+from avianki.catalog.format import (
+    AUDIO_RULE,
+    Kind,
+    MediaRef,
+    ProvenanceEntry,
+    ProvenanceFile,
+    SpeciesFile,
+    Verified,
+)
 from avianki.catalog.pins import Pin
 from avianki.catalog.report import Rejection
 from avianki.catalog.validate import BIRDNET_MIN_CONFIDENCE
 from avianki.core.licences import AssetRecord, is_allowed
+from avianki.media.verify import ClipChoice
 from avianki.sources.contract import AssetKind, Candidate
 from avianki.sources.inaturalist import parse as inat
 from avianki.taxonomy.species import SpeciesRow
@@ -32,11 +43,18 @@ __all__ = [
     "MAX_AUDIO_CANDIDATES",
     "MIN_PHOTO_LONG_SIDE",
     "PHOTO_CANDIDATES",
+    "KEPT_USABLE",
+    "AudioVerdict",
     "PreviousAsset",
+    "ScoredTrial",
+    "audio_rule_problem",
+    "audio_verdict",
     "final_record",
     "hard_problem",
+    "keep_best",
     "kind_name",
     "media_ref",
+    "pick_audio",
     "overall_order",
     "previous_asset",
     "provenance_entry",
@@ -49,7 +67,8 @@ __all__ = [
 ]
 
 PHOTO_CANDIDATES = 5  # photos asked of each source per species (ADR 0011)
-MAX_AUDIO_CANDIDATES = 5  # recordings BirdNET may look at per species, all sources together (ADR 0023)
+MAX_AUDIO_CANDIDATES = 10  # recordings BirdNET may look at per species, all sources together (ADR 0031)
+KEPT_USABLE = 3  # usable but not good clips held while later candidates are tried
 MIN_PHOTO_LONG_SIDE = 800  # ADR 0011; `media.images.process_image` enforces it on the pixels too
 
 
@@ -143,6 +162,20 @@ def hard_problem(
     return None
 
 
+def audio_rule_problem(asset: PreviousAsset) -> str | None:
+    """Why a previous audio clip must go back through selection once, or None (ADR 0031).
+
+    Audio chosen by BirdNET under an older rule has no presence or competitor scores. Pinned
+    audio never ranked, so no rule applies to it.
+    """
+    prov = asset.provenance
+    if prov is None or prov.verified != "birdnet":
+        return None
+    if prov.audio_rule is None or prov.audio_rule < AUDIO_RULE:
+        return f"audio was chosen under rule {prov.audio_rule or 1}, not {AUDIO_RULE} (ADR 0031)"
+    return None
+
+
 def sticky_problem(
     species_id: str,
     kind: Kind,
@@ -152,9 +185,10 @@ def sticky_problem(
 ) -> str | None:
     """Why the previous asset must be rebuilt rather than reused, or None to keep it.
 
-    Everything in `hard_problem`, plus a pin that now names a different asset. A previous
-    asset that the pin merely *replaces* is still publishable, which lets the build fall
-    back to it if the new pin can't be honoured.
+    Everything in `hard_problem`, plus a pin that now names a different asset and audio
+    chosen under an older selection rule (`audio_rule_problem`). A previous asset that only
+    one of those two stands in the way of is still publishable, which lets the build fall back
+    to it if the new pin can't be honoured or the re-selection can't run.
     """
     hard = hard_problem(species_id, kind, asset, pin, media_problem)
     if hard is not None:
@@ -164,6 +198,8 @@ def sticky_problem(
     assert prov is not None  # hard_problem returned None
     if forced is not None and (forced.source, forced.token) != (prov.record.source, prov.token):
         return f"a pin now names {forced}"
+    if kind == "audio":
+        return audio_rule_problem(asset)
     return None
 
 
@@ -213,6 +249,52 @@ def screen_candidates(
         else:
             kept.append(c)
     return kept, rejections
+
+
+# ---------------------------------------------------------------------------------------
+# Choosing among scored audio candidates (ADR 0031)
+# ---------------------------------------------------------------------------------------
+
+AudioVerdict = Literal["good", "usable", "unusable"]
+
+
+class ScoredTrial(Protocol):
+    """A candidate that has been scored: anything with the clip's measurements."""
+
+    @property
+    def choice(self) -> ClipChoice: ...
+
+
+T = TypeVar("T", bound=ScoredTrial)
+
+
+def audio_verdict(choice: ClipChoice) -> AudioVerdict:
+    """``good``: the first such candidate wins at once. ``usable``: it passes the 0.5 gate and
+    competes on quality if no candidate is good. ``unusable``: never published."""
+    if not choice.usable:
+        return "unusable"
+    return "good" if choice.good else "usable"
+
+
+def keep_best(held: Sequence[T], trial: T, limit: int = KEPT_USABLE) -> list[T]:
+    """``held`` plus ``trial``, best quality first, cut to ``limit``.
+
+    The sort is stable, so an earlier candidate stays ahead of a later one of equal quality.
+    """
+    return sorted([*held, trial], key=lambda t: -t.choice.quality)[:limit]
+
+
+def pick_audio(trials: Sequence[T]) -> list[T]:
+    """The order in which to try scored candidates once the search is over (ADR 0031).
+
+    The first good candidate wins, else the usable one with the highest quality; unusable
+    candidates never appear. The rest follow as fallbacks (a winner can still be refused, for
+    example as a duplicate). Ties go to the earlier candidate.
+    """
+    usable = [t for t in trials if audio_verdict(t.choice) != "unusable"]
+    good = [t for t in usable if audio_verdict(t.choice) == "good"]
+    rest = sorted((t for t in usable if audio_verdict(t.choice) != "good"), key=lambda t: -t.choice.quality)
+    return [*good, *rest]
 
 
 # ---------------------------------------------------------------------------------------
@@ -273,12 +355,15 @@ def provenance_entry(
     token: str,
     verified: Verified | None,
     birdnet_confidence: float | None = None,
+    choice: ClipChoice | None = None,
 ) -> ProvenanceEntry:
     """The audit record for a chosen asset. ``verified`` is ``"birdnet"`` (with the best
-    confidence found), ``"pinned"`` (no confidence), or None for an unverified photo."""
+    confidence found and, for audio chosen by ranking, its ``choice``: the rule version and the
+    clip's presence, competitor and quality), ``"pinned"`` (no confidence), or None for an
+    unverified photo."""
     if verified == "birdnet" and birdnet_confidence is None:
         raise ValueError("a birdnet-verified asset needs its confidence")
-    if verified != "birdnet" and birdnet_confidence is not None:
+    if verified != "birdnet" and (birdnet_confidence is not None or choice is not None):
         raise ValueError("only birdnet-verified assets carry a confidence")
     return ProvenanceEntry(
         record=record,
@@ -287,6 +372,10 @@ def provenance_entry(
         token=token,
         verified=verified,
         birdnet_confidence=birdnet_confidence,
+        audio_rule=AUDIO_RULE if choice else None,
+        presence=round(choice.presence, 4) if choice else None,
+        competitor=round(choice.competitor, 4) if choice else None,
+        quality=round(choice.quality, 4) if choice else None,
     )
 
 

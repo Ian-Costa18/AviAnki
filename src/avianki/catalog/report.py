@@ -109,6 +109,12 @@ class BuildReport:
     audio: int = 0
     photos_by_source: dict[str, int] = field(default_factory=dict)
     audio_by_source: dict[str, int] = field(default_factory=dict)
+    # ADR 0031: species id -> (presence, competitor, quality) of each ranked clip in the catalog (kept or new),
+    # the species whose clip is not good (settled for the best usable one), and the recordings analysed.
+    audio_scores: dict[str, tuple[float, float, float]] = field(default_factory=dict)
+    audio_not_good: list[str] = field(default_factory=list)
+    audio_candidates_tried: int = 0
+    audio_species_searched: int = 0
     requests_made: int = 0
     elapsed_s: float = 0.0
     notes: list[str] = field(default_factory=list)
@@ -247,12 +253,41 @@ def _summary_lines(r: BuildReport) -> list[str]:
     return lines
 
 
+def _quantiles(values: list[float]) -> str:
+    """min, quartiles and max of ``values`` on one line, to two decimals."""
+    if not values:
+        return "none"
+    v = sorted(values)
+
+    def at(q: float) -> float:
+        return v[round(q * (len(v) - 1))]
+
+    return " / ".join(f"{at(q):.2f}" for q in (0.0, 0.25, 0.5, 0.75, 1.0))
+
+
+def _audio_quality_lines(r: BuildReport) -> list[str]:
+    """ADR 0031: how well the chosen recordings are about their bird, and what the search cost."""
+    scores = list(r.audio_scores.values())
+    body = [
+        f"- Ranked clips: {len(scores)}; good: {len(scores) - len(set(r.audio_not_good))}; "
+        f"settled for a clip that is not good: {len(set(r.audio_not_good))}",
+        f"- Presence (min / quartiles / max): {_quantiles([x[0] for x in scores])}",
+        f"- Competitor: {_quantiles([x[1] for x in scores])}",
+        f"- Quality: {_quantiles([x[2] for x in scores])}",
+        f"- Recordings analysed this run: {r.audio_candidates_tried} for {r.audio_species_searched} species",
+    ]
+    if r.audio_not_good:
+        body.append(f"- Not good: {_ids(r.audio_not_good)}")
+    return _section("Audio quality", body)
+
+
 def _species_lines(r: BuildReport) -> list[str]:
     """Species-level lists: missing media, plausibility flags, GBIF key changes, new ids, notes."""
     lines = _section(
         f"Species without a photo ({len(set(r.species_without_photo))})",
         [_ids(r.species_without_photo)] if r.species_without_photo else [],
     )
+    lines += _audio_quality_lines(r)
     lines += _section(
         f"Species without audio ({len(set(r.species_without_audio))})",
         [_ids(r.species_without_audio)] if r.species_without_audio else [],
@@ -450,6 +485,8 @@ def _asset_html(catalog: LoadedCatalog, sid: str, kind: str, ref: MediaRef, pref
     facts.append(f"verified: {_e(prov.verified) if prov.verified else '<b>no</b>'}")
     if prov.birdnet_confidence is not None:
         facts.append(f"BirdNET {prov.birdnet_confidence:.2f}")
+    if prov.presence is not None and prov.competitor is not None and prov.quality is not None:
+        facts.append(f"presence {prov.presence:.2f}, competitor {prov.competitor:.2f}, quality {prov.quality:.2f}")
     return (
         f'<div class="asset">{media}<div>{" &middot; ".join(facts)}</div>'
         f"<pre>{_e(_toml_pin(sid, kind, prov.record.source, prov.token))}</pre></div>"

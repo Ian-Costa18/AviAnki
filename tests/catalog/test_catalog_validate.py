@@ -270,6 +270,20 @@ def test_birdnet_audio_needs_confidence_of_half_or_more(cat: LoadedCatalog, tmp_
         assert codes(check_audio_verified(alt).errors) == expect
 
 
+def test_audio_chosen_under_the_new_rule_needs_its_scores(cat: LoadedCatalog, tmp_path: Path) -> None:
+    name = only_audio(cat, "blue-jay")
+    scored = dict(audio_rule=2, presence=0.7, competitor=0.1, quality=0.6)
+    cases = [
+        (scored, []),
+        (scored | {"quality": None}, ["audio.scores_missing"]),
+        (scored | {"presence": None, "competitor": None}, ["audio.scores_missing"]),
+        ({}, []),  # chosen under the old rule: re-selected at the next build, not an error
+    ]
+    for n, (changes, expect) in enumerate(cases):
+        alt = mutated_copy(cat, tmp_path / f"s{n}", provenance=with_prov(cat, name, **changes))
+        assert codes(check_audio_verified(alt).errors) == expect
+
+
 def test_pinned_audio_needs_no_confidence(cat: LoadedCatalog, tmp_path: Path) -> None:
     name = only_audio(cat, "blue-jay")
     alt = mutated_copy(

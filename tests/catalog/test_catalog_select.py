@@ -6,17 +6,21 @@ from dataclasses import replace
 
 import pytest
 
-from avianki.catalog.format import MediaRef, ProvenanceEntry, ProvenanceFile, SpeciesEntry, SpeciesFile
+from avianki.catalog.format import AUDIO_RULE, MediaRef, ProvenanceEntry, ProvenanceFile, SpeciesEntry, SpeciesFile
 from avianki.catalog.pins import AssetRef, Pin
 from avianki.catalog.select import (
     MAX_AUDIO_CANDIDATES,
+    KEPT_USABLE,
     PHOTO_CANDIDATES,
     PreviousAsset,
+    audio_verdict,
     final_record,
     hard_problem,
+    keep_best,
     kind_name,
     media_ref,
     overall_order,
+    pick_audio,
     previous_asset,
     provenance_entry,
     retitle_for,
@@ -27,6 +31,7 @@ from avianki.catalog.select import (
     sticky_problem,
 )
 from avianki.core.licences import licence_url
+from avianki.media.verify import ClipChoice
 from avianki.sources.contract import AssetKind, Candidate
 from avianki.taxonomy.species import SpeciesRow
 from catalog_fakes import make_record
@@ -37,8 +42,9 @@ FILE = "media/0123456789abcdef.webp"
 AUDIO_FILE = "media/fedcba9876543210.mp3"
 
 
-def prov(kind="photo", *, token="M1", verified=None, confidence=None, **record) -> ProvenanceEntry:
-    return ProvenanceEntry(make_record(**record), SID, kind, token, verified, confidence)
+def prov(kind="photo", *, token="M1", verified=None, confidence=None, rule=None, **record) -> ProvenanceEntry:
+    scores = {"presence": 0.8, "competitor": 0.1, "quality": 0.7} if rule else {}
+    return ProvenanceEntry(make_record(**record), SID, kind, token, verified, confidence, audio_rule=rule, **scores)
 
 
 def asset(kind="photo", **kw) -> PreviousAsset:
@@ -50,6 +56,8 @@ def asset(kind="photo", **kw) -> PreviousAsset:
 def audio(**kw) -> PreviousAsset:
     kw.setdefault("verified", "birdnet")
     kw.setdefault("confidence", 0.8)
+    if kw["verified"] == "birdnet":
+        kw.setdefault("rule", AUDIO_RULE)
     return asset("audio", **kw)
 
 
@@ -66,6 +74,19 @@ def problem(a, *, p=None, media=None, kind=None):
 
 
 # -- sticky matrix ---------------------------------------------------------------------------------
+
+
+def test_audio_chosen_under_an_older_rule_is_invalidated_once():
+    old = audio(rule=None)
+    assert problem(old) == "audio was chosen under rule 1, not 2 (ADR 0031)"
+    assert hard_problem(SID, "audio", old, None, None) is None  # still publishable as a fallback
+    assert problem(audio()) is None  # re-selected audio carries the rule, so it sticks
+
+
+def test_pinned_audio_and_photos_are_not_subject_to_the_audio_rule():
+    pinned = audio(verified="pinned", confidence=None, rule=None)
+    assert problem(pinned, p=pin(audio=AssetRef("commons", "M1"))) is None
+    assert problem(asset()) is None
 
 
 def test_a_good_previous_photo_is_kept():
@@ -226,10 +247,67 @@ def test_audio_rejections_say_audio():
     assert rej[0].kind == "audio"
 
 
-def test_the_audio_cap_is_five_and_counts_down():
-    assert (PHOTO_CANDIDATES, MAX_AUDIO_CANDIDATES) == (5, 5)
-    assert [slots_left(n) for n in (0, 2, 5, 9)] == [5, 3, 0, 0]
+def test_the_audio_cap_is_ten_and_counts_down():
+    assert (PHOTO_CANDIDATES, MAX_AUDIO_CANDIDATES) == (5, 10)
+    assert [slots_left(n) for n in (0, 2, 5, 10, 14)] == [10, 8, 5, 0, 0]
     assert slots_left(1, cap=3) == 2
+
+
+# -- audio selection (ADR 0031) ----------------------------------------------------------------------
+
+
+def choice(*, presence=0.8, competitor=0.1, mean=0.7, best=0.9) -> ClipChoice:
+    return ClipChoice(0.0, 10.0, presence, competitor, "", mean, best)
+
+
+class Trial:
+    def __init__(self, name: str, c: ClipChoice) -> None:
+        self.name, self.choice = name, c
+
+
+def names(trials) -> list[str]:
+    return [t.name for t in trials]
+
+
+def test_a_clip_is_good_only_when_present_and_uncontested():
+    assert audio_verdict(choice()) == "good"
+    assert audio_verdict(choice(presence=0.6, competitor=0.49)) == "good"  # both bounds are inclusive/exclusive
+    assert audio_verdict(choice(presence=0.59)) == "usable"
+    assert audio_verdict(choice(competitor=0.5)) == "usable"
+    assert audio_verdict(choice(best=0.49)) == "unusable"  # the 0.5 gate, on the shipped clip
+
+
+def test_the_first_good_candidate_wins_even_over_a_better_scoring_later_one():
+    first = Trial("first", choice(presence=0.6, mean=0.55))
+    better = Trial("better", choice(presence=1.0, mean=0.95))
+    assert names(pick_audio([first, better])) == ["first", "better"]
+
+
+def test_without_a_good_candidate_the_best_quality_usable_one_wins():
+    weak = Trial("weak", choice(presence=0.3, mean=0.3, competitor=0.2))
+    contested = Trial("contested", choice(presence=0.9, mean=0.8, competitor=0.9))  # quality 0.2
+    quiet = Trial("quiet", choice(presence=0.5, mean=0.5, competitor=0.1))
+    gone = Trial("gone", choice(best=0.2, mean=0.9, presence=0.0))
+    assert names(pick_audio([weak, contested, quiet, gone])) == ["quiet", "weak", "contested"]
+
+
+def test_no_usable_candidate_means_no_audio():
+    assert pick_audio([Trial("a", choice(best=0.1)), Trial("b", choice(best=0.4))]) == []
+    assert pick_audio([]) == []
+
+
+def test_equal_quality_goes_to_the_earlier_candidate():
+    a, b = Trial("a", choice(presence=0.3, mean=0.4)), Trial("b", choice(presence=0.3, mean=0.4))
+    assert names(pick_audio([a, b])) == ["a", "b"]
+    assert names(keep_best([a], b)) == ["a", "b"]
+
+
+def test_keep_best_holds_only_the_best_few():
+    held: list[Trial] = []
+    for i, mean in enumerate((0.2, 0.9, 0.5, 0.6, 0.1)):
+        held = keep_best(held, Trial(str(i), choice(presence=0.1, mean=mean, competitor=0.0)))
+    assert len(held) == KEPT_USABLE
+    assert names(held) == ["1", "3", "2"]
 
 
 # -- provenance and media refs ------------------------------------------------------------------------
@@ -269,6 +347,17 @@ def test_provenance_entry_carries_verification():
     assert photo.verified is None
     as_dict = photo.to_dict()
     assert "verified" not in as_dict and as_dict["token"] == "M1" and as_dict["species_id"] == SID
+
+
+def test_provenance_entry_records_the_rule_and_the_shipped_clips_scores():
+    chosen = choice(presence=0.62501, competitor=0.54101, mean=0.6)
+    entry = provenance_entry(
+        make_record(), species_id=SID, kind="audio", token="M1", verified="birdnet", birdnet_confidence=0.7, choice=chosen
+    )
+    assert (entry.audio_rule, entry.presence, entry.competitor) == (AUDIO_RULE, 0.625, 0.541)
+    assert entry.quality == pytest.approx(chosen.quality, abs=1e-4)
+    plain = provenance_entry(make_record(), species_id=SID, kind="audio", token="M1", verified="pinned")
+    assert (plain.audio_rule, plain.presence, plain.competitor, plain.quality) == (None, None, None, None)
 
 
 def test_provenance_entry_rejects_inconsistent_verification():

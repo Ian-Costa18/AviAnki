@@ -35,18 +35,18 @@ src/avianki/
     errors.py            MediaError, ImageRejected (no third-party imports)
     images.py            inspect, resize → WebP, byte cap; needs Pillow (extra avianki[catalog])
     audio.py             window trim, high-pass, loudnorm, MP3 via ffmpeg on PATH
-    verify.py            BirdNET gate (optional extra: avianki[verify]; Python 3.11-3.13)
+    verify.py            BirdNET scoring (optional extra: avianki[verify]; Python 3.11-3.13): the 0.5 gate, the clip start, presence/competitor/quality and every audio threshold (ADR 0031)
   catalog/               → sources, media, taxonomy, core
     __init__.py          docstring only, so importing catalog.format never pulls in sources/
     format.py            JSON Schemas + dataclasses for the published format  ← THE CONTRACT
     species_lists.py     region species lists + minting into species.csv (§4 step 2)
     credit.py            renders the answer-side credit HTML (ADR 0012)
     pins.py              loads and validates data/pins.toml; a pin is "<source>:<token>"
-    select.py            pure selection rules: candidate screening, stickiness, provenance and credit for a chosen asset, overall species order
+    select.py            pure selection rules: candidate screening, stickiness (including the audio rule), good/usable/best-quality audio choice, provenance and credit for a chosen asset, overall species order
     build.py             pipeline orchestration: run_build(), and the public build_species() used by adhoc.py
     adhoc.py             the one place the CLI crosses upstream: eBird species list, id mapping, live build of species the catalog lacks (`avianki --ebird`, ADR 0017)
     validate.py          the publish gate (ADR 0014): stable-coded checks, shrink limits, `format_result`
-    report.py            `BuildReport` + build-report.md, contact-sheet.html, credits.html
+    report.py            `BuildReport` + build-report.md (with the audio quality distributions), contact-sheet.html, credits.html
     client.py            reads a published catalog (manifest → region → species → media) from a URL or directory into a per-user cache; imports only format and core, works without the catalog extra
   deck/                  → catalog.format, catalog.client, core   (never sources/ or media/)
     notetypes.py         three note types (each its own front, one shared back), frozen card types, model seeds and field list (IocName appended, ADR 0027), `models_for(theme, name_on_photo)` (ADR 0028)
