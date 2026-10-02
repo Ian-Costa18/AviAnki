@@ -25,6 +25,8 @@ def open_app(context: Any, base_url: str, query: str = "", *, ready: bool = True
     page = context.new_page()
     page.errors = []
     page.on("pageerror", lambda exc: page.errors.append(str(exc)))
+    page.console_errors = []
+    page.on("console", lambda msg: page.console_errors.append(msg.text) if msg.type in ("error", "warning") else None)
     page.goto(f"{base_url}/{query}")
     if ready:
         page.wait_for_selector(READY)
@@ -63,13 +65,22 @@ def build(page: Any, tmp_path: Path, *, timeout: float = 90_000, **choices: Any)
     downloads: list[Any] = []
     page.on("download", lambda download: downloads.append(download))  # noqa: PLW0108 - Playwright needs a function object
     page.click("#build")
-    page.wait_for_selector(DONE, timeout=timeout)
+    # Wait for either end of the build. The app returns to the Pick screen with an error when a
+    # build fails, and waiting only for Done would then sit out the whole timeout saying nothing.
+    page.wait_for_selector(f"{DONE}, {ERROR}", timeout=timeout)
+    if page.is_visible(ERROR):
+        raise AssertionError(f"the build failed: {visible_text(page, '#error-text')!r}; {_page_problems(page)}")
     saved = []
     for download in downloads:
         path = tmp_path / download.suggested_filename
         download.save_as(path)
         saved.append(path)
     return saved
+
+
+def _page_problems(page: Any) -> str:
+    """What the page reported (uncaught errors and console errors), for a failure message."""
+    return f"page errors: {getattr(page, 'errors', [])}; console errors: {getattr(page, 'console_errors', [])}"
 
 
 def visible_text(page: Any, selector: str) -> str:

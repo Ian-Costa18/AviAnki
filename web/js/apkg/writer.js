@@ -62,8 +62,25 @@ function deckJson(deckId, name, description) {
   }));
 }
 
-/** Build the collection.anki2 bytes. */
-async function buildDatabase({ deckId, deckName, deckDescription, models, notes, timestamp, onProgress }) {
+/**
+ * Build the collection.anki2 bytes. A WebAssembly trap (a `WebAssembly.RuntimeError`) is an engine
+ * fault, not a bad input: WebKit has been seen to trap intermittently inside sql.js ("access to a
+ * null reference") on input that builds fine the next time. Nothing is half-written, so the build
+ * is tried once more on a fresh sql.js instance (the trapped one is dropped: a trap skips the
+ * module's own stack bookkeeping). A second trap is a real failure and propagates.
+ */
+async function buildDatabase(options) {
+  try {
+    return await buildDatabaseOnce(options);
+  } catch (err) {
+    if (typeof WebAssembly === "undefined" || !(err instanceof WebAssembly.RuntimeError)) throw err;
+    console.warn("sql.js trapped, building the database again on a fresh instance:", err);
+    sqlPromise = null;
+    return buildDatabaseOnce(options);
+  }
+}
+
+async function buildDatabaseOnce({ deckId, deckName, deckDescription, models, notes, timestamp, onProgress }) {
   const SQL = await loadSql();
   const db = new SQL.Database();
   try {
