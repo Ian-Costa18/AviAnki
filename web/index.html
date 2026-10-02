@@ -6,8 +6,40 @@
 <title>AviAnki: learn the birds where you live</title>
 <meta name="description" content="Make a free Anki deck of the birds where you live, with photos and recordings, in a few taps.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%231d6b40'/%3E%3Cpath%20d='M7%2022c3-1%205-3%206-6%201-3%203-5%206-5l4-2-1%204c0%206-5%2011-12%2011z'%20fill='%23fff'/%3E%3Ccircle%20cx='20.5'%20cy='13'%20r='1.2'%20fill='%231d6b40'/%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/app.css">
-<script type="module" src="js/app.js"></script>
+<script>
+/* Pages caches every file for ten minutes (ADR 0029). The published copy of this page names a
+   versioned directory (v/<deploy>/...), so a page always loads files from its own deploy. A
+   stale copy of this page can name a directory that has since been deleted: when the app fails
+   to load, reload once with a fresh query so the browser fetches the current page. The
+   sessionStorage flag stops a loop, and without sessionStorage there is no retry at all. */
+(function () {
+  var KEY = "avianki.cachebust";
+  var PARAM = "_cb";
+  function storage() { try { return window.sessionStorage; } catch (e) { return null; } }
+  try { // the retry's query is not part of the address a visitor keeps or shares
+    var here = new URL(location.href);
+    if (here.searchParams.has(PARAM)) {
+      here.searchParams.delete(PARAM);
+      history.replaceState(history.state, "", here.pathname + here.search + here.hash);
+    }
+  } catch (e) {}
+  window.aviankiLoaded = function () {
+    try { var s = storage(); if (s) s.removeItem(KEY); } catch (e) {}
+  };
+  window.aviankiLoadFailed = function () {
+    try {
+      var s = storage();
+      if (!s || s.getItem(KEY)) return;
+      s.setItem(KEY, "1");
+      var next = new URL(location.href);
+      next.searchParams.set(PARAM, String(Date.now()));
+      location.replace(next.href);
+    } catch (e) {}
+  };
+})();
+</script>
+<link rel="stylesheet" href="css/app.css" onerror="aviankiLoadFailed()">
+<script type="module" src="js/app.js" onload="aviankiLoaded()" onerror="aviankiLoadFailed()"></script>
 </head>
 <body>
 <noscript><p class="notice noscript">AviAnki builds your deck in your browser, so it needs JavaScript. Please turn it on and reload the page.</p></noscript>
@@ -142,7 +174,7 @@
       </details>
     </form>
 
-    <!-- The study guide (ADR 0029): readable before anything is built, and the same component as on Done. -->
+    <!-- The study guide (ADR 0030): readable before anything is built, and the same component as on Done. -->
     <section id="study-pick" class="study" aria-labelledby="study-pick-title"></section>
   </section>
 

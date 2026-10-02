@@ -91,7 +91,7 @@ src/avianki/data/        package data: ships in the wheel, found through taxonom
 tests/                   mirrors src/avianki/
   core/ taxonomy/ sources/ media/ catalog/ deck/ cli/ packaging/
   deck/, cli/            also hold test_themes.py (registry, contrast, safety) and test_cli_theme.py; test_identity.py pins every theme and layout
-  scripts/               assemble_site.py and fetch_latest_catalog.sh (fake `gh` on PATH); gen_web_notetypes.py keeps web/js/notetypes.json equal to deck/; weekly_summary.py's gate; the workflow files' shape (publish is manual, no examples step)
+  scripts/               assemble_site.py (test_assemble_site_versioning.py: every import, fetch and tag of the assembled shell resolves inside v/<sha>/) and fetch_latest_catalog.sh (fake `gh` on PATH); gen_web_notetypes.py keeps web/js/notetypes.json equal to deck/; weekly_summary.py's gate; the workflow files' shape (publish is manual, no examples step)
   sources/, catalog/     also hold the weekly live checks (integration): test_sources_live.py, test_gbif_live.py, test_published_site_live.py
   test_layout.py         enforces the dependency rule
   web/                   pytest + Playwright (Chromium and WebKit; skipped when a browser is missing)
@@ -111,6 +111,7 @@ tests/                   mirrors src/avianki/
     test_web_parts.py             `parts.js` units, and constrained-device builds in parts (three packages equal the single package, out-of-memory fallback)
     test_web_lastmile.py          platform detection, the device tabs (roles, keyboard, detected tab, readable before building, same on Done), Share only when `canShare` says so
     test_web_catalog_url.py       `?catalog=` honoured on localhost only, never on the public site
+    test_web_cache_busting.py     an assembled site (assemble_site.py) builds a deck from v/<sha>/ files only; a stale index.html reloads once and recovers, never loops
     test_web_shell_budget.py      html + css + js + vendored js under 150 KB gzipped (only the wasm excluded)
     test_web_mobile_heap.py       Pixel 7 profile, 4x CPU throttle, 256 MB heap cap: Standard and Everything-in-parts on the synthetic catalog; iPhone 14 in WebKit
     test_web_live_catalog.py      one build from the published catalog (integration)
@@ -119,7 +120,7 @@ tests/                   mirrors src/avianki/
   fixtures/selection/    cases.json: language-neutral selection cases shared by deck/ and web/js/select.js
 
 scripts/
-  assemble_site.py         stdlib-only: catalog dir + web/ (or a stub index) → the Pages tree, .nojekyll, 900 MB guard
+  assemble_site.py         stdlib-only: catalog dir + web/ (or a stub index) → the Pages tree (index.html at the root, the app's own files under v/<sha>/, ADR 0029), .nojekyll, 900 MB guard
   fetch_latest_catalog.sh  downloads and extracts the newest catalog-* release; shared by catalog.yml and pages.yml
   gen_web_notetypes.py     dumps deck/'s note types and description strings to web/js/notetypes.json; `--check` for drift
   weekly_summary.py        reads the weekly run's JUnit report: writes the job summary, fails on any skip but eBird's

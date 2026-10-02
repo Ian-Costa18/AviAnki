@@ -1,4 +1,4 @@
-// Studying the deck (ADR 0016, amended by ADR 0029): which device is this, and how does the deck get
+// Studying the deck (ADR 0016, amended by ADR 0030): which device is this, and how does the deck get
 // onto it? `detectPlatform` is pure so the tests can feed it sample user agents. `renderStudyGuide`
 // is the one component behind both the Pick screen (before anyone builds anything) and the Done
 // screen: ARIA tabs for iPhone & iPad, Android and Computer, the detected device's tab selected, then
@@ -35,7 +35,7 @@ const TABS = [
   { platform: DESKTOP, label: "Computer" },
 ];
 
-// Text is a list of pieces: plain strings, bold pieces and links. The copy follows ADR 0029: friendly,
+// Text is a list of pieces: plain strings, bold pieces and links. The copy follows ADR 0030: friendly,
 // one action per step, and never an assumption that anyone will pay.
 const PANELS = {
   [IOS]: {

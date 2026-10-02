@@ -1,4 +1,4 @@
-# 0029 — Friendlier wording, device tabs, and a study guide you can read before building
+# 0030 — Friendlier wording, device tabs, and a study guide you can read before building
 
 **Status:** Accepted, 2026-10-01 · **Amends:** [0016](0016-last-mile.md) (the steps move into device tabs, and are readable before the build) · **Related:** [0006](0006-browser-builds-the-apkg.md), [0012](0012-attribution.md) (the study text stays in the deck description) · **Closes:** #80
 

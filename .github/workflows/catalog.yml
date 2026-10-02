@@ -229,7 +229,7 @@ jobs:
       # Assemble before releasing, so an oversize site (ADR 0003) fails before anything is published.
       - name: Assemble Pages site
         if: env.PUBLISH == 'true'
-        run: python scripts/assemble_site.py build/site _site
+        run: python scripts/assemble_site.py build/site _site --version "${{ github.sha }}"
 
       # The tag date comes from the manifest's catalog_version (the date the build stamped), never
       # from the clock here, so the tag and the manifest cannot disagree across midnight UTC.

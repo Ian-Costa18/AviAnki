@@ -175,12 +175,12 @@ The code is in `web/`: plain ES modules, vendored `sql.js` and `fflate`, with no
 - *Where do you go birding?* A searchable state/province select, grouped by country and remembered in `localStorage`.
 - **Build my deck**, with the Anki line underneath ([ADR 0016](adr/0016-last-mile.md)): *"You'll study your deck in Anki, a flashcard app that's free on computers and Android. See how studying works"*.
 - *Advanced* (collapsed): tier, month, card types, subdeck.
-- The **study guide**, below the form and readable before anything is built: device tabs (iPhone & iPad, Android, Computer, the detected one selected first, Computer as the fallback), then the *What you'll see* box. The iPhone & iPad tab has two equal paths, free first ([ADR 0029](adr/0029-friendly-copy-and-device-tabs.md)).
+- The **study guide**, below the form and readable before anything is built: device tabs (iPhone & iPad, Android, Computer, the detected one selected first, Computer as the fallback), then the *What you'll see* box. The iPhone & iPad tab has two equal paths, free first ([ADR 0030](adr/0030-friendly-copy-and-device-tabs.md)).
 - Footer: dataset credit, licence notice, the catalog's `credits.html` (published at `catalog/credits.html`) and a GitHub link.
 
 **Screen 2: Building.** The progress text speaks a bird watcher's language: *"Finding the 100 birds most seen in Massachusetts… Downloading photos and recordings (43 of 100)… Packing your deck…"* (it says "photos", "recordings" or "photos and recordings" to match the cards chosen, and every count agrees in number: "1 bird", "2 birds"). Media is fetched with at most 6 in flight, and read from Cache Storage when it's already there. The zip streams into Blob parts ([ADR 0006](adr/0006-browser-builds-the-apkg.md)). On constrained devices, Everything builds in parts of 150, and the page says so *before* starting.
 
-**Screen 3: Done.** The file downloads automatically, with a **Save again** link and, where supported, a **Share** button. Then comes the same study guide as on the first screen (one shared component, [ADR 0029](adr/0029-friendly-copy-and-device-tabs.md)), and finally *"Add another region"*, which is additive.
+**Screen 3: Done.** The file downloads automatically, with a **Save again** link and, where supported, a **Share** button. Then comes the same study guide as on the first screen (one shared component, [ADR 0030](adr/0030-friendly-copy-and-device-tabs.md)), and finally *"Add another region"*, which is additive.
 
 **Errors.**
 

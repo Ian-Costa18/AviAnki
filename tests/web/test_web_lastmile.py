@@ -1,4 +1,4 @@
-"""The study guide (ADRs 0016 and 0029): accessible device tabs with the detected device selected, readable
+"""The study guide (ADRs 0016 and 0030): accessible device tabs with the detected device selected, readable
 before anything is built and the same on the Done screen, and the Share button only where the browser can
 share a file.
 """

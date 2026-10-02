@@ -34,4 +34,5 @@ An accepted ADR is not edited to change its decision. To change it, write a new 
 | [0026](0026-north-american-common-names.md) | Cards use eBird's English names; IOC stays the taxonomy (amends 0004, 0008) | — |
 | [0027](0027-ioc-name-field.md) | The IocName field: a ninth field for the IOC tag (amends 0009) | — |
 | [0028](0028-card-themes.md) | Card themes, name on the photo and custom themes: CSS only, defined once in Python (amends 0025) | #67 |
-| [0029](0029-friendly-copy-and-device-tabs.md) | Friendlier wording, device tabs, and a study guide you can read before building (amends 0016) | #80 |
+| [0029](0029-versioned-web-assets.md) | The website's own files are versioned per deploy (`v/<sha>/`), with a reload-once fallback for a stale page | #79 |
+| [0030](0030-friendly-copy-and-device-tabs.md) | Friendlier wording, device tabs, and a study guide you can read before building (amends 0016) | #80 |
