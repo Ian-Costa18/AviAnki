@@ -24,7 +24,7 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from typing import Any
 
-from avianki.core.http import HttpClient, Limits, SourceError
+from avianki.core.http import HttpClient, HttpError, Limits, SourceError
 
 log = logging.getLogger("bird_deck")
 
@@ -118,9 +118,10 @@ class XenoCantoLookup:
             )
             found = parse_recordings(payload)
         except (SourceError, ValueError, TypeError, KeyError) as exc:
-            # The client already scrubs; this covers a parse error that quotes the answer.
-            reason = str(exc).replace(self._key, "<redacted>") or type(exc).__name__
-            self._off = f"the lookup failed ({type(exc).__name__}: {reason})"
+            # Only the error's type and HTTP status are kept: its text may quote the request URL,
+            # and that URL carries the key.
+            status = f", HTTP {exc.status}" if isinstance(exc, HttpError) else ""
+            self._off = f"the lookup failed ({type(exc).__name__}{status})"
             self._warn()
             return False
         self._asked.update(numbers)
