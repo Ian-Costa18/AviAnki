@@ -10,15 +10,15 @@ Anki flashcard decks for the birds of your state or province, by sight and by so
 [**Build a deck**](https://ian-costa18.github.io/AviAnki/) &middot; [**Command line**](#command-line) &middot; [**Themes**](#themes) &middot; [**Changelog**](https://github.com/Ian-Costa18/AviAnki/blob/main/CHANGELOG.md) &middot; [**Contributing**](https://github.com/Ian-Costa18/AviAnki/blob/main/CONTRIBUTING.md)
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Ian-Costa18/AviAnki/readme-rework/docs/examples/cards.gif" alt="An AviAnki card: a photo of an American Robin, then the answer with its name, scientific name, recording and credits" width="460">
-  <br><i>A photo card, question then answer.</i>
+  <img src="https://raw.githubusercontent.com/Ian-Costa18/AviAnki/readme-rework/docs/examples/cards.gif" alt="One American Robin asked three ways: a photo, a recording, then both, each flipping to an answer with the bird's name, scientific name, recording and credits" width="424">
+  <br><i>One bird, three kinds of card, question then answer.</i>
 </p>
 
 Pick where you go birding and AviAnki builds an [Anki](https://apps.ankiweb.net/) deck for its birds, most common species first: a photo or a recording on the front, the name on the answer. The media comes from a catalog rebuilt every month from freely licensed photos and recordings, so a build is a download. There is no account to make and no API key to get.
 
 - The 100 most common species of a region, or every species the catalog holds for it (up to 400).
 - Photo cards, audio cards, or one card with both.
-- Ten themes built in, or your own colours and type from a TOML file.
+- <!-- gen:theme-count -->Ten<!-- /gen:theme-count --> themes built in, or your own colours and type from a TOML file.
 - Every photo and recording openly licensed, with its author and licence on the answer.
 - Re-import a later build of the same region and your review progress is kept.
 - Any eBird region, down to a single county, from the command line.
@@ -46,11 +46,13 @@ The default is `photo,audio`. A species with no photo (or no recording) gets no 
 <details>
 <summary><b>See each card type, front and answer</b></summary>
 
-|               | Front                                                      | Answer                                                     |
-| ------------- | ---------------------------------------------------------- | ---------------------------------------------------------- |
-| Photo         | ![Photo card, front](https://raw.githubusercontent.com/Ian-Costa18/AviAnki/readme-rework/docs/examples/card-photo-front.png)   | ![Photo card, answer](https://raw.githubusercontent.com/Ian-Costa18/AviAnki/readme-rework/docs/examples/card-photo-back.png)   |
-| Audio         | ![Audio card, front](https://raw.githubusercontent.com/Ian-Costa18/AviAnki/readme-rework/docs/examples/card-audio-front.png)   | ![Audio card, answer](https://raw.githubusercontent.com/Ian-Costa18/AviAnki/readme-rework/docs/examples/card-audio-back.png)   |
-| Photo + audio | ![Photo and audio card, front](https://raw.githubusercontent.com/Ian-Costa18/AviAnki/readme-rework/docs/examples/card-photo-audio-front.png) | ![Photo and audio card, answer](https://raw.githubusercontent.com/Ian-Costa18/AviAnki/readme-rework/docs/examples/card-photo-audio-back.png) |
+<!-- gen:card-shots -->
+|               | Front                           | Answer                          |
+| ------------- | ------------------------------- | ------------------------------- |
+| Photo | ![Photo card, front](https://raw.githubusercontent.com/Ian-Costa18/AviAnki/readme-rework/docs/examples/card-photo-front.png) | ![Photo card, answer](https://raw.githubusercontent.com/Ian-Costa18/AviAnki/readme-rework/docs/examples/card-photo-back.png) |
+| Audio | ![Audio card, front](https://raw.githubusercontent.com/Ian-Costa18/AviAnki/readme-rework/docs/examples/card-audio-front.png) | ![Audio card, answer](https://raw.githubusercontent.com/Ian-Costa18/AviAnki/readme-rework/docs/examples/card-audio-back.png) |
+| Photo + Audio | ![Photo + Audio card, front](https://raw.githubusercontent.com/Ian-Costa18/AviAnki/readme-rework/docs/examples/card-photo-audio-front.png) | ![Photo + Audio card, answer](https://raw.githubusercontent.com/Ian-Costa18/AviAnki/readme-rework/docs/examples/card-photo-audio-back.png) |
+<!-- /gen:card-shots -->
 
 Rendered from the shipped templates and CSS by `scripts/gen_card_shots.py`, so they cannot drift from what Anki draws.
 
@@ -58,29 +60,31 @@ Rendered from the shipped templates and CSS by `scripts/gen_card_shots.py`, so t
 
 ## Themes
 
-Ten themes ship with the deck. Each uses the system font of whatever you review on, follows Anki's night mode, keeps the photo in the same place on both sides, and shows the credits on every answer.
+<!-- gen:theme-count -->Ten<!-- /gen:theme-count --> themes ship with the deck. Each uses the system font of whatever you review on, follows Anki's night mode, keeps the photo in the same place on both sides, and shows the credits on every answer.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Ian-Costa18/AviAnki/readme-rework/docs/examples/themes.gif" alt="The ten built-in themes, each shown in day mode beside night mode" width="720">
+  <img src="https://raw.githubusercontent.com/Ian-Costa18/AviAnki/readme-rework/docs/examples/themes.gif" alt="The built-in themes in turn, each shown in day mode beside night mode" width="744">
 </p>
 
 <details>
-<summary><b>The ten themes, one by one</b></summary>
+<summary><b>The <!-- gen:theme-count-lower -->ten<!-- /gen:theme-count-lower --> themes, one by one</b></summary>
 
 Each shot is the same answer card in day mode (left) and night mode (right).
 
+<!-- gen:theme-gallery -->
 | Theme | Day and night |
 | --- | --- |
-| **`default`** — photo first, the system font, a black name | ![The default theme](https://raw.githubusercontent.com/Ian-Costa18/AviAnki/readme-rework/docs/examples/theme-default.png) |
-| **`serif`** — a green serif name over the usual layout | ![The serif theme](https://raw.githubusercontent.com/Ian-Costa18/AviAnki/readme-rework/docs/examples/theme-serif.png) |
-| **`field-guide`** — warm paper, the name in spaced small capitals, an accent rule | ![The field-guide theme](https://raw.githubusercontent.com/Ian-Costa18/AviAnki/readme-rework/docs/examples/theme-field-guide.png) |
-| **`nord`** — the Nord palette: Snow Storm by day, Polar Night by night | ![The nord theme](https://raw.githubusercontent.com/Ian-Costa18/AviAnki/readme-rework/docs/examples/theme-nord.png) |
-| **`slate`** — cool blue-grey, square corners, credits in a thin box | ![The slate theme](https://raw.githubusercontent.com/Ian-Costa18/AviAnki/readme-rework/docs/examples/theme-slate.png) |
-| **`forest`** — sage green, round corners, names on a soft green panel | ![The forest theme](https://raw.githubusercontent.com/Ian-Costa18/AviAnki/readme-rework/docs/examples/theme-forest.png) |
-| **`plate`** — a vintage plate print: sepia, an italic serif name between rules | ![The plate theme](https://raw.githubusercontent.com/Ian-Costa18/AviAnki/readme-rework/docs/examples/theme-plate.png) |
-| **`minimal`** — centred on plain paper, a light name, lots of air | ![The minimal theme](https://raw.githubusercontent.com/Ian-Costa18/AviAnki/readme-rework/docs/examples/theme-minimal.png) |
-| **`midnight`** — always dark, by day and by night, with a soft blue accent | ![The midnight theme](https://raw.githubusercontent.com/Ian-Costa18/AviAnki/readme-rework/docs/examples/theme-midnight.png) |
-| **`high-contrast`** — larger type, pure black on white, strong outlines | ![The high-contrast theme](https://raw.githubusercontent.com/Ian-Costa18/AviAnki/readme-rework/docs/examples/theme-high-contrast.png) |
+| **`default`** — Photo first, the phone's own font, a black name | ![The default theme](https://raw.githubusercontent.com/Ian-Costa18/AviAnki/readme-rework/docs/examples/theme-default.png) |
+| **`serif`** — A green serif name over the usual layout | ![The serif theme](https://raw.githubusercontent.com/Ian-Costa18/AviAnki/readme-rework/docs/examples/theme-serif.png) |
+| **`field-guide`** — Warm paper, the name in spaced small capitals and an accent rule beside the names | ![The field-guide theme](https://raw.githubusercontent.com/Ian-Costa18/AviAnki/readme-rework/docs/examples/theme-field-guide.png) |
+| **`nord`** — The Nord palette: cool Snow Storm paper by day, Polar Night by night, Frost blue accents | ![The nord theme](https://raw.githubusercontent.com/Ian-Costa18/AviAnki/readme-rework/docs/examples/theme-nord.png) |
+| **`slate`** — Cool blue-grey with square corners and the credits in a thin box | ![The slate theme](https://raw.githubusercontent.com/Ian-Costa18/AviAnki/readme-rework/docs/examples/theme-slate.png) |
+| **`forest`** — Sage green with round corners and the names on a soft green panel | ![The forest theme](https://raw.githubusercontent.com/Ian-Costa18/AviAnki/readme-rework/docs/examples/theme-forest.png) |
+| **`plate`** — A vintage plate print: sepia paper, an italic serif name, centred between double rules | ![The plate theme](https://raw.githubusercontent.com/Ian-Costa18/AviAnki/readme-rework/docs/examples/theme-plate.png) |
+| **`minimal`** — Everything centred on plain paper with a light name and lots of air | ![The minimal theme](https://raw.githubusercontent.com/Ian-Costa18/AviAnki/readme-rework/docs/examples/theme-minimal.png) |
+| **`midnight`** — Always dark, by day and by night, with a soft blue accent | ![The midnight theme](https://raw.githubusercontent.com/Ian-Costa18/AviAnki/readme-rework/docs/examples/theme-midnight.png) |
+| **`high-contrast`** — Larger type, pure black on white (white on black at night), strong outlines | ![The high-contrast theme](https://raw.githubusercontent.com/Ian-Costa18/AviAnki/readme-rework/docs/examples/theme-high-contrast.png) |
+<!-- /gen:theme-gallery -->
 
 </details>
 
