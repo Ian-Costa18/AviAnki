@@ -366,6 +366,7 @@ def test_real_model_scores_noise_below_the_gate(tmp_path):
     with BirdNetAnalyzer() as analyzer:
         assert ROBIN in analyzer.labels
         result = analyse(noise.read_bytes(), ROBIN, analyzer=analyzer)
-    assert [(w.start_s, w.end_s) for w in result.windows] == [(0.0, 3.0), (3.0, 6.0)]
+    # A 3 s window every second (ADR 0031); BirdNET pads the windows that run past the end.
+    assert [(w.start_s, w.end_s) for w in result.windows] == [(float(i), i + 3.0) for i in range(6)]
     assert not result.passes
     assert result.best_confidence < 0.5
