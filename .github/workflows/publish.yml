@@ -16,6 +16,9 @@ on:
         required: true
         type: string
 
+permissions:
+  contents: read
+
 jobs:
   sanity-test:
     runs-on: ubuntu-latest
@@ -75,6 +78,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
+      contents: read
       id-token: write
     steps:
       - uses: actions/checkout@v4
