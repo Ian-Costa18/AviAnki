@@ -60,21 +60,21 @@ The acceptance tests (ADR 0019) use the `anki` package, a dev dependency, so the
 
 ## Publishing a release
 
-Pushing a `v*` tag publishes to PyPI once the tests pass. Versions stay 0.x until the 1.0 announcement. A release is three steps:
+Pushing a `v*` tag publishes to PyPI once the tests pass. A release is three steps:
 
 1. In a pull request, bump the version in `pyproject.toml` (see [Versioning](#versioning) for which bump to use) and rename the top `CHANGELOG.md` section to the new version:
 
    ```bash
-   uv version --bump minor   # or patch / major, or `uv version 0.10.0`
+   uv version --bump minor   # or patch / major, or `uv version 1.1.0`
    ```
 
    Commit `pyproject.toml`, `uv.lock` and `CHANGELOG.md`, and merge to `main`.
 
-2. Tag the merge commit and push the tag (the tag is `v` plus the version, e.g. `v0.10.0`):
+2. Tag the merge commit and push the tag (the tag is `v` plus the version, e.g. `v1.1.0`):
 
    ```bash
-   git tag v0.10.0 <merge commit>
-   git push origin v0.10.0
+   git tag v1.1.0 <merge commit>
+   git push origin v1.1.0
    ```
 
 3. Watch the **Publish to PyPI** run. It does the rest.
@@ -111,7 +111,7 @@ Each card type is its own `genanki.Model` in `src/avianki/deck/notetypes.py` wit
 **Fields:**
 
 - Keep field order stable: Anki maps fields by position, not name. Always append new fields; never reorder or remove existing ones.
-- If you add a field, update `FIELDS` in `notetypes.py` and the note builder in `deck/build.py` in the same PR. The browser reads the field list from `web/js/notetypes.json`, so regenerate it and fill the field in `web/js/deck.js` too. Before the 1.0 announcement the field list could still be amended (ADR 0027 appended `IocName`, with a new ADR and the identity test's literal updated); after it, don't.
+- If you add a field, update `FIELDS` in `notetypes.py` and the note builder in `deck/build.py` in the same PR. The browser reads the field list from `web/js/notetypes.json`, so regenerate it and fill the field in `web/js/deck.js` too. Appending a field keeps every learner's cards and review history (ADR 0027 appended `IocName` this way), but it needs a new ADR, the identity test's literal updated, an acceptance test of the upgrade and a changelog note about Anki's one-time sync prompt: see [ADR 0032](docs/adr/0032-card-generations.md).
 
 **Styles:**
 
@@ -120,7 +120,16 @@ Each card type is its own `genanki.Model` in `src/avianki/deck/notetypes.py` wit
 
 **Model IDs and GUIDs:**
 
-- Each model's ID is derived from its seed string via `stable_id()`, and each note's GUID from the species id and card type. Never change either for a published note type: it would orphan existing cards in users' Anki collections.
+- Each model's ID is derived from its seed string via `stable_id()`, and each note's GUID from the species id and card type. Never change either for a published note type: it would orphan existing cards in users' Anki collections. A change that really needs it ships as a new generation (below).
+
+### Card generations
+
+A generation is one set of model seeds and one GUID namespace ([ADR 0032](docs/adr/0032-card-generations.md)). Cards from different generations don't match, so a new generation starts a learner's progress fresh and is a major version. A deprecated generation can still be built and still gets catalog updates and fixes; it is removed no sooner than six months after the release that deprecated it.
+
+| Generation | Seeds | Built by | Status |
+| ---- | ---- | ---- | ---- |
+| 2 | `AviAnki_*_v2` | 0.10 and later | **Current** |
+| — | location-based ids | 0.9 and earlier | Retired in 0.10 (ADR 0009); can no longer be built |
 
 ### 2) Add or change catalog data
 
@@ -130,11 +139,11 @@ For either path, run the quick verification checklist before opening a PR.
 
 ## Versioning
 
-This project follows [Semantic Versioning](https://semver.org/): `MAJOR.MINOR.PATCH`. Until the 1.0 announcement, every release is `0.MINOR.PATCH`: breaking changes and new features bump `MINOR`, fixes bump `PATCH`.
+This project follows [Semantic Versioning](https://semver.org/): `MAJOR.MINOR.PATCH`. The promise behind it: within a major version, importing a newer deck keeps your cards and their review history.
 
 | Bump | When |
 | ---- | ---- |
-| `MAJOR` | Breaking changes — anything that orphans existing Anki cards or requires a fresh import: changing a model seed string, reordering or removing fields, renaming a deck seed, changing note GUIDs |
+| `MAJOR` | Breaking changes — anything that orphans existing Anki cards or requires a fresh import: changing a model seed string, reordering, renaming or removing fields, renaming a deck seed, changing note GUIDs. This is a new [card generation](#card-generations) |
 | `MINOR` | New features that are backward-compatible: new card types, new fields (appended), new CLI flags |
 | `PATCH` | Bug fixes, CSS tweaks, source fixes, documentation |
 

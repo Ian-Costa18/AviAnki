@@ -1,6 +1,6 @@
 # AviAnki web app — specification
 
-**Status:** Implemented in 0.10.0 (the release candidate for 1.0), 2026-09-30 (accepted 2026-09-28) · **Map:** [#6](https://github.com/Ian-Costa18/AviAnki/issues/6) · **Product requirements:** [`PRD.md`](PRD.md) · **Decisions:** [`adr/`](adr/README.md) · **Layout:** [`source-layout.md`](source-layout.md)
+**Status:** Implemented; released as 1.0.0 (first shipped as 0.10.0, 2026-09-30) (accepted 2026-09-28) · **Map:** [#6](https://github.com/Ian-Costa18/AviAnki/issues/6) · **Product requirements:** [`PRD.md`](PRD.md) · **Decisions:** [`adr/`](adr/README.md) · **Layout:** [`source-layout.md`](source-layout.md)
 
 This spec is the destination of map #6. Someone holding this document, the PRD and the ADRs should be able to build AviAnki 1.0 with no architectural question left open. Where this document and an ADR disagree, the ADR wins, and this document gets fixed.
 
@@ -128,7 +128,7 @@ The `credit` values are pipeline-rendered, escaped HTML that uses only `a`, `b` 
 
 `SpeciesId, Name, SciName, Photo, Photo2, Audio, Audio2, Credits, IocName`
 
-`Photo2` and `Audio2` are reserved and empty at 1.0. `IocName` was appended before the 1.0 announcement ([ADR 0027](adr/0027-ioc-name-field.md)); it's empty except for the birds whose IOC name differs from eBird's.
+`Photo2` and `Audio2` are reserved and empty at 1.0. `IocName` was appended before 1.0 ([ADR 0027](adr/0027-ioc-name-field.md)), and [ADR 0032](adr/0032-card-generations.md) says how a field is appended after it; it's empty except for the birds whose IOC name differs from eBird's.
 
 All three share one back, so the order is always the same, and only the photo stays still when the card flips ([ADR 0025](adr/0025-card-design.md)): `{{Photo}}` (if the note has it), the small "IOC" tag with `{{IocName}}` (if the note has one), `{{Name}}`, `{{SciName}}`, `{{Audio}}` labelled "Hear the call" (if the note has it), then `{{Credits}}`. Fronts put the photo first with the prompt under it; the audio front is a compact play button with the question beside it. No back repeats the question.
 
@@ -201,7 +201,7 @@ This is [ADR 0017](adr/0017-cli-reads-the-catalog.md) in full.
 - `avianki REGION` reads the catalog and builds with genanki.
 - `avianki --ebird CODE` builds anywhere, using the live sources and the not-for-redistribution notice.
 - `avianki-catalog` is for maintainers.
-- The identity change breaks existing decks ([ADR 0009](adr/0009-note-identity.md)). It ships as 0.10.0; versions stay 0.x until the 1.0 announcement.
+- The identity change breaks existing decks ([ADR 0009](adr/0009-note-identity.md)). It shipped in 0.10.0, the release candidate, and 1.0.0 is the stable release.
 - README's options table and examples are rewritten in the same change.
 
 ## 9. Verification
@@ -217,7 +217,7 @@ Everything is automated ([ADR 0019](adr/0019-verification-without-a-human.md)):
 
 The weekly integration check is [ADR 0020](adr/0020-integration-monitoring.md).
 
-**Not covered:** real iOS Safari and AnkiMobile. A tap-through on a real phone before announcing 1.0 is recommended, not required.
+**Not covered:** real iOS Safari and AnkiMobile. A tap-through on a real phone before announcing 1.0 was recommended, not required; it was done on Android before 1.0.
 
 ## 10. Build order
 
@@ -232,7 +232,7 @@ Each milestone ships on its own branch with passing `pytest`, `ruff` and `ty`.
 | M4 | **Real catalog.** Full build in Actions; release and deploy. | Catalog live on Pages |
 | M5 | **Deck and CLI 1.0.** `deck/`, `catalog/client.py`, the `cli.py` rewrite, `--ebird`, README, acceptance tests. | `avianki us-ma` produces a deck that passes every acceptance check |
 | M6 | **Web app.** `web/` per §7, with the writer ported from the prototype and switched to fflate streaming. | Playwright end-to-end tests, including mobile, pass; the browser build is equivalent to genanki |
-| M7 | **Release.** PyPI 0.10.0 (1.0.0 at the announcement); weekly check switched to the real sources; this spec's status updated to *Implemented*. | — |
+| M7 | **Release.** PyPI 0.10.0, then 1.0.0; weekly check switched to the real sources; this spec's status updated to *Implemented*. | — |
 
 ## 11. Known risks
 

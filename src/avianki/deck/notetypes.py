@@ -3,8 +3,8 @@
 Every string that decides how Anki recognises a note is FROZEN (ADR 0009): the card-type
 names, the model seeds and the field list. ``tests/deck/test_identity.py`` pins them as
 literals; changing one needs a new ADR and a major version, because existing users' notes
-would stop matching on import. The one change so far is ``IocName``, appended as the last
-field before the 1.0 announcement (ADR 0027); the freeze resumes at that announcement.
+would stop matching on import. The one exception is a field appended to the end, which Anki
+applies in place (ADR 0032); ``IocName`` was added that way (ADR 0027).
 
 Each card type is its own note type with one template. The front shows only the prompt
 media, never Name, SciName or Credits: a credit line such as a file title can give the

@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "The existing release tag to publish, e.g. v0.10.0 (must equal v<project.version>)"
+        description: "The existing release tag to publish, e.g. v1.0.0 (must equal v<project.version>)"
         required: true
         type: string
 
