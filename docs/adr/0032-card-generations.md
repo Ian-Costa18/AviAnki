@@ -33,7 +33,7 @@ When a generation is replaced:
 
 - The release that brings the new one is a major version. Its notes say that the new cards start fresh and that the old ones are untouched.
 - The old generation is **deprecated**, not removed. The CLI and the website can still build it, and it keeps getting catalog updates (new photos, recordings, species and names) and fixes. New card features go to the current generation only.
-- A deprecated generation is removed no sooner than six months after the release that deprecated it, and the removal is announced in the changelog one release ahead.
+- When a deprecated generation is removed is left open. There is no fixed period: it is decided when the question comes up, and the removal is announced in the changelog one release ahead.
 
 The table of generations lives in [CONTRIBUTING.md](../../CONTRIBUTING.md#card-generations) and is updated in the release that changes it.
 

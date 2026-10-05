@@ -124,7 +124,7 @@ Each card type is its own `genanki.Model` in `src/avianki/deck/notetypes.py` wit
 
 ### Card generations
 
-A generation is one set of model seeds and one GUID namespace ([ADR 0032](docs/adr/0032-card-generations.md)). Cards from different generations don't match, so a new generation starts a learner's progress fresh and is a major version. A deprecated generation can still be built and still gets catalog updates and fixes; it is removed no sooner than six months after the release that deprecated it.
+A generation is one set of model seeds and one GUID namespace ([ADR 0032](docs/adr/0032-card-generations.md)). Cards from different generations don't match, so a new generation starts a learner's progress fresh and is a major version. A deprecated generation can still be built and still gets catalog updates and fixes. When one is removed is left open, and the changelog announces it one release ahead.
 
 | Generation | Seeds | Built by | Status |
 | ---- | ---- | ---- | ---- |
