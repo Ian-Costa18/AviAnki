@@ -1,6 +1,6 @@
 # 0027 — The IocName field
 
-**Status:** Accepted, 2026-10-01 · **Amends:** [0009](0009-note-identity.md) (the field list) · **Related:** [0025](0025-card-design.md) (the IOC tag), [0026](0026-north-american-common-names.md) (eBird names on cards)
+**Status:** Accepted, 2026-10-01 · **Amends:** [0009](0009-note-identity.md) (the field list) · **Amended by:** [0032](0032-card-generations.md) (the freeze after 1.0) · **Related:** [0025](0025-card-design.md) (the IOC tag), [0026](0026-north-american-common-names.md) (eBird names on cards)
 
 ## Context
 

@@ -1,6 +1,6 @@
 [project]
 name = "avianki"
-version = "0.10.0"
+version = "1.0.0"
 description = "Build Anki decks for learning the birds of a region by photo and by sound"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -10,6 +10,7 @@ authors = [
 license = "MIT"
 license-files = ["LICENSE"]
 classifiers = [
+    "Development Status :: 5 - Production/Stable",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",

@@ -1,6 +1,18 @@
 # Changelog
 
-## Unreleased
+## 1.0.0
+
+AviAnki 1.0 is the first stable release. It builds on 0.10 with card themes, clearer recordings and a friendlier website. From here on, an update keeps your review progress: see [Versioning](CONTRIBUTING.md#versioning) for the promise.
+
+### If you used AviAnki 0.9 or earlier: your new deck starts fresh
+
+Decks from 0.10 on identify each card by the bird and the card type, not by the place you built it for. A 1.0 deck doesn't match the cards of a 0.9 deck, so importing it adds a new **AviAnki** deck next to your old one instead of updating it. Your old deck and its review history aren't touched: keep studying it, or delete it once you've moved over. A deck built with 0.10 updates in place, and your progress is kept.
+
+### Recordings: the bird you're asked about is the one you hear
+
+- **Each recording is scored** for how much of the clip the bird is in, and for whether another bird is louder. Up to 10 recordings are tried per bird and the best one is kept, instead of the first that passes. See [ADR 0031](docs/adr/0031-audio-quality-selection.md).
+- **Clips start on the bird.** The 10 seconds on the card are the stretch where the bird is clearest, not the first 10 seconds of the recording.
+- **Five clips were replaced by ear** after a listening review.
 
 ### The website: friendlier wording and a study guide you can read first
 

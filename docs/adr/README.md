@@ -37,3 +37,4 @@ An accepted ADR is not edited to change its decision. To change it, write a new 
 | [0029](0029-versioned-web-assets.md) | The website's own files are versioned per deploy (`v/<sha>/`), with a reload-once fallback for a stale page | #79 |
 | [0030](0030-friendly-copy-and-device-tabs.md) | Friendlier wording, device tabs, and a study guide you can read before building (amends 0016) | #80 |
 | [0031](0031-audio-quality-selection.md) | Audio: score each clip for presence and competing birds, look at up to 10, cut on the bird; xeno-canto metadata orders Commons (supersedes 0023) | #83 |
+| [0032](0032-card-generations.md) | After 1.0: fields may be appended in a minor release; a real identity break is a new card generation and a major version (amends 0009, 0027) | — |

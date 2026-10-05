@@ -73,9 +73,8 @@ def test_model_names() -> None:
 
 
 def test_field_list_is_frozen_and_in_order() -> None:
-    # IocName was appended as the ninth field, the one sanctioned change to this list
-    # before the 1.0 announcement (ADR 0027, which amends ADR 0009). The first eight keep
-    # their positions.
+    # IocName was appended as the ninth field (ADR 0027, which amends ADR 0009). A field may
+    # only ever be appended (ADR 0032); the existing ones keep their positions.
     expected = ["SpeciesId", "Name", "SciName", "Photo", "Photo2", "Audio", "Audio2", "Credits", "IocName"]
     assert list(notetypes.FIELDS) == expected
     for model in notetypes.MODELS.values():
