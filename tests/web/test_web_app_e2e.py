@@ -5,6 +5,7 @@ with Anki's own backend. Runs in Chromium and WebKit against the fixture catalog
 from __future__ import annotations
 
 import json
+from urllib.parse import urlsplit
 
 from app_support import (
     ALL_CARDS,
@@ -137,7 +138,7 @@ def test_footer_carries_credits_and_the_licence_notice(new_context, engine, base
     assert "CC-BY-4.0" in footer
     assert visible_text(page, "#licence-notice") == NOTETYPES["description"]["licence_notice"]
     assert page.get_attribute("#credits-link", "href") == f"{base_url}/catalog/credits.html"
-    assert "github.com" in page.get_attribute('footer a[href*="github.com"]', "href")
+    assert urlsplit(page.get_attribute('footer a[href*="github.com"]', "href")).hostname == "github.com"
 
 
 def test_what_youll_see_matches_the_study_guidance(new_context, engine, base_url) -> None:

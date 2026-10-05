@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import replace
+from urllib.parse import urlsplit
 
 from deck_fakes import ROBIN_AUDIO, ROBIN_PHOTO, manifest
 
@@ -59,7 +61,8 @@ def test_description_ebird_line_only_when_asked() -> None:
 
 def test_description_includes_the_ioc_credit_when_present() -> None:
     d = deck_description(manifest(ioc=True), ebird=False)
-    assert "IOC World Bird List" in d and "worldbirdnames.org" in d
+    hosts = {urlsplit(href).hostname for href in re.findall(r'href="([^"]+)"', d)}
+    assert "IOC World Bird List" in d and {"www.worldbirdnames.org"} <= hosts
     assert "IOC World Bird List" not in deck_description(manifest(), ebird=False)
 
 
