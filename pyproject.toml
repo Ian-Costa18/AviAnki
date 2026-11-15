@@ -3,7 +3,7 @@ name = "avianki"
 version = "1.0.0"
 description = "Build Anki decks for learning the birds of a region by photo and by sound"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 authors = [
     { name = "Ian Costa" },
 ]
@@ -12,7 +12,6 @@ license-files = ["LICENSE"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -24,12 +23,11 @@ dependencies = [
     "genanki>=0.13.1",
     "python-dotenv>=1.0.0",
     "requests>=2.28.0",
-    "tomli>=2; python_version < '3.11'",
     "tqdm>=4.64.0",
 ]
 
 [project.optional-dependencies]
-catalog = ["jsonschema>=4", "Pillow>=10", "tomli>=2; python_version < '3.11'"]
+catalog = ["jsonschema>=4", "Pillow>=10"]
 # BirdNET audio verification (ADR 0011). birdnet 1.x runs the v2.4 TFLite model through
 # ai-edge-litert (no TensorFlow), which ships wheels for CPython 3.11-3.13 only; on 3.14 the
 # extra installs nothing and avianki.media.verify raises VerifyUnavailable.
@@ -48,6 +46,12 @@ Changelog = "https://github.com/Ian-Costa18/AviAnki/blob/main/CHANGELOG.md"
 [build-system]
 requires = ["uv_build>=0.11.7,<0.13"]
 build-backend = "uv_build"
+
+[tool.uv]
+# Lock only for 3.11.5+: the soupsieve security fix (3.0.2+) needs it, and a lock that also
+# covered 3.11.0-3.11.4 would keep the vulnerable 2.x alongside it. Installs from PyPI still
+# accept any 3.11.
+environments = ["python_full_version >= '3.11.5'"]
 
 # Keep untracked working files out of the sdist and wheel: uv_build packs whatever is in
 # src/avianki, tracked or not.

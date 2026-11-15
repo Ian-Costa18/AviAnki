@@ -25,16 +25,12 @@ from the built-in list, a ``--theme-file`` or a link to the website.
 from __future__ import annotations
 
 import re
-import sys
+import tomllib
 from collections.abc import Mapping
 from dataclasses import dataclass, fields, replace
 from pathlib import Path
 from typing import Any, Final
 
-if sys.version_info >= (3, 11):
-    import tomllib
-else:  # pragma: no cover - the project supports 3.10, which has no tomllib
-    import tomli as tomllib  # ty: ignore[unresolved-import]
 
 HERE: Final = Path(__file__).parent
 BASE_CSS: Final[str] = (HERE / "card.css").read_text(encoding="utf-8")

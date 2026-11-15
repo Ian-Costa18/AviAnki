@@ -135,7 +135,7 @@ The command line builds the same decks from the same catalog, and adds what the 
 uvx avianki us-ma
 ```
 
-That writes `AviAnki-us-ma.apkg` to the current directory; open it in Anki by double-clicking it or with **File > Import**. You need [uv](https://docs.astral.sh/uv/); without it, `pip install avianki` and then `avianki us-ma` does the same thing. It needs Python 3.10 or newer and runs on macOS, Linux and Windows; the deck itself works in Anki Desktop, AnkiMobile and AnkiDroid.
+That writes `AviAnki-us-ma.apkg` to the current directory; open it in Anki by double-clicking it or with **File > Import**. You need [uv](https://docs.astral.sh/uv/); without it, `pip install avianki` and then `avianki us-ma` does the same thing. It needs Python 3.11 or newer and runs on macOS, Linux and Windows; the deck itself works in Anki Desktop, AnkiMobile and AnkiDroid.
 
 `REGION` is a catalog region: its slug (`us-ma`, `ca-qc`) or its display name (`Massachusetts`). If the name is not in the catalog, the error lists the closest matches.
 

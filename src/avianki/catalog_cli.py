@@ -27,10 +27,10 @@ from typing import Any
 import requests
 from dotenv import find_dotenv, load_dotenv
 
-# The build needs the `catalog` extra (Pillow, jsonschema, tomli). Without it these imports fail
+# The build needs the `catalog` extra (Pillow, jsonschema). Without it these imports fail
 # deep inside the pipeline, so this is the one place that turns that into a plain message; the
 # console script imports this module first, which makes even `--help` safe.
-_EXTRA_MODULES = frozenset({"PIL", "jsonschema", "tomli"})
+_EXTRA_MODULES = frozenset({"PIL", "jsonschema"})
 try:
     from avianki.catalog.build import DEFAULT_BASE_URL, BuildOptions, make_registry, run_build
     from avianki.catalog.format import FormatError, LoadedCatalog, load_catalog

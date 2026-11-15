@@ -33,8 +33,7 @@ uv run --with deptry deptry src                # undeclared or unused dependenci
 uv run pytest --integration --cov=avianki --cov-report=html # run all tests, including the integration tests, and coverage with HTML report
 uv run pytest tests/acceptance                 # build decks and import them into Anki's own backend
 # Test all Python versions we have in the classifiers
-uv python install 3.10 3.11 3.12 3.13 3.14 # one-time: install
-uv run --python 3.10 pytest
+uv python install 3.11 3.12 3.13 3.14 # one-time: install
 uv run --python 3.11 pytest
 uv run --python 3.12 pytest
 uv run --python 3.13 pytest

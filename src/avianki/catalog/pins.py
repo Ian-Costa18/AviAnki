@@ -20,7 +20,7 @@ together. A typo must never mean a takedown request quietly does nothing.
 from __future__ import annotations
 
 import re
-import sys
+import tomllib
 from collections.abc import Collection, Iterator, Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -30,10 +30,6 @@ from avianki.sources.contract import AssetKind
 from avianki.sources.registry import ORDER
 from avianki.taxonomy.species import SpeciesTable
 
-if sys.version_info >= (3, 11):
-    import tomllib
-else:  # pragma: no cover - the project supports 3.10, which has no tomllib
-    import tomli as tomllib  # ty: ignore[unresolved-import]
 
 __all__ = ["AssetRef", "Pin", "Pins", "PinsError", "load_pins", "parse_pins", "parse_ref"]
 

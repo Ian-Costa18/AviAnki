@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- **Python 3.11 or newer is now required.** Python 3.10 has reached end of life, and the security fixes for Pillow and soupsieve need 3.11. The `tomli` fallback for 3.10 is gone.
+- **Security updates** for Pillow (13.0.0), soupsieve and certifi.
+
 ## 1.0.0
 
 AviAnki 1.0 is the first stable release. It builds on 0.10 with card themes, clearer recordings and a friendlier website. From here on, an update keeps your review progress: see [Versioning](CONTRIBUTING.md#versioning) for the promise.
