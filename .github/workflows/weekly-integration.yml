@@ -22,7 +22,7 @@ permissions:
 
 jobs:
   integration:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # Playwright 1.58 has no Chromium build for ubuntu-latest (26.04)
     # The GBIF check makes about 400 uncached requests (6-8 minutes); the rest is the live deck
     # and web builds (about 200 media files each) and the BirdNET model download.
     timeout-minutes: 60

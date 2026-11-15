@@ -21,7 +21,7 @@ permissions:
 
 jobs:
   sanity-test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # Playwright 1.58 has no Chromium build for ubuntu-latest (26.04)
     env:
       TAG: ${{ inputs.tag || github.ref_name }}
     # The exact commit the tests ran on, so the publish job builds that commit even if the tag moves.
